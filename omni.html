@@ -155,12 +155,7 @@
                     <i class="fa-solid fa-file-pdf text-rose-400"></i>
                     <span>Omni PDF Engine</span>
                 </button>
-                <!-- SECRET PRO DEVELOPER CONSOLE (Hidden by default, unlocked via Secret Trigger) -->
-                <button onclick="switchTab('tab-dev')" id="btn-tab-dev" class="hidden tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-cyan-400 hover:text-cyan-200 transition-all flex items-center space-x-2 border border-cyan-500/40 bg-cyan-950/40 shadow-lg shadow-cyan-500/10">
-                    <i class="fa-solid fa-user-ninja text-cyan-400 animate-pulse"></i>
-                    <span>Pro Cyber Console</span>
-                    <span class="text-[9px] bg-cyan-950 border border-cyan-500/60 text-cyan-300 px-1.5 py-0.2 rounded font-mono uppercase">SECRET</span>
-                </button>
+
                 <button onclick="switchTab('tab-science')" id="btn-tab-science" class="tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
                     <i class="fa-solid fa-calculator text-amber-400"></i>
                     <span>Multi-Unit Converter</span>
@@ -359,128 +354,7 @@
 
 
 
-        <!-- TAB 4: SECRET PRO CYBERPUNK DEVELOPER CONSOLE -->
-        <section id="tab-dev" class="tab-content hidden space-y-6">
-            <!-- Cyberpunk Terminal Header Banner -->
-            <div class="p-6 bg-slate-950 border-2 border-cyan-500/50 rounded-3xl relative overflow-hidden shadow-2xl shadow-cyan-500/10">
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
-                    <div class="space-y-1">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                            <span class="text-xs font-mono font-extrabold text-cyan-400 uppercase tracking-widest">[SYSTEM KERNEL 4.0 :: UNLOCKED]</span>
-                        </div>
-                        <h2 class="text-xl font-black text-white flex items-center gap-2">
-                            <i class="fa-solid fa-terminal text-cyan-400"></i>
-                            <span>Pro Cyberpunk Developer Vault & Security Workbench</span>
-                        </h2>
-                        <p class="text-xs text-slate-400 font-mono">Secret high-precision cryptographic solvers, byte converters, token analyzers & line diff engines.</p>
-                    </div>
-                    <div class="flex items-center space-x-3 bg-slate-900/90 border border-cyan-500/30 rounded-2xl px-4 py-2 text-xs font-mono text-cyan-300">
-                        <span>root@omni-dev:~#</span>
-                        <span class="animate-pulse">_</span>
-                    </div>
-                </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- AES-256 Crypto Vault -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-emerald-500/30">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                            <i class="fa-solid fa-shield-halved text-emerald-400"></i>
-                            <span>AES-256 GCM Cryptographic Vault</span>
-                        </h3>
-                        <span class="text-[9px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-md">256-BIT SECURE</span>
-                    </div>
-                    <input type="text" id="aes-key" placeholder="Passphrase Secret Key..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500" />
-                    <textarea id="aes-input" rows="2" placeholder="Sensitive text payload..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
-                    <textarea id="aes-output" rows="2" readonly placeholder="Encrypted Base64 output payload..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none"></textarea>
-                    <div class="flex space-x-2">
-                        <button onclick="runAESEncrypt()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-600/20">Encrypt Payload</button>
-                        <button onclick="runAESDecrypt()" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs transition-all border border-emerald-500/30">Decrypt Payload</button>
-                    </div>
-                </div>
-
-                <!-- Radix Base Converter -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-brand-500/30">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                            <i class="fa-solid fa-calculator text-brand-400"></i>
-                            <span>Radix & Binary Byte Matrix Converter</span>
-                        </h3>
-                        <span class="text-[9px] font-mono text-brand-400 bg-brand-950/80 border border-brand-500/30 px-2 py-0.5 rounded-md">LIVE RECURSIVE</span>
-                    </div>
-                    <div class="space-y-2 text-xs font-mono">
-                        <div>
-                            <label class="block text-[10px] text-slate-400 mb-1">Decimal (Base 10)</label>
-                            <input type="text" id="radix-dec" onkeyup="convertRadix('dec')" placeholder="255" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500" />
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-slate-400 mb-1">Binary (Base 2)</label>
-                            <input type="text" id="radix-bin" onkeyup="convertRadix('bin')" placeholder="11111111" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-cyan-300 focus:outline-none focus:border-cyan-500" />
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-slate-400 mb-1">Hexadecimal (Base 16)</label>
-                            <input type="text" id="radix-hex" onkeyup="convertRadix('hex')" placeholder="FF" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-amber-300 focus:outline-none focus:border-amber-500" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- JWT Token Inspector -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-purple-500/30">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                            <i class="fa-solid fa-key text-purple-400"></i>
-                            <span>JWT Token Inspector & Decoder</span>
-                        </h3>
-                        <span class="text-[9px] font-mono text-purple-400 bg-purple-950/80 border border-purple-500/30 px-2 py-0.5 rounded-md">HEADER + PAYLOAD</span>
-                    </div>
-                    <textarea id="jwt-input" rows="2" placeholder="Paste JWT Token (eyJhbGciOi...)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-purple-300 focus:outline-none focus:border-purple-500"></textarea>
-                    <textarea id="jwt-output" rows="3" readonly placeholder="Parsed Header & Claims JSON..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-300 focus:outline-none"></textarea>
-                    <button onclick="inspectJWT()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-lg shadow-purple-600/20">Inspect Token Claims</button>
-                </div>
-
-                <!-- Visual Line Diff -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-amber-500/30">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                            <i class="fa-solid fa-file-diff text-amber-400"></i>
-                            <span>Visual Code Line Diff & Analyzer</span>
-                        </h3>
-                        <span class="text-[9px] font-mono text-amber-400 bg-amber-950/80 border border-amber-500/30 px-2 py-0.5 rounded-md">DELTA SYNC</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <textarea id="diff-text-a" rows="3" placeholder="Original Text..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-amber-500"></textarea>
-                        <textarea id="diff-text-b" rows="3" placeholder="Modified Text..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-amber-500"></textarea>
-                    </div>
-                    <div id="diff-result-container" class="h-24 bg-slate-950 border border-slate-800 rounded-xl p-2 overflow-y-auto"></div>
-                    <button onclick="runVisualDiff()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all shadow-lg shadow-amber-600/20">Analyze Line Differences</button>
-                </div>
-
-                <!-- Cryptographic SHA Checksum Generator -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-cyan-500/30">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                            <i class="fa-solid fa-fingerprint text-cyan-400"></i>
-                            <span>SHA & Cryptographic Checksum Generator</span>
-                        </h3>
-                        <span class="text-[9px] font-mono text-cyan-400 bg-cyan-950/80 border border-cyan-500/30 px-2 py-0.5 rounded-md">SHA-256 / SHA-512</span>
-                    </div>
-                    <textarea id="hash-input" rows="2" placeholder="Paste string payload to compute hashes..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500" onkeyup="calculateHashes()"></textarea>
-                    <div class="space-y-2 text-xs font-mono">
-                        <div>
-                            <label class="block text-[10px] text-slate-400 mb-1">SHA-256 Hash</label>
-                            <input type="text" id="hash-sha256" readonly placeholder="Calculated SHA-256..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-emerald-400 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-slate-400 mb-1">SHA-512 Hash</label>
-                            <input type="text" id="hash-sha512" readonly placeholder="Calculated SHA-512..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-cyan-400 focus:outline-none" />
-                        </div>
-                    </div>
-                    <button onclick="calculateHashes()" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-all shadow-lg shadow-cyan-600/20">Generate Hashes</button>
-                </div>
-            </div>
-        </section>
 
         <!-- TAB 4: MULTI-UNIT CONVERTER -->
         <section id="tab-science" class="tab-content hidden space-y-6">

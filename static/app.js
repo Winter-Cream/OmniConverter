@@ -2594,86 +2594,6 @@ async function runPDFRotate() {
 }
 window.runPDFRotate = runPDFRotate;
 
-// ==================== SECRET PRO DEVELOPER CONSOLE UNLOCK LOGIC ====================
-let secretClickCounter = 0;
-let secretClickTimer = null;
-
-function triggerProSecretUnlock(event) {
-  if (event) event.stopPropagation();
-  secretClickCounter++;
-  
-  if (secretClickTimer) clearTimeout(secretClickTimer);
-  secretClickTimer = setTimeout(() => { secretClickCounter = 0; }, 1200);
-
-  if (secretClickCounter >= 3) {
-    secretClickCounter = 0;
-    unlockProDevConsole(true);
-  } else {
-    showToast(`Pro Unlock Sequence: ${secretClickCounter}/3 clicks...`, "info");
-  }
-}
-window.triggerProSecretUnlock = triggerProSecretUnlock;
-
-function unlockProDevConsole(autoSwitch = false) {
-  const btn = document.getElementById("btn-tab-dev");
-  if (btn) {
-    btn.classList.remove("hidden");
-    localStorage.setItem("omni_pro_dev_unlocked", "true");
-    showToast("🔓 [SYS_ACCESS_GRANTED] Pro Cyberpunk Developer Vault Unlocked!", "success");
-    if (typeof playAudioSFX === "function") playAudioSFX("quest");
-    if (typeof triggerConfetti === "function") triggerConfetti();
-    if (autoSwitch && typeof switchTab === "function") {
-      switchTab("tab-dev");
-    }
-  }
-}
-window.unlockProDevConsole = unlockProDevConsole;
-
-// Keyboard Cheat Code Shortcuts (Ctrl+Shift+D or ` tilde)
-document.addEventListener("keydown", (e) => {
-  if ((e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "d") || e.key === "~" || e.key === "`") {
-    // Only trigger if not actively typing inside an input/textarea
-    if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
-    e.preventDefault();
-    unlockProDevConsole(true);
-  }
-});
-
-// Auto-check on Page Load
-document.addEventListener("DOMContentLoaded", () => {
-  if (localStorage.getItem("omni_pro_dev_unlocked") === "true") {
-    const btn = document.getElementById("btn-tab-dev");
-    if (btn) btn.classList.remove("hidden");
-  }
-});
-
-async function calculateHashes() {
-  const text = document.getElementById("hash-input")?.value || "";
-  const sha256El = document.getElementById("hash-sha256");
-  const sha512El = document.getElementById("hash-sha512");
-  if (!text) {
-    if (sha256El) sha256El.value = "";
-    if (sha512El) sha512El.value = "";
-    return;
-  }
-
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
-
-  try {
-    const buf256 = await crypto.subtle.digest("SHA-256", data);
-    const hash256 = Array.from(new Uint8Array(buf256)).map(b => b.toString(16).padStart(2, '0')).join('');
-    if (sha256El) sha256El.value = hash256;
-
-    const buf512 = await crypto.subtle.digest("SHA-512", data);
-    const hash512 = Array.from(new Uint8Array(buf512)).map(b => b.toString(16).padStart(2, '0')).join('');
-    if (sha512El) sha512El.value = hash512;
-  } catch (e) {
-    console.error(e);
-  }
-}
-window.calculateHashes = calculateHashes;
-
 // ==================== SPOTLIGHT COMMAND PALETTE ENGINE (CTRL + K) ====================
 const APP_COMMAND_REGISTRY = [
   { id: "cmd-merge-pdf", title: "Merge PDFs", cat: "PDF Suite", icon: "fa-file-circle-plus", action: () => { switchTab('tab-pdf'); focusElem('pdf-merge-input'); } },
@@ -2682,11 +2602,7 @@ const APP_COMMAND_REGISTRY = [
   { id: "cmd-protect-pdf", title: "Encrypt PDF Document", cat: "PDF Suite", icon: "fa-lock", action: () => { switchTab('tab-pdf'); focusElem('pdf-protect-pass'); } },
   { id: "cmd-unlock-pdf", title: "Decrypt Locked PDF", cat: "PDF Suite", icon: "fa-lock-open", action: () => { switchTab('tab-pdf'); focusElem('pdf-unlock-pass'); } },
   { id: "cmd-rotate-pdf", title: "Rotate PDF Pages", cat: "PDF Suite", icon: "fa-rotate-right", action: () => { switchTab('tab-pdf'); focusElem('pdf-rotate-input'); } },
-  { id: "cmd-unit-converter", title: "Exhaustive Multi-Unit Converter (10 Categories, 100+ Units)", cat: "Unit Converter", icon: "fa-calculator", action: () => { switchTab('tab-science'); } },
-  { id: "cmd-aes-crypto", title: "AES-256 GCM Encryption Vault", cat: "Pro Cyber Console", icon: "fa-shield-halved", action: () => { unlockProDevConsole(true); focusElem('aes-key'); } },
-  { id: "cmd-jwt-inspect", title: "JWT Token Inspector", cat: "Pro Cyber Console", icon: "fa-key", action: () => { unlockProDevConsole(true); focusElem('jwt-input'); } },
-  { id: "cmd-line-diff", title: "Visual Code Line Diff", cat: "Pro Cyber Console", icon: "fa-file-diff", action: () => { unlockProDevConsole(true); focusElem('diff-text-a'); } },
-  { id: "cmd-hash-gen", title: "SHA-256 & SHA-512 Checksum Generator", cat: "Pro Cyber Console", icon: "fa-fingerprint", action: () => { unlockProDevConsole(true); focusElem('hash-input'); } }
+  { id: "cmd-unit-converter", title: "Exhaustive Multi-Unit Converter (10 Categories, 100+ Units)", cat: "Unit Converter", icon: "fa-calculator", action: () => { switchTab('tab-science'); } }
 ];
 
 function toggleCommandPalette() {
