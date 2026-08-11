@@ -167,8 +167,8 @@
                     <span class="text-[9px] bg-cyan-950 border border-cyan-500/60 text-cyan-300 px-1.5 py-0.2 rounded font-mono uppercase">SECRET</span>
                 </button>
                 <button onclick="switchTab('tab-science')" id="btn-tab-science" class="tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
-                    <i class="fa-solid fa-atom text-amber-400"></i>
-                    <span data-i18n="scienceLab">Science & Multi-Lab</span>
+                    <i class="fa-solid fa-calculator text-amber-400"></i>
+                    <span>Multi-Unit Converter</span>
                 </button>
                 <button onclick="switchTab('tab-stats')" id="btn-tab-stats" class="tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
                     <i class="fa-solid fa-chart-pie text-emerald-400"></i>
@@ -564,245 +564,48 @@
             </div>
         </section>
 
-        <!-- TAB 5: SCIENCE MULTI-LAB -->
+        <!-- TAB 4: MULTI-UNIT CONVERTER -->
         <section id="tab-science" class="tab-content hidden space-y-6">
-            <!-- Science Subtabs Navigation -->
-            <div class="flex items-center space-x-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl">
-                <button onclick="switchScienceSubTab('subtab-ptable', this)" class="subtab-btn bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Periodic Table</button>
-                <button onclick="switchScienceSubTab('subtab-chemistry', this)" class="subtab-btn text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Chemistry Solvers</button>
-                <button onclick="switchScienceSubTab('subtab-physics', this)" class="subtab-btn text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Physics Solvers</button>
-                <button onclick="switchScienceSubTab('subtab-units', this)" class="subtab-btn text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Unit Converter</button>
-            </div>
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6 max-w-5xl mx-auto border border-amber-500/30">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-calculator text-amber-400 text-lg"></i>
+                            <span>Exhaustive Multi-Unit Converter Engine</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Convert data storage, length, weight, speed, temperature, volume, area, time, pressure & energy in real time.</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold">100+ UNITS</span>
+                </div>
 
-            <!-- SUBTAB 1: Interactive Periodic Table -->
-            <div id="subtab-ptable" class="science-subtab space-y-4">
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                        <div>
-                            <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                                <i class="fa-solid fa-atom text-amber-400"></i>
-                                <span>Interactive Periodic Table & Inspector</span>
-                            </h3>
-                            <p class="text-[10px] text-slate-400">Click any element to inspect atomic data or inject directly into Chemistry Solvers.</p>
+                <!-- 10 Category Selector Pill Bar -->
+                <div class="flex flex-wrap items-center gap-2 pb-2 text-xs">
+                    <button onclick="setUnitCategory('data', this)" class="unit-cat-btn bg-amber-500 text-slate-950 px-3.5 py-1.5 rounded-xl font-bold shadow-md">Data Storage</button>
+                    <button onclick="setUnitCategory('length', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Length / Distance</button>
+                    <button onclick="setUnitCategory('weight', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Weight / Mass</button>
+                    <button onclick="setUnitCategory('speed', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Speed / Velocity</button>
+                    <button onclick="setUnitCategory('temperature', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Temperature</button>
+                    <button onclick="setUnitCategory('area', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Area</button>
+                    <button onclick="setUnitCategory('volume', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Volume</button>
+                    <button onclick="setUnitCategory('time', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Time</button>
+                    <button onclick="setUnitCategory('energy', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Energy</button>
+                    <button onclick="setUnitCategory('pressure', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Pressure</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">From Input Value</label>
+                        <div class="flex space-x-2">
+                            <input type="number" id="unit-val-from" value="10" onkeyup="calculateUnitConversion()" onchange="calculateUnitConversion()" class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-amber-500" />
+                            <select id="unit-type-from" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500 max-w-[200px]"></select>
                         </div>
-                        <input type="text" id="ptable-search" onkeyup="filterPeriodicTable()" placeholder="Search element, symbol, or #..." class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 w-full md:w-64" />
                     </div>
 
-                    <!-- Category Filter Pill Bar -->
-                    <div class="flex flex-wrap gap-1.5 text-xs">
-                        <button onclick="filterElemCategory('all', this)" class="elem-filter-btn px-3 py-1 rounded-xl bg-amber-500 text-slate-950 font-bold">All</button>
-                        <button onclick="filterElemCategory('metal', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Metals</button>
-                        <button onclick="filterElemCategory('elem-nonmetal', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Nonmetals</button>
-                        <button onclick="filterElemCategory('elem-noble', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Noble Gases</button>
-                        <button onclick="filterElemCategory('elem-metalloid', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Metalloids</button>
-                        <button onclick="filterElemCategory('elem-halogen', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Halogens</button>
-                    </div>
-
-                    <!-- Grid of Element Cards -->
-                    <div id="periodic-table-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 py-2 max-h-[500px] overflow-y-auto pr-1"></div>
-                </div>
-            </div>
-
-            <!-- SUBTAB 2: Chemistry Solvers -->
-            <div id="subtab-chemistry" class="science-subtab hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- 1. Molar Mass Solver -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-vial text-emerald-400"></i>
-                        <span>Molar Mass Calculator</span>
-                    </h3>
-                    <input type="text" id="molar-formula-input" value="H2SO4" placeholder="Chemical Formula (e.g. C6H12O6)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300" />
-                    <div id="molar-result-out" class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono">Result will appear here...</div>
-                    <button onclick="solveMolarMass()" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">Calculate Molar Mass</button>
-                </div>
-
-                <!-- 2. Ideal Gas Law -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-cloud text-purple-400"></i>
-                        <span>Ideal Gas Law (PV = nRT)</span>
-                    </h3>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <input type="text" id="gas-p" placeholder="P (atm)" value="1" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="gas-v" placeholder="V (L)" value="22.4" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="gas-n" placeholder="n (mol)" value="1" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="gas-t" placeholder="T (K)" value="273.15" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                    </div>
-                    <select id="gas-target" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-bold text-purple-300">
-                        <option value="P">Solve for Pressure (P)</option>
-                        <option value="V">Solve for Volume (V)</option>
-                        <option value="n">Solve for Moles (n)</option>
-                        <option value="T">Solve for Temp (T)</option>
-                    </select>
-                    <div id="gas-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-purple-300 font-mono">Result: -</div>
-                    <button onclick="solveIdealGas()" class="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs">Solve Ideal Gas</button>
-                </div>
-
-                <!-- 3. Dilution Calculator -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-droplet text-cyan-400"></i>
-                        <span>Solution Dilution (M1V1 = M2V2)</span>
-                    </h3>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <input type="text" id="dil-m1" placeholder="M1 (Molar)" value="12" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="dil-v1" placeholder="V1 (mL)" value="50" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="dil-m2" placeholder="M2 (Molar)" value="1" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="dil-v2" placeholder="V2 (mL)" value="600" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                    </div>
-                    <select id="dil-target" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-bold text-cyan-300">
-                        <option value="M2">Solve for M2</option>
-                        <option value="V2">Solve for V2</option>
-                    </select>
-                    <div id="dil-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-cyan-300 font-mono">Result: -</div>
-                    <button onclick="solveDilution()" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs">Solve Dilution</button>
-                </div>
-
-                <!-- 4. pH & pOH Solver -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-flask text-amber-400"></i>
-                        <span>pH & pOH Calculator</span>
-                    </h3>
-                    <input type="text" id="ph-conc-input" value="0.0001" placeholder="[H+] Concentration (mol/L)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-amber-300 font-mono" />
-                    <div id="ph-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-amber-300 font-mono">Result: -</div>
-                    <button onclick="solvepH()" class="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs">Solve pH</button>
-                </div>
-
-                <!-- 5. Reaction Yield & Stoichiometry -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-flask-vial text-pink-400"></i>
-                        <span>Reaction Yield & Stoichiometry</span>
-                    </h3>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <input type="text" id="yield-actual" placeholder="Actual Yield (g)" value="8.5" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="yield-theo" placeholder="Theoretical Yield (g)" value="10.0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                    </div>
-                    <div id="yield-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-pink-300 font-mono">Result: -</div>
-                    <button onclick="solveChemYield()" class="w-full py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs">Calculate Yield %</button>
-                </div>
-
-                <!-- 6. Beer-Lambert Law Spectrophotometry -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-vial-circle-check text-indigo-400"></i>
-                        <span>Beer-Lambert Law Absorbance (A = ε·c·l)</span>
-                    </h3>
-                    <div class="grid grid-cols-3 gap-2 text-xs">
-                        <input type="text" id="beer-e" placeholder="Molar Absorptivity ε" value="150" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="beer-c" placeholder="Conc c (mol/L)" value="0.02" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="beer-l" placeholder="Path Length l (cm)" value="1.0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                    </div>
-                    <div id="beer-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-indigo-300 font-mono">Result: -</div>
-                    <button onclick="solveBeerLambert()" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">Calculate Absorbance A</button>
-                </div>
-            </div>
-
-            <!-- SUBTAB 3: Physics Solvers -->
-            <div id="subtab-physics" class="science-subtab hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- 1. Kinematics Solver -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-gauge-high text-indigo-400"></i>
-                        <span>Kinematics (v = u + at, s = ut + 0.5at²)</span>
-                    </h3>
-                    <div class="grid grid-cols-3 gap-2 text-xs">
-                        <input type="text" id="kin-u" placeholder="u (m/s)" value="0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="kin-a" placeholder="a (m/s²)" value="9.8" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="kin-t" placeholder="t (s)" value="5" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                    </div>
-                    <div id="kin-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-indigo-300 font-mono">Result: -</div>
-                    <button onclick="solvePhysicsKinematics()" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">Solve Kinematics</button>
-                </div>
-
-                <!-- 2. Ohm's Law Calculator -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-bolt text-amber-400"></i>
-                        <span>Ohm's Law & Power (V = IR, P = VI)</span>
-                    </h3>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <input type="text" id="ohm-v" placeholder="Voltage V (Volts)" value="12" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="ohm-r" placeholder="Resistance R (Ohms)" value="4" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                    </div>
-                    <div id="ohm-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-amber-300 font-mono">Result: -</div>
-                    <button onclick="solvePhysicsOhm()" class="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs">Solve Ohm's Law</button>
-                </div>
-
-                <!-- 3. Relativity Mass-Energy & Time Dilation (E = mc²) -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-atom text-purple-400"></i>
-                        <span>Special Relativity & Time Dilation (E = mc²)</span>
-                    </h3>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <input type="text" id="rel-m" placeholder="Mass m (kg)" value="1.0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                        <input type="text" id="rel-v" placeholder="Speed v (% of c)" value="80" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
-                    </div>
-                    <div id="rel-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-purple-300 font-mono">Result: -</div>
-                    <button onclick="solvePhysicsRelativity()" class="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs">Calculate E = mc² & γ</button>
-                </div>
-
-                <!-- 4. Universal Gravitation (F = G*m1*m2 / r²) -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-globe text-cyan-400"></i>
-                        <span>Universal Gravitation (F = G·m1·m2 / r²)</span>
-                    </h3>
-                    <div class="grid grid-cols-3 gap-2 text-xs">
-                        <input type="text" id="grav-m1" placeholder="m1 (kg)" value="5.972e24" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200 font-mono" />
-                        <input type="text" id="grav-m2" placeholder="m2 (kg)" value="70" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200 font-mono" />
-                        <input type="text" id="grav-r" placeholder="r (meters)" value="6.371e6" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200 font-mono" />
-                    </div>
-                    <div id="grav-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-cyan-300 font-mono">Result: -</div>
-                    <button onclick="solvePhysicsGravitation()" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs">Calculate Gravity Force</button>
-                </div>
-
-                <!-- 5. Photon Energy & Wavelength (E = hf = hc/λ) -->
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-sun text-emerald-400"></i>
-                        <span>Photon Energy & Wavelength (E = hc/λ)</span>
-                    </h3>
-                    <input type="text" id="photon-wl" placeholder="Wavelength λ (nanometers nm)..." value="500" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-emerald-300 font-mono" />
-                    <div id="photon-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-emerald-300 font-mono">Result: -</div>
-                    <button onclick="solvePhysicsPhoton()" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">Calculate Photon Energy</button>
-                </div>
-            </div>
-
-            <!-- SUBTAB 4: Multi-Unit Converter -->
-            <div id="subtab-units" class="science-subtab hidden space-y-4">
-                <div class="glass-panel p-6 rounded-3xl space-y-4">
-                    <!-- 10 Category Selector Pill Bar -->
-                    <div class="flex flex-wrap items-center gap-1.5 pb-3 border-b border-slate-800 text-xs">
-                        <button onclick="setUnitCategory('data', this)" class="unit-cat-btn bg-amber-500 text-slate-950 px-3 py-1.5 rounded-xl font-bold">Data Storage</button>
-                        <button onclick="setUnitCategory('length', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Length</button>
-                        <button onclick="setUnitCategory('weight', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Weight / Mass</button>
-                        <button onclick="setUnitCategory('speed', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Speed</button>
-                        <button onclick="setUnitCategory('temperature', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Temperature</button>
-                        <button onclick="setUnitCategory('area', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Area</button>
-                        <button onclick="setUnitCategory('volume', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Volume</button>
-                        <button onclick="setUnitCategory('time', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Time</button>
-                        <button onclick="setUnitCategory('energy', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Energy</button>
-                        <button onclick="setUnitCategory('pressure', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Pressure</button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                        <div class="space-y-2">
-                            <label class="block text-xs font-bold text-slate-400">From Value</label>
-                            <div class="flex space-x-2">
-                                <input type="number" id="unit-val-from" value="10" onkeyup="calculateUnitConversion()" class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" />
-                                <select id="unit-type-from" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 max-w-[200px]"></select>
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label class="block text-xs font-bold text-slate-400">To Converted Result</label>
-                            <div class="flex space-x-2">
-                                <input type="text" id="unit-val-to" readonly class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold font-mono" />
-                                <select id="unit-type-to" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 max-w-[200px]"></select>
-                            </div>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">To Converted Result</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="unit-val-to" readonly class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-amber-300 font-bold font-mono focus:outline-none" />
+                            <select id="unit-type-to" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500 max-w-[200px]"></select>
                         </div>
                     </div>
                 </div>
