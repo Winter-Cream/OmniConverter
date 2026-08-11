@@ -36,7 +36,6 @@ const appState = {
 const I18N_DICT = {
   en: {
     appTitle: "OmniConverter PRO 4.0",
-    appSub: "Files • Gemini AI • Security • Physics • Chemistry",
     fileHub: "File Hub",
     aiStudio: "Gemini AI Studio",
     devWorkbench: "Dev & Security Workbench",
