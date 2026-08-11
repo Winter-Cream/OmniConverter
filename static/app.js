@@ -193,6 +193,18 @@ const I18N_DICT = {
 // INITIALIZATION
 document.addEventListener("DOMContentLoaded", () => {
   loadSavedState();
+
+  // Apply saved theme preference
+  const savedTheme = localStorage.getItem("omni_theme") || "dark";
+  if (savedTheme === "light") {
+    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.add("light");
+  } else {
+    document.documentElement.classList.remove("light");
+    document.documentElement.classList.add("dark");
+  }
+  if (typeof updateThemeUI === "function") updateThemeUI();
+
   checkBackendHealth();
   initDragAndDrop();
   renderPeriodicTable();
@@ -311,31 +323,140 @@ function initDragAndDrop() {
   });
 }
 
+// THEME ENGINE LOGIC (LIGHT / DARK THEMES)
+function toggleTheme() {
+  const isLight = document.documentElement.classList.contains("light");
+  if (isLight) {
+    document.documentElement.classList.remove("light");
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("omni_theme", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.add("light");
+    localStorage.setItem("omni_theme", "light");
+  }
+  updateThemeUI();
+  showToast(`Theme switched to ${isLight ? "Dark Mode" : "Light Mode"}`, "info");
+}
+window.toggleTheme = toggleTheme;
+
+function updateThemeUI() {
+  const isLight = document.documentElement.classList.contains("light");
+  const btn = document.getElementById("theme-toggle-btn");
+  if (btn) {
+    btn.innerHTML = isLight ? `<i class="fa-solid fa-moon text-indigo-600 text-xs"></i>` : `<i class="fa-solid fa-sun text-amber-400 text-xs"></i>`;
+    btn.title = isLight ? "Switch to Dark Mode" : "Switch to Light Mode";
+  }
+}
+
+// CONTEXT-AWARE FILE CATEGORY DETECTION
+function getFileCategory(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (["mp4", "webm", "avi", "mov", "mkv"].includes(ext)) return "video";
+  if (["mp3", "wav", "aac", "flac", "ogg", "m4a"].includes(ext)) return "audio";
+  if (["png", "jpg", "jpeg", "webp", "gif", "bmp", "ico", "tiff"].includes(ext)) return "image";
+  return "document";
+}
+
+function getDefaultTargetFormatForCategory(category, filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (category === "video") return "mp4";
+  if (category === "audio") return "mp3";
+  if (category === "image") return ext === "webp" ? "png" : "webp";
+  if (ext === "pdf") return "docx";
+  if (ext === "docx") return "pdf";
+  if (ext === "xlsx" || ext === "csv") return "json";
+  return "pdf";
+}
+
 function handleFiles(files) {
   for (let file of files) {
-    appState.queue.push({
+    const category = getFileCategory(file.name);
+    const item = {
       id: Date.now() + Math.random().toString(36).substring(2, 7),
       file: file,
+      category: category,
       status: "queued",
-      targetFormat: getDefaultTargetFormat(file.name),
-      progress: 0
-    });
+      targetFormat: getDefaultTargetFormatForCategory(category, file.name),
+      progress: 0,
+      videoQuality: "Original",
+      stripAudio: false,
+      audioBitrate: "320k",
+      resizeWidth: "",
+      resizeHeight: "",
+      scale: 100,
+      lockAspect: true,
+      aspectRatio: 1,
+      compressionQuality: 85
+    };
+
+    if (category === "image") {
+      const img = new Image();
+      img.onload = () => {
+        item.aspectRatio = (img.width || 1) / (img.height || 1);
+        item.originalWidth = img.width;
+        item.originalHeight = img.height;
+        item.resizeWidth = img.width;
+        item.resizeHeight = img.height;
+        renderQueue();
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
+    appState.queue.push(item);
   }
   renderQueue();
   playSFX(880, "sine");
   showToast(`Added ${files.length} file(s) to queue.`, "info");
 }
 
-function getDefaultTargetFormat(filename) {
-  const ext = filename.split(".").pop().toLowerCase();
-  if (["png", "jpg", "jpeg", "bmp", "gif"].includes(ext)) return "webp";
-  if (["pdf"].includes(ext)) return "docx";
-  if (["docx"].includes(ext)) return "pdf";
-  if (["xlsx", "csv"].includes(ext)) return "json";
-  if (["mp4", "mkv", "avi"].includes(ext)) return "mp3";
-  if (["wav", "m4a", "flac"].includes(ext)) return "mp3";
-  return "pdf";
+function updateQueueItemOption(id, key, val) {
+  const item = appState.queue.find(q => q.id === id);
+  if (item) {
+    item[key] = val;
+    renderQueue();
+  }
 }
+window.updateQueueItemOption = updateQueueItemOption;
+
+function toggleAspectLock(id) {
+  const item = appState.queue.find(q => q.id === id);
+  if (item) {
+    item.lockAspect = !item.lockAspect;
+    renderQueue();
+  }
+}
+window.toggleAspectLock = toggleAspectLock;
+
+function updateImageScale(id, scaleVal) {
+  const item = appState.queue.find(q => q.id === id);
+  if (!item) return;
+  item.scale = parseInt(scaleVal, 10);
+  if (item.originalWidth && item.originalHeight) {
+    const factor = item.scale / 100;
+    item.resizeWidth = Math.round(item.originalWidth * factor);
+    item.resizeHeight = Math.round(item.originalHeight * factor);
+  }
+  renderQueue();
+}
+window.updateImageScale = updateImageScale;
+
+function updateImageDimensions(id, field, val) {
+  const item = appState.queue.find(q => q.id === id);
+  if (!item) return;
+  const numVal = parseInt(val, 10) || 0;
+  item[field === "width" ? "resizeWidth" : "resizeHeight"] = numVal;
+
+  if (item.lockAspect && item.aspectRatio && numVal > 0) {
+    if (field === "width") {
+      item.resizeHeight = Math.round(numVal / item.aspectRatio);
+    } else {
+      item.resizeWidth = Math.round(numVal * item.aspectRatio);
+    }
+  }
+  renderQueue();
+}
+window.updateImageDimensions = updateImageDimensions;
 
 function updateQueueItemFormat(id, newFmt) {
   const item = appState.queue.find(q => q.id === id);
@@ -355,40 +476,179 @@ function renderQueue() {
     return;
   }
 
-  container.innerHTML = appState.queue.map(item => `
-    <div class="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center space-x-3 w-full sm:w-auto truncate">
-        <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-mono font-bold text-xs">
-          .${item.file.name.split('.').pop()}
-        </div>
-        <div class="truncate">
-          <h4 class="text-xs font-bold text-slate-200 truncate">${escapeHTML(item.file.name)}</h4>
-          <p class="text-[10px] text-slate-400 font-mono">${(item.file.size / 1024).toFixed(1)} KB</p>
-        </div>
-      </div>
+  container.innerHTML = appState.queue.map(item => {
+    const ext = item.file.name.split('.').pop();
 
-      <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
-        <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 font-bold focus:outline-none focus:border-brand-500">
-          <option value="pdf" ${item.targetFormat === 'pdf' ? 'selected' : ''}>→ PDF</option>
-          <option value="docx" ${item.targetFormat === 'docx' ? 'selected' : ''}>→ DOCX</option>
-          <option value="txt" ${item.targetFormat === 'txt' ? 'selected' : ''}>→ TXT</option>
-          <option value="html" ${item.targetFormat === 'html' ? 'selected' : ''}>→ HTML</option>
-          <option value="png" ${item.targetFormat === 'png' ? 'selected' : ''}>→ PNG</option>
-          <option value="jpg" ${item.targetFormat === 'jpg' ? 'selected' : ''}>→ JPG</option>
-          <option value="webp" ${item.targetFormat === 'webp' ? 'selected' : ''}>→ WEBP</option>
-          <option value="ico" ${item.targetFormat === 'ico' ? 'selected' : ''}>→ ICO</option>
-          <option value="json" ${item.targetFormat === 'json' ? 'selected' : ''}>→ JSON</option>
-          <option value="csv" ${item.targetFormat === 'csv' ? 'selected' : ''}>→ CSV</option>
-          <option value="mp3" ${item.targetFormat === 'mp3' ? 'selected' : ''}>→ MP3</option>
-          <option value="wav" ${item.targetFormat === 'wav' ? 'selected' : ''}>→ WAV</option>
-        </select>
+    let controlsHTML = "";
+    if (item.category === "video") {
+      controlsHTML = `
+        <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fa-solid fa-video text-purple-400"></i> Video Export Options
+            </span>
+            <div class="flex items-center space-x-2">
+              <label class="text-[10px] text-slate-300 font-bold">Export Format:</label>
+              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-brand-300 font-bold focus:outline-none">
+                <option value="mp4" ${item.targetFormat === 'mp4' ? 'selected' : ''}>MP4 Video</option>
+                <option value="webm" ${item.targetFormat === 'webm' ? 'selected' : ''}>WEBM Video</option>
+                <option value="gif" ${item.targetFormat === 'gif' ? 'selected' : ''}>Animated GIF</option>
+                <optgroup label="Extract Audio Only">
+                  <option value="mp3" ${item.targetFormat === 'mp3' ? 'selected' : ''}>MP3 Audio Only</option>
+                  <option value="wav" ${item.targetFormat === 'wav' ? 'selected' : ''}>WAV Audio Only</option>
+                  <option value="aac" ${item.targetFormat === 'aac' ? 'selected' : ''}>AAC Audio Only</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
 
-        <button onclick="removeQueueItem('${item.id}')" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all">
-          <i class="fa-solid fa-trash-can text-xs"></i>
-        </button>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Quality Preset</label>
+              <select onchange="updateQueueItemOption('${item.id}', 'videoQuality', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 font-semibold">
+                <option value="Original" ${item.videoQuality === 'Original' ? 'selected' : ''}>Original Resolution</option>
+                <option value="1080p" ${item.videoQuality === '1080p' ? 'selected' : ''}>1080p (Full HD)</option>
+                <option value="720p" ${item.videoQuality === '720p' ? 'selected' : ''}>720p (HD)</option>
+                <option value="480p" ${item.videoQuality === '480p' ? 'selected' : ''}>480p (SD)</option>
+                <option value="360p" ${item.videoQuality === '360p' ? 'selected' : ''}>360p (Low)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-4">
+              <input type="checkbox" id="strip-audio-${item.id}" ${item.stripAudio ? 'checked' : ''} onchange="updateQueueItemOption('${item.id}', 'stripAudio', this.checked)" class="w-4 h-4 accent-rose-500 rounded" />
+              <label for="strip-audio-${item.id}" class="text-xs font-bold text-rose-400 cursor-pointer">
+                Strip Audio (Mute Video)
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+    } 
+    else if (item.category === "audio") {
+      controlsHTML = `
+        <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fa-solid fa-music text-emerald-400"></i> Audio Export Options
+            </span>
+            <div class="flex items-center space-x-2">
+              <label class="text-[10px] text-slate-300 font-bold">Target Audio Format:</label>
+              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-300 font-bold focus:outline-none">
+                <option value="mp3" ${item.targetFormat === 'mp3' ? 'selected' : ''}>MP3 Audio</option>
+                <option value="wav" ${item.targetFormat === 'wav' ? 'selected' : ''}>WAV Audio</option>
+                <option value="aac" ${item.targetFormat === 'aac' ? 'selected' : ''}>AAC Audio</option>
+                <option value="flac" ${item.targetFormat === 'flac' ? 'selected' : ''}>FLAC Audio</option>
+                <option value="ogg" ${item.targetFormat === 'ogg' ? 'selected' : ''}>OGG Audio</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-1 border-t border-slate-800/80">
+            <label class="block text-[10px] text-slate-400 mb-1">Audio Bitrate / Quality</label>
+            <select onchange="updateQueueItemOption('${item.id}', 'audioBitrate', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 font-semibold">
+              <option value="320k" ${item.audioBitrate === '320k' ? 'selected' : ''}>320 kbps (Ultra High)</option>
+              <option value="256k" ${item.audioBitrate === '256k' ? 'selected' : ''}>256 kbps (High Quality)</option>
+              <option value="192k" ${item.audioBitrate === '192k' ? 'selected' : ''}>192 kbps (Standard)</option>
+              <option value="128k" ${item.audioBitrate === '128k' ? 'selected' : ''}>128 kbps (Compact)</option>
+            </select>
+          </div>
+        </div>
+      `;
+    }
+    else if (item.category === "image") {
+      controlsHTML = `
+        <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fa-solid fa-image text-cyan-400"></i> Image Resize & Compression
+            </span>
+            <div class="flex items-center space-x-2">
+              <label class="text-[10px] text-slate-300 font-bold">Target Image Format:</label>
+              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-cyan-300 font-bold focus:outline-none">
+                <option value="png" ${item.targetFormat === 'png' ? 'selected' : ''}>PNG Image</option>
+                <option value="jpg" ${item.targetFormat === 'jpg' ? 'selected' : ''}>JPG Image</option>
+                <option value="webp" ${item.targetFormat === 'webp' ? 'selected' : ''}>WEBP Image</option>
+                <option value="ico" ${item.targetFormat === 'ico' ? 'selected' : ''}>ICO Favicon</option>
+                <option value="bmp" ${item.targetFormat === 'bmp' ? 'selected' : ''}>BMP Image</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-800/80">
+            <div class="space-y-1">
+              <label class="block text-[10px] text-slate-400">Image Dimensions (px)</label>
+              <div class="flex items-center space-x-1.5">
+                <input type="number" placeholder="W" value="${item.resizeWidth || ''}" onchange="updateImageDimensions('${item.id}', 'width', this.value)" class="w-20 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono" />
+                <span class="text-slate-500">×</span>
+                <input type="number" placeholder="H" value="${item.resizeHeight || ''}" onchange="updateImageDimensions('${item.id}', 'height', this.value)" class="w-20 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono" />
+                
+                <button onclick="toggleAspectLock('${item.id}')" title="Aspect Ratio Lock" class="p-1.5 rounded-lg ${item.lockAspect ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' : 'bg-slate-900 text-slate-500 border border-slate-800'} transition-all">
+                  <i class="fa-solid ${item.lockAspect ? 'fa-link' : 'fa-link-slash'} text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px]">
+                <span class="text-slate-400">Scale Ratio</span>
+                <span class="font-bold text-cyan-400 font-mono">${item.scale}%</span>
+              </div>
+              <input type="range" min="50" max="200" step="5" value="${item.scale}" oninput="updateImageScale('${item.id}', this.value)" class="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
+            </div>
+          </div>
+
+          <div class="pt-1 space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Compression Quality</span>
+              <span class="font-bold text-amber-400 font-mono">${item.compressionQuality}%</span>
+            </div>
+            <input type="range" min="10" max="100" step="5" value="${item.compressionQuality}" oninput="updateQueueItemOption('${item.id}', 'compressionQuality', parseInt(this.value, 10))" class="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+          </div>
+        </div>
+      `;
+    } 
+    else {
+      controlsHTML = `
+        <div class="flex items-center space-x-3">
+          <label class="text-xs font-bold text-slate-400">Target Format:</label>
+          <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-brand-300 font-bold focus:outline-none focus:border-brand-500">
+            <option value="pdf" ${item.targetFormat === 'pdf' ? 'selected' : ''}>PDF Document</option>
+            <option value="docx" ${item.targetFormat === 'docx' ? 'selected' : ''}>Word DOCX</option>
+            <option value="txt" ${item.targetFormat === 'txt' ? 'selected' : ''}>Plain Text TXT</option>
+            <option value="html" ${item.targetFormat === 'html' ? 'selected' : ''}>HTML Webpage</option>
+            <option value="json" ${item.targetFormat === 'json' ? 'selected' : ''}>JSON Data</option>
+            <option value="csv" ${item.targetFormat === 'csv' ? 'selected' : ''}>CSV Data</option>
+          </select>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3 queue-item-card transition-all">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3 truncate">
+            <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-mono font-bold text-xs uppercase">
+              .${ext}
+            </div>
+            <div class="truncate">
+              <h4 class="text-xs font-bold text-slate-200 truncate">${escapeHTML(item.file.name)}</h4>
+              <div class="flex items-center space-x-2 text-[10px] text-slate-400 font-mono">
+                <span>${(item.file.size / 1024).toFixed(1)} KB</span>
+                <span>•</span>
+                <span class="font-bold text-brand-400 uppercase">${item.category}</span>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="removeQueueItem('${item.id}')" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all" title="Remove from Queue">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        </div>
+
+        ${controlsHTML}
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function removeQueueItem(id) {
@@ -404,7 +664,7 @@ function clearQueue() {
 }
 window.clearQueue = clearQueue;
 
-// PROCESS CONVERSION QUEUE
+// PROCESS CONVERSION QUEUE WITH CONTEXT-AWARE OPTIONS
 async function processQueue() {
   if (appState.queue.length === 0) {
     showToast("Queue is empty!", "warning");
@@ -423,6 +683,25 @@ async function processQueue() {
         formData.append("file", item.file);
         formData.append("target_format", item.targetFormat);
 
+        const optionsObj = {
+          videoQuality: item.videoQuality,
+          stripAudio: item.stripAudio,
+          audioBitrate: item.audioBitrate,
+          resizeWidth: item.resizeWidth,
+          resizeHeight: item.resizeHeight,
+          scale: item.scale ? item.scale / 100 : 1,
+          quality: item.compressionQuality
+        };
+        formData.append("options", JSON.stringify(optionsObj));
+
+        if (item.videoQuality) formData.append("video_quality", item.videoQuality);
+        if (item.stripAudio) formData.append("strip_audio", item.stripAudio);
+        if (item.audioBitrate) formData.append("audio_bitrate", item.audioBitrate);
+        if (item.resizeWidth) formData.append("resize_width", item.resizeWidth);
+        if (item.resizeHeight) formData.append("resize_height", item.resizeHeight);
+        if (item.scale) formData.append("scale", item.scale / 100);
+        if (item.compressionQuality) formData.append("quality", item.compressionQuality);
+
         const res = await fetch(`${appState.backendUrl}/api/convert`, {
           method: "POST",
           body: formData
@@ -434,6 +713,18 @@ async function processQueue() {
         const downloadUrl = URL.createObjectURL(blob);
         const outName = item.file.name.replace(/\.[^/.]+$/, "") + `_converted.${item.targetFormat}`;
 
+        triggerDownload(downloadUrl, outName);
+
+        appState.history.unshift({
+          name: item.file.name,
+          target: item.targetFormat.toUpperCase(),
+          size: `${(item.file.size / 1024).toFixed(1)} KB`,
+          url: downloadUrl
+        });
+
+      } else {
+        const downloadUrl = await convertClientSide(item.file, item.targetFormat);
+        const outName = item.file.name.replace(/\.[^/.]+$/, "") + `_converted.${item.targetFormat}`;
         triggerDownload(downloadUrl, outName);
 
         appState.history.unshift({

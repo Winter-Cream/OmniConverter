@@ -220,9 +220,41 @@ class OmniConverterEngine:
                 else:
                     if img.mode in ("RGBA", "P") and target_fmt == "JPEG":
                         img = img.convert("RGB")
-                    quality = int(options.get("quality", 90))
+                    quality = int(options.get("quality", options.get("compressionQuality", 90)))
                     img.save(out_path, format=target_fmt, quality=quality)
             return
+
+        # AUDIO & VIDEO CONVERSIONS (FFmpeg)
+        if (src_ext in ["mp4", "mkv", "avi", "mov", "webm", "mp3", "wav", "aac", "flac", "ogg"] and 
+            dst_ext in ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"]):
+            if check_ffmpeg():
+                cmd = ["ffmpeg", "-y", "-i", src_path]
+                
+                # Video Options
+                if dst_ext in ["mp4", "webm", "gif"]:
+                    vq = str(options.get("video_quality") or options.get("videoQuality") or "Original")
+                    if "1080" in vq:
+                        cmd.extend(["-vf", "scale=-2:1080"])
+                    elif "720" in vq:
+                        cmd.extend(["-vf", "scale=-2:720"])
+                    elif "480" in vq:
+                        cmd.extend(["-vf", "scale=-2:480"])
+                    elif "360" in vq:
+                        cmd.extend(["-vf", "scale=-2:360"])
+                    
+                    if options.get("strip_audio") or options.get("stripAudio"):
+                        cmd.append("-an")
+                
+                # Audio / Audio Extraction Options
+                if dst_ext in ["mp3", "wav", "aac", "flac", "ogg"]:
+                    cmd.append("-vn")
+                    ab = str(options.get("audio_bitrate") or options.get("audioBitrate") or "320k").replace("kbps", "").replace("k", "")
+                    cmd.extend(["-b:a", f"{ab}k"])
+                
+                cmd.append(out_path)
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if res.returncode == 0 and os.path.exists(out_path):
+                    return
 
         # PDF -> TXT (PyPDF)
         if src_ext == "pdf" and dst_ext == "txt":

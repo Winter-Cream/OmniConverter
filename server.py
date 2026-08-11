@@ -132,12 +132,27 @@ async def convert_single_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     target_format: str = Form(...),
-    options: Optional[str] = Form("{}")
+    options: Optional[str] = Form("{}"),
+    video_quality: Optional[str] = Form(None),
+    strip_audio: Optional[bool] = Form(False),
+    audio_bitrate: Optional[str] = Form(None),
+    resize_width: Optional[int] = Form(None),
+    resize_height: Optional[int] = Form(None),
+    scale: Optional[float] = Form(None),
+    quality: Optional[int] = Form(None)
 ):
     try:
         opt_dict = json.loads(options) if options else {}
     except Exception:
         opt_dict = {}
+
+    if video_quality: opt_dict["video_quality"] = video_quality
+    if strip_audio: opt_dict["strip_audio"] = strip_audio
+    if audio_bitrate: opt_dict["audio_bitrate"] = audio_bitrate
+    if resize_width: opt_dict["resize_width"] = resize_width
+    if resize_height: opt_dict["resize_height"] = resize_height
+    if scale: opt_dict["scale"] = scale
+    if quality: opt_dict["quality"] = quality
 
     content = await file.read()
     res = converter_engine.convert_file(content, file.filename, target_format, opt_dict)

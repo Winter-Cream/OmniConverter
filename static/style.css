@@ -197,3 +197,119 @@ code, pre, .font-mono {
     opacity: 1;
   }
 }
+
+/* --- LIGHT MODE THEME ENGINE SYSTEM --- */
+html.light {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --border-glass: #cbd5e1;
+  --border-active: #4f46e5;
+  color: #0f172a;
+}
+
+html.light body {
+  background-color: #f8fafc !important;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(217, 70, 239, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%) !important;
+  color: #0f172a !important;
+}
+
+/* Light mode header & nav */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  border-bottom-color: #cbd5e1 !important;
+}
+
+html.light nav {
+  background-color: rgba(241, 245, 249, 0.95) !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .glass-panel {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
+  color: #0f172a !important;
+}
+
+html.light .glass-panel-hover:hover {
+  border-color: #6366f1 !important;
+  box-shadow: 0 12px 35px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Inputs, Textareas, Selects in Light Mode */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #4f46e5 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+}
+
+/* Badges, Cards & Text Overrides */
+html.light .text-slate-100,
+html.light .text-slate-200,
+html.light .text-slate-300,
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-400,
+html.light .text-slate-500 {
+  color: #475569 !important;
+}
+
+html.light .bg-slate-950,
+html.light .bg-slate-900,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-950\/80 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-700,
+html.light .border-slate-800\/80 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Modal backgrounds in Light Mode */
+html.light #command-palette-modal,
+html.light #element-modal {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Code diffs */
+html.light .diff-add {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-left-color: #10b981 !important;
+}
+
+html.light .diff-del {
+  background-color: #ffe4e6 !important;
+  color: #9f1239 !important;
+  border-left-color: #f43f5e !important;
+}
+
+html.light .diff-same {
+  color: #475569 !important;
+}
+
