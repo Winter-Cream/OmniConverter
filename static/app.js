@@ -2030,6 +2030,33 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+async function calculateHashes() {
+  const text = document.getElementById("hash-input")?.value || "";
+  const sha256El = document.getElementById("hash-sha256");
+  const sha512El = document.getElementById("hash-sha512");
+  if (!text) {
+    if (sha256El) sha256El.value = "";
+    if (sha512El) sha512El.value = "";
+    return;
+  }
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+
+  try {
+    const buf256 = await crypto.subtle.digest("SHA-256", data);
+    const hash256 = Array.from(new Uint8Array(buf256)).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (sha256El) sha256El.value = hash256;
+
+    const buf512 = await crypto.subtle.digest("SHA-512", data);
+    const hash512 = Array.from(new Uint8Array(buf512)).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (sha512El) sha512El.value = hash512;
+  } catch (e) {
+    console.error(e);
+  }
+}
+window.calculateHashes = calculateHashes;
+
 // ==================== SPOTLIGHT COMMAND PALETTE ENGINE (CTRL + K) ====================
 const APP_COMMAND_REGISTRY = [
   { id: "cmd-merge-pdf", title: "Merge PDFs", cat: "PDF Suite", icon: "fa-file-circle-plus", action: () => { switchTab('tab-pdf'); focusElem('pdf-merge-input'); } },
@@ -2047,7 +2074,8 @@ const APP_COMMAND_REGISTRY = [
   { id: "cmd-ai-transpiler", title: "AI Code Transpiler", cat: "Gemini AI Studio", icon: "fa-code-compare", action: () => { switchTab('tab-ai'); focusElem('transpiler-src'); } },
   { id: "cmd-aes-crypto", title: "AES-256 GCM Encryption Vault", cat: "Pro Cyber Console", icon: "fa-shield-halved", action: () => { unlockProDevConsole(true); focusElem('aes-key'); } },
   { id: "cmd-jwt-inspect", title: "JWT Token Inspector", cat: "Pro Cyber Console", icon: "fa-key", action: () => { unlockProDevConsole(true); focusElem('jwt-input'); } },
-  { id: "cmd-line-diff", title: "Visual Code Line Diff", cat: "Pro Cyber Console", icon: "fa-file-diff", action: () => { unlockProDevConsole(true); focusElem('diff-text-a'); } }
+  { id: "cmd-line-diff", title: "Visual Code Line Diff", cat: "Pro Cyber Console", icon: "fa-file-diff", action: () => { unlockProDevConsole(true); focusElem('diff-text-a'); } },
+  { id: "cmd-hash-gen", title: "SHA-256 & SHA-512 Checksum Generator", cat: "Pro Cyber Console", icon: "fa-fingerprint", action: () => { unlockProDevConsole(true); focusElem('hash-input'); } }
 ];
 
 function toggleCommandPalette() {
