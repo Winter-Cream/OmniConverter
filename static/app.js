@@ -212,6 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderBadges();
   initConfettiCanvas();
   updateGamificationUI();
+  if (typeof loadAISettings === "function") loadAISettings();
 });
 
 // BACKEND HEALTH CHECK
@@ -1004,6 +1005,241 @@ function runAIVisionOCR() {
   }, 800);
 }
 window.runAIVisionOCR = runAIVisionOCR;
+
+// OMNI AI CHATBOT ENGINE
+function updateAIProviderModels() {
+  const pEl = document.getElementById("ai-provider-select");
+  if (!pEl) return;
+  const provider = pEl.value;
+  const modelSelect = document.getElementById("ai-model-select");
+  const customBox = document.getElementById("ai-custom-url-box");
+
+  if (customBox) {
+    if (provider === "custom") customBox.classList.remove("hidden");
+    else customBox.classList.add("hidden");
+  }
+
+  if (!modelSelect) return;
+
+  if (provider === "gemini") {
+    modelSelect.innerHTML = `
+      <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+      <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+      <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+    `;
+  } else if (provider === "openai") {
+    modelSelect.innerHTML = `
+      <option value="gpt-4o">gpt-4o</option>
+      <option value="gpt-4o-mini">gpt-4o-mini</option>
+      <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+    `;
+  } else if (provider === "grok") {
+    modelSelect.innerHTML = `
+      <option value="grok-2">grok-2</option>
+      <option value="grok-beta">grok-beta</option>
+    `;
+  } else if (provider === "custom") {
+    modelSelect.innerHTML = `
+      <option value="custom-model">custom-model (Ollama / LocalAI)</option>
+    `;
+  }
+}
+window.updateAIProviderModels = updateAIProviderModels;
+
+function saveAISettings() {
+  const pEl = document.getElementById("ai-provider-select");
+  const mEl = document.getElementById("ai-model-select");
+  const kEl = document.getElementById("ai-api-key-input");
+  const uEl = document.getElementById("ai-custom-url");
+
+  if (!pEl) return;
+
+  const provider = pEl.value;
+  const model = mEl ? mEl.value : "";
+  const key = kEl ? kEl.value.trim() : "";
+  const customUrl = uEl ? uEl.value.trim() : "";
+
+  localStorage.setItem("omni_ai_provider", provider);
+  localStorage.setItem("omni_ai_model", model);
+  localStorage.setItem("omni_ai_key", key);
+  localStorage.setItem("omni_ai_url", customUrl);
+
+  showToast("AI API Settings saved!", "success");
+  playSFX(1200, "triangle");
+}
+window.saveAISettings = saveAISettings;
+
+function loadAISettings() {
+  const provider = localStorage.getItem("omni_ai_provider") || "gemini";
+  const model = localStorage.getItem("omni_ai_model");
+  const key = localStorage.getItem("omni_ai_key") || "";
+  const customUrl = localStorage.getItem("omni_ai_url") || "http://localhost:11434/v1";
+
+  const pEl = document.getElementById("ai-provider-select");
+  const kEl = document.getElementById("ai-api-key-input");
+  const uEl = document.getElementById("ai-custom-url");
+
+  if (pEl) {
+    pEl.value = provider;
+    updateAIProviderModels();
+  }
+  if (model && document.getElementById("ai-model-select")) {
+    document.getElementById("ai-model-select").value = model;
+  }
+  if (kEl) kEl.value = key;
+  if (uEl) uEl.value = customUrl;
+}
+window.loadAISettings = loadAISettings;
+
+function useAISuggestion(promptText) {
+  const inputEl = document.getElementById("ai-chat-input");
+  if (inputEl) {
+    inputEl.value = promptText.replace(/^[^\w]+/, "").trim();
+    sendAIChatMessage();
+  }
+}
+window.useAISuggestion = useAISuggestion;
+
+function clearAIChat() {
+  const container = document.getElementById("ai-chat-messages");
+  if (container) {
+    container.innerHTML = `
+      <div class="flex items-start space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/40 text-purple-400 flex items-center justify-center text-sm font-bold flex-shrink-0">
+          <i class="fa-solid fa-robot"></i>
+        </div>
+        <div class="p-3.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-slate-200 space-y-1 max-w-xl">
+          <span class="block font-bold text-purple-400 text-[10px] font-mono">Omni AI Assistant</span>
+          <p>Chat cleared. How can I help you today?</p>
+        </div>
+      </div>
+    `;
+  }
+  showToast("Chat reset.", "info");
+}
+window.clearAIChat = clearAIChat;
+
+async function sendAIChatMessage() {
+  const inputEl = document.getElementById("ai-chat-input");
+  const container = document.getElementById("ai-chat-messages");
+  if (!inputEl || !container) return;
+
+  const userText = inputEl.value.trim();
+  if (!userText) return;
+
+  inputEl.value = "";
+  playSFX(700, "sine");
+
+  const userMsgId = "user-msg-" + Date.now();
+  container.innerHTML += `
+    <div id="${userMsgId}" class="flex items-start justify-end space-x-3">
+      <div class="p-3.5 bg-purple-600/20 border border-purple-500/40 rounded-2xl text-xs text-slate-100 space-y-1 max-w-xl">
+        <span class="block font-bold text-purple-300 text-[10px] font-mono text-right">You</span>
+        <p>${escapeHTML(userText)}</p>
+      </div>
+      <div class="w-8 h-8 rounded-xl bg-purple-500/30 border border-purple-400/50 text-purple-200 flex items-center justify-center text-xs font-bold flex-shrink-0">
+        <i class="fa-solid fa-user"></i>
+      </div>
+    </div>
+  `;
+  container.scrollTop = container.scrollHeight;
+
+  const aiMsgId = "ai-msg-" + Date.now();
+  container.innerHTML += `
+    <div id="${aiMsgId}" class="flex items-start space-x-3">
+      <div class="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/40 text-purple-400 flex items-center justify-center text-sm font-bold flex-shrink-0">
+        <i class="fa-solid fa-robot"></i>
+      </div>
+      <div class="p-3.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-slate-200 space-y-1 max-w-xl">
+        <span class="block font-bold text-purple-400 text-[10px] font-mono">Omni AI Assistant</span>
+        <div class="ai-body flex items-center space-x-2 text-slate-400">
+          <i class="fa-solid fa-circle-notch animate-spin text-purple-400"></i>
+          <span>Omni AI is generating response...</span>
+        </div>
+      </div>
+    </div>
+  `;
+  container.scrollTop = container.scrollHeight;
+
+  const aiBubbleEl = document.querySelector(`#${aiMsgId} .ai-body`);
+
+  const provider = document.getElementById("ai-provider-select")?.value || "gemini";
+  const model = document.getElementById("ai-model-select")?.value || "gemini-1.5-flash";
+  const apiKey = document.getElementById("ai-api-key-input")?.value.trim() || localStorage.getItem("omni_ai_key") || "";
+  const customUrl = (document.getElementById("ai-custom-url")?.value || "").trim();
+
+  let aiReplyText = "";
+
+  try {
+    if (apiKey && provider === "gemini") {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userText }] }]
+        })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      aiReplyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received from Gemini.";
+    } 
+    else if (apiKey && (provider === "openai" || provider === "grok" || provider === "custom")) {
+      let baseUrl = "https://api.openai.com/v1";
+      if (provider === "grok") baseUrl = "https://api.x.ai/v1";
+      if (provider === "custom") baseUrl = customUrl || "http://localhost:11434/v1";
+
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model === "custom-model" ? "llama3" : model,
+          messages: [{ role: "user", content: userText }]
+        })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      aiReplyText = data.choices?.[0]?.message?.content || "No response received from AI provider.";
+    } 
+    else {
+      await new Promise(r => setTimeout(r, 600));
+      const lower = userText.toLowerCase();
+      if (lower.includes("pdf") || lower.includes("merge") || lower.includes("split")) {
+        aiReplyText = "To manipulate PDFs in **Omni PDF Engine**:\n- Use **Merge PDFs** to combine multiple files into one.\n- Use **Split PDF** to extract specific page ranges.\n- Use **Compress PDF** for lossless stream optimization.";
+      } else if (lower.includes("gas") || lower.includes("ideal") || lower.includes("chemistry")) {
+        aiReplyText = "The **Ideal Gas Law** equation is:\n$$PV = nRT$$\nWhere:\n- $P$ = Pressure (Pa or atm)\n- $V$ = Volume ($m^3$ or L)\n- $n$ = Moles (mol)\n- $R$ = Gas constant ($8.314 \\text{ J/(mol}\\cdot\\text{K)}$)\n- $T$ = Temperature (K)";
+      } else if (lower.includes("python") || lower.includes("code") || lower.includes("resize")) {
+        aiReplyText = "Here is a Python image resizing snippet using Pillow:\n```python\nfrom PIL import Image\n\ndef resize_img(path, width, height):\n    img = Image.open(path)\n    resized = img.resize((width, height), Image.Resampling.LANCZOS)\n    resized.save('resized_output.png')\n\nresize_img('input.png', 800, 600)\n```";
+      } else {
+        aiReplyText = `I have received your prompt: "${escapeHTML(userText)}".\n\n💡 *Tip*: To connect live real-time AI models like **Google Gemini 1.5**, **GPT-4o**, or **xAI Grok**, paste your API key in the top bar above!`;
+      }
+    }
+  } catch (err) {
+    aiReplyText = `⚠️ **API Error**: ${err.message || "Failed to reach AI API"}. Please check your API key and network connection.`;
+  }
+
+  if (aiBubbleEl) {
+    aiBubbleEl.className = "ai-body text-slate-200 space-y-2";
+    aiBubbleEl.innerHTML = formatMarkdown(aiReplyText);
+  }
+  container.scrollTop = container.scrollHeight;
+  playSFX(1000, "triangle");
+}
+window.sendAIChatMessage = sendAIChatMessage;
+
+function formatMarkdown(text) {
+  let html = escapeHTML(text);
+  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+    return `<pre class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] font-mono text-cyan-300 overflow-x-auto my-2"><code>${code}</code></pre>`;
+  });
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  html = html.replace(/\n/g, '<br/>');
+  return html;
+}
 
 // DEV & SECURITY WORKBENCH
 async function runAESEncrypt() {
