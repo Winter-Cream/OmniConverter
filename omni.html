@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniConverter PRO 4.0 Ultra - File, PDF, AI, Dev & Science Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                            950: '#1e1b4b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Floating Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Spotlight Command Palette Modal (Ctrl + K) -->
+    <div id="command-palette-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-xl flex items-start justify-center pt-20 p-4" onclick="closeCommandPalette(event)">
+        <div class="glass-panel p-4 rounded-3xl max-w-2xl w-full space-y-3 relative border border-slate-700/80 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex items-center space-x-3 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3">
+                <i class="fa-solid fa-magnifying-glass text-brand-400 text-base"></i>
+                <input type="text" id="cmd-search-input" onkeyup="filterCommandPalette()" placeholder="Type to search any tool (PDF Merge, Periodic Table, AI Speech, Base64)..." class="w-full bg-transparent text-sm text-white font-medium focus:outline-none placeholder-slate-500" />
+                <kbd class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">ESC</kbd>
+            </div>
+            <div id="cmd-results-list" class="max-h-80 overflow-y-auto space-y-1.5 pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Element Detail Modal Inspector -->
+    <div id="element-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-3xl max-w-lg w-full space-y-4 relative border border-slate-700 shadow-2xl">
+            <button onclick="closeElementModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+            <div id="element-modal-content"></div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Header -->
+    <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Logo & Application Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('tab-converter')">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/20 group">
+                    <i class="fa-solid fa-arrows-rotate text-white text-lg transition-transform duration-700 group-hover:rotate-180"></i>
+                </div>
+                <div>
+                    <span class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
+                        OmniConverter <span onclick="triggerProSecretUnlock(event)" title="Triple-click or press Ctrl+Shift+D to unlock secret Pro Console" class="bg-gradient-to-r from-brand-400 via-purple-400 to-pink-400 bg-clip-text text-transparent text-xs px-2 py-0.5 rounded-full border border-brand-500/30 bg-brand-950/50 font-mono cursor-pointer select-none">PRO 4.0</span>
+                    </span>
+                    <p class="text-[10px] text-slate-400 font-medium" data-i18n="appSub">Files • PDF Engine • Gemini AI • Security • Physics • Chemistry</p>
+                </div>
+            </div>
+
+            <!-- Quick Spotlight Command Palette Trigger -->
+            <button onclick="toggleCommandPalette()" class="hidden lg:flex items-center space-x-2 px-3.5 py-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-brand-500/50 text-slate-400 hover:text-slate-200 text-xs transition-all shadow-inner group">
+                <i class="fa-solid fa-magnifying-glass text-brand-400 group-hover:scale-110 transition-transform"></i>
+                <span>Search tools...</span>
+                <kbd class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-brand-300 font-bold">Ctrl K</kbd>
+            </button>
+
+            <!-- Backend Status & Gamification Widget -->
+            <div class="hidden md:flex items-center space-x-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-1.5 shadow-inner">
+                <div id="backend-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                    <span data-i18n="pythonBackendOffline">Client Standalone Mode</span>
+                </div>
+
+                <div class="w-px h-4 bg-slate-800"></div>
+
+                <!-- Daily Streak -->
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-amber-400" title="Daily Conversion Streak">
+                    <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i>
+                    <span id="header-streak-val">1 Day</span>
+                </div>
+                <div class="w-px h-4 bg-slate-800"></div>
+
+                <!-- Total Files -->
+                <div class="flex items-center space-x-1.5 text-xs text-slate-300" title="Total Files Converted">
+                    <i class="fa-solid fa-file-check text-brand-400"></i>
+                    <span id="header-files-val" class="font-bold font-mono">0</span>
+                </div>
+                <div class="w-px h-4 bg-slate-800"></div>
+
+                <!-- XP Level Progress Bar -->
+                <div class="flex items-center space-x-2 text-xs">
+                    <span id="header-level-badge" class="font-extrabold text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-800/50">LVL 1</span>
+                    <div class="w-20 bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="header-xp-bar" class="bg-gradient-to-r from-brand-500 to-purple-500 h-full w-0 transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls & Multi-Language Selector -->
+            <div class="flex items-center space-x-3">
+                <select onchange="setLanguage(this.value)" class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-300 font-bold focus:outline-none focus:border-brand-500">
+                    <option value="en">🇺🇸 EN</option>
+                    <option value="es">🇪🇸 ES</option>
+                    <option value="fr">🇫🇷 FR</option>
+                    <option value="de">🇩🇪 DE</option>
+                    <option value="ja">🇯🇵 JA</option>
+                    <option value="zh">🇨🇳 ZH</option>
+                    <option value="hi">🇮🇳 HI</option>
+                </select>
+
+                <button onclick="toggleAudioSFX()" id="sfx-toggle-btn" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-brand-400 hover:text-white transition-all shadow-sm" title="Toggle Sound FX">
+                    <i class="fa-solid fa-volume-high text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow space-y-6 w-full">
+        
+        <!-- Primary Navigation Tabs -->
+        <nav class="flex flex-wrap items-center justify-between gap-2 p-1.5 bg-slate-900/90 border border-slate-800/80 rounded-2xl shadow-xl backdrop-blur-md">
+            <div class="flex flex-wrap gap-1.5 w-full md:w-auto">
+                <button onclick="switchTab('tab-converter')" id="btn-tab-converter" class="tab-btn active px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span data-i18n="fileHub">File Hub</span>
+                </button>
+                <button onclick="switchTab('tab-pdf')" id="btn-tab-pdf" class="tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-file-pdf text-rose-400"></i>
+                    <span>Omni PDF Engine</span>
+                </button>
+                <button onclick="switchTab('tab-ai')" id="btn-tab-ai" class="tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i>
+                    <span data-i18n="aiStudio">Gemini AI Studio</span>
+                </button>
+                <!-- SECRET PRO DEVELOPER CONSOLE (Hidden by default, unlocked via Secret Trigger) -->
+                <button onclick="switchTab('tab-dev')" id="btn-tab-dev" class="hidden tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-cyan-400 hover:text-cyan-200 transition-all flex items-center space-x-2 border border-cyan-500/40 bg-cyan-950/40 shadow-lg shadow-cyan-500/10">
+                    <i class="fa-solid fa-user-ninja text-cyan-400 animate-pulse"></i>
+                    <span>Pro Cyber Console</span>
+                    <span class="text-[9px] bg-cyan-950 border border-cyan-500/60 text-cyan-300 px-1.5 py-0.2 rounded font-mono uppercase">SECRET</span>
+                </button>
+                <button onclick="switchTab('tab-science')" id="btn-tab-science" class="tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-atom text-amber-400"></i>
+                    <span data-i18n="scienceLab">Science & Multi-Lab</span>
+                </button>
+                <button onclick="switchTab('tab-stats')" id="btn-tab-stats" class="tab-btn px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                    <span data-i18n="statsLogs">Stats & Logs</span>
+                </button>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="switchTab('tab-quests')" id="btn-tab-quests" class="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/20 transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-trophy"></i>
+                    <span data-i18n="questsBadges">Quests & Badges</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- TAB 1: FILE HUB -->
+        <section id="tab-converter" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Dropzone & Queue -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div id="dropzone" onclick="document.getElementById('file-input').click()" class="glass-panel glass-panel-hover p-8 sm:p-12 rounded-3xl border-2 border-dashed border-slate-700/80 flex flex-col items-center justify-center text-center cursor-pointer transition-all group relative overflow-hidden">
+                        <input type="file" id="file-input" class="hidden" multiple />
+                        <div class="w-16 h-16 rounded-3xl bg-brand-500/10 border border-brand-500/30 text-brand-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-1" data-i18n="dropzoneTitle">Drop files here or click to browse</h3>
+                        <p class="text-xs text-slate-400 max-w-md" data-i18n="dropzoneSub">Supports PDF, DOCX, XLSX, PPTX, PNG, JPG, WEBP, MP3, MP4, CSV, JSON & 50+ formats</p>
+                    </div>
+
+                    <!-- Queue List Container -->
+                    <div class="glass-panel p-6 rounded-3xl space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <h3 class="text-xs font-extrabold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+                                <i class="fa-solid fa-list-check text-brand-400"></i>
+                                <span>Conversion Queue</span>
+                            </h3>
+                            <span id="queue-count-badge" class="px-2.5 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono font-bold text-brand-300">0 Files</span>
+                        </div>
+
+                        <div id="queue-container" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                            <div class="p-8 text-center text-slate-500 text-xs font-mono">No files in queue. Drag & drop files above to start.</div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2">
+                            <button onclick="clearQueue()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-bold transition-all" data-i18n="clearQueueBtn">Clear Queue</button>
+                            <button onclick="processQueue()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-brand-500/25 transition-all" data-i18n="processQueueBtn">Start Batch Conversion</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watch Folder Daemon Settings Panel -->
+                <div class="space-y-6">
+                    <div class="glass-panel p-6 rounded-3xl space-y-4">
+                        <div class="flex items-center space-x-3 border-b border-slate-800 pb-3">
+                            <div class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                                <i class="fa-solid fa-robot text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-100" data-i18n="watchFolderTitle">Watch Folder Automation Daemon</h3>
+                                <p class="text-[10px] text-slate-400" data-i18n="watchFolderSub">Automatically converts any file placed inside input folder</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-xs">
+                            <div class="flex items-center justify-between p-3 bg-slate-900 rounded-xl">
+                                <span class="font-bold text-slate-300">Enable Daemon</span>
+                                <input type="checkbox" id="wf-enabled-toggle" class="w-4 h-4 accent-brand-500" />
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1">Input Folder Path</label>
+                                <input type="text" id="wf-input-path" value="C:\OmniWatch\Input" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-brand-500" />
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1">Output Folder Path</label>
+                                <input type="text" id="wf-output-path" value="C:\OmniWatch\Output" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-brand-500" />
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1">Target Format</label>
+                                <select id="wf-target-format" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 font-bold text-xs focus:outline-none focus:border-brand-500">
+                                    <option value="pdf">PDF Document</option>
+                                    <option value="docx">Word DOCX</option>
+                                    <option value="webp">WebP Image</option>
+                                    <option value="mp3">MP3 Audio</option>
+                                </select>
+                            </div>
+
+                            <button onclick="saveWatchFolderConfig()" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-brand-300 font-bold transition-all" data-i18n="saveConfigBtn">Save Daemon Config</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: OMNI PDF ENGINE SUITE -->
+        <section id="tab-pdf" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 1. MERGE PDF -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-file-circle-plus text-rose-400"></i>
+                            <span>Merge Multiple PDFs</span>
+                        </h3>
+                        <p class="text-[10px] text-slate-400">Combine 2 or more PDF documents into a single document.</p>
+                        
+                        <!-- Custom File Upload Dropzone -->
+                        <div onclick="document.getElementById('pdf-merge-input').click()" class="border-2 border-dashed border-rose-500/30 hover:border-rose-500/80 bg-rose-500/5 hover:bg-rose-500/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                            <input type="file" id="pdf-merge-input" accept=".pdf" multiple class="hidden" onchange="updatePdfFileBadge(this, 'pdf-merge-badge')" />
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-rose-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                            <span id="pdf-merge-badge" class="text-xs font-semibold text-slate-300">Choose PDF Files</span>
+                            <span class="text-[10px] text-slate-500">Drag & drop or click to browse</span>
+                        </div>
+                    </div>
+                    <button onclick="runPDFMerge()" class="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-all shadow-lg shadow-rose-600/20">Merge PDFs</button>
+                </div>
+
+                <!-- 2. SPLIT PDF -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-scissors text-amber-400"></i>
+                            <span>Split & Extract Pages</span>
+                        </h3>
+                        
+                        <!-- Custom File Upload Dropzone -->
+                        <div onclick="document.getElementById('pdf-split-input').click()" class="border-2 border-dashed border-amber-500/30 hover:border-amber-500/80 bg-amber-500/5 hover:bg-amber-500/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                            <input type="file" id="pdf-split-input" accept=".pdf" class="hidden" onchange="updatePdfFileBadge(this, 'pdf-split-badge')" />
+                            <i class="fa-solid fa-scissors text-2xl text-amber-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                            <span id="pdf-split-badge" class="text-xs font-semibold text-slate-300">Choose PDF File</span>
+                            <span class="text-[10px] text-slate-500">Click to select PDF document</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="pdf-split-range" placeholder="Range (1-3, odd)..." value="1-2" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-amber-300 font-mono" />
+                            <select id="pdf-split-mode" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-amber-300 font-bold">
+                                <option value="single_pdf">Single PDF</option>
+                                <option value="zip">ZIP Archive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="runPDFSplit()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all shadow-lg shadow-amber-600/20">Split PDF</button>
+                </div>
+
+                <!-- 3. COMPRESS PDF -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-file-zipper text-cyan-400"></i>
+                            <span>Compress PDF Size</span>
+                        </h3>
+                        
+                        <!-- Custom File Upload Dropzone -->
+                        <div onclick="document.getElementById('pdf-compress-input').click()" class="border-2 border-dashed border-cyan-500/30 hover:border-cyan-500/80 bg-cyan-500/5 hover:bg-cyan-500/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                            <input type="file" id="pdf-compress-input" accept=".pdf" class="hidden" onchange="updatePdfFileBadge(this, 'pdf-compress-badge')" />
+                            <i class="fa-solid fa-file-zipper text-2xl text-cyan-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                            <span id="pdf-compress-badge" class="text-xs font-semibold text-slate-300">Choose PDF File</span>
+                            <span class="text-[10px] text-slate-500">Click to optimize PDF size</span>
+                        </div>
+
+                        <select id="pdf-compress-level" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-cyan-300 font-bold">
+                            <option value="low">Low Compression (High Quality)</option>
+                            <option value="medium" selected>Medium Compression (Recommended)</option>
+                            <option value="high">High Compression (Smallest Size)</option>
+                        </select>
+                    </div>
+                    <button onclick="runPDFCompress()" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-all shadow-lg shadow-cyan-600/20">Compress PDF</button>
+                </div>
+
+                <!-- 4. PROTECT PDF -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-lock text-emerald-400"></i>
+                            <span>Protect PDF (Encrypt)</span>
+                        </h3>
+                        
+                        <!-- Custom File Upload Dropzone -->
+                        <div onclick="document.getElementById('pdf-protect-input').click()" class="border-2 border-dashed border-emerald-500/30 hover:border-emerald-500/80 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                            <input type="file" id="pdf-protect-input" accept=".pdf" class="hidden" onchange="updatePdfFileBadge(this, 'pdf-protect-badge')" />
+                            <i class="fa-solid fa-lock text-2xl text-emerald-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                            <span id="pdf-protect-badge" class="text-xs font-semibold text-slate-300">Choose PDF File</span>
+                            <span class="text-[10px] text-slate-500">Click to select PDF document</span>
+                        </div>
+
+                        <input type="password" id="pdf-protect-pass" placeholder="Secret Password..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-emerald-300" />
+                    </div>
+                    <button onclick="runPDFProtect()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-600/20">Encrypt PDF</button>
+                </div>
+
+                <!-- 5. UNLOCK PDF -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-lock-open text-purple-400"></i>
+                            <span>Unlock PDF (Decrypt)</span>
+                        </h3>
+                        
+                        <!-- Custom File Upload Dropzone -->
+                        <div onclick="document.getElementById('pdf-unlock-input').click()" class="border-2 border-dashed border-purple-500/30 hover:border-purple-500/80 bg-purple-500/5 hover:bg-purple-500/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                            <input type="file" id="pdf-unlock-input" accept=".pdf" class="hidden" onchange="updatePdfFileBadge(this, 'pdf-unlock-badge')" />
+                            <i class="fa-solid fa-lock-open text-2xl text-purple-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                            <span id="pdf-unlock-badge" class="text-xs font-semibold text-slate-300">Choose Encrypted PDF</span>
+                            <span class="text-[10px] text-slate-500">Click to select locked PDF</span>
+                        </div>
+
+                        <input type="password" id="pdf-unlock-pass" placeholder="Enter Password..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-purple-300" />
+                    </div>
+                    <button onclick="runPDFUnlock()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-lg shadow-purple-600/20">Unlock PDF</button>
+                </div>
+
+                <!-- 6. ROTATE PDF -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-rotate-right text-indigo-400"></i>
+                            <span>Rotate PDF Pages</span>
+                        </h3>
+                        
+                        <!-- Custom File Upload Dropzone -->
+                        <div onclick="document.getElementById('pdf-rotate-input').click()" class="border-2 border-dashed border-indigo-500/30 hover:border-indigo-500/80 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                            <input type="file" id="pdf-rotate-input" accept=".pdf" class="hidden" onchange="updatePdfFileBadge(this, 'pdf-rotate-badge')" />
+                            <i class="fa-solid fa-rotate-right text-2xl text-indigo-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                            <span id="pdf-rotate-badge" class="text-xs font-semibold text-slate-300">Choose PDF File</span>
+                            <span class="text-[10px] text-slate-500">Click to select PDF document</span>
+                        </div>
+
+                        <select id="pdf-rotate-angle" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-indigo-300 font-bold">
+                            <option value="90">Rotate 90° Clockwise</option>
+                            <option value="180">Rotate 180°</option>
+                            <option value="270">Rotate 270° Counter-Clockwise</option>
+                        </select>
+                    </div>
+                    <button onclick="runPDFRotate()" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-lg shadow-indigo-600/20">Rotate PDF</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: AI STUDIO -->
+        <section id="tab-ai" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- AI Text-to-Speech -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-volume-high text-purple-400"></i>
+                        <span>AI Text-to-Speech Synthesizer</span>
+                    </h3>
+                    <textarea id="ai-tts-input" rows="3" placeholder="Enter text to synthesize into AI audio speech..." class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
+                    <div class="flex items-center justify-between">
+                        <audio id="ai-tts-player" controls class="h-8 max-w-[200px]"></audio>
+                        <button onclick="generateAITTS()" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all">Synthesize Audio</button>
+                    </div>
+                </div>
+
+                <!-- AI Image Generator Sandbox -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-image text-pink-400"></i>
+                        <span>AI Image Prompt Sandbox</span>
+                    </h3>
+                    <div class="flex space-x-2">
+                        <input type="text" id="ai-img-prompt" placeholder="Prompt (e.g. Futuristic Cyberpunk City)..." class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200" />
+                        <select id="ai-img-style" class="bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-xs text-slate-200 font-bold">
+                            <option value="cyberpunk">Cyberpunk</option>
+                            <option value="anime">Anime</option>
+                            <option value="space">Deep Space</option>
+                        </select>
+                    </div>
+                    <canvas id="ai-img-canvas" class="w-full h-40 bg-slate-950 rounded-2xl border border-slate-800"></canvas>
+                    <div class="flex space-x-2">
+                        <button onclick="generateAIImage()" class="flex-1 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs transition-all">Generate Art</button>
+                        <button onclick="injectAIImageToQueue()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-300 font-bold text-xs transition-all">Inject to Queue</button>
+                    </div>
+                </div>
+
+                <!-- AI Code Transpiler -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-code-compare text-cyan-400"></i>
+                            <span>AI Code Transpiler</span>
+                        </h3>
+                        <select id="transpiler-target-lang" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1 text-xs text-slate-200 font-bold">
+                            <option value="python">Python</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                        </select>
+                    </div>
+                    <textarea id="transpiler-src" rows="3" placeholder="function convertFile(f) { return f.name.toUpperCase(); }" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500"></textarea>
+                    <textarea id="transpiler-out" rows="3" readonly placeholder="Transpiled code will appear here..." class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs font-mono text-emerald-400 focus:outline-none"></textarea>
+                    <button onclick="runAITranspiler()" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-all">Transpile Code</button>
+                </div>
+
+                <!-- AI Vision OCR Extractor -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-eye text-amber-400"></i>
+                        <span>AI Vision OCR Text Extractor</span>
+                    </h3>
+                    <input type="file" id="ocr-file-input" accept="image/*" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-400" />
+                    <textarea id="ocr-result-text" rows="3" readonly placeholder="Extracted text will be displayed here..." class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs font-mono text-amber-300 focus:outline-none"></textarea>
+                    <button onclick="runAIVisionOCR()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all">Extract Text</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: SECRET PRO CYBERPUNK DEVELOPER CONSOLE -->
+        <section id="tab-dev" class="tab-content hidden space-y-6">
+            <!-- Cyberpunk Terminal Header Banner -->
+            <div class="p-6 bg-slate-950 border-2 border-cyan-500/50 rounded-3xl relative overflow-hidden shadow-2xl shadow-cyan-500/10">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span class="text-xs font-mono font-extrabold text-cyan-400 uppercase tracking-widest">[SYSTEM KERNEL 4.0 :: UNLOCKED]</span>
+                        </div>
+                        <h2 class="text-xl font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-terminal text-cyan-400"></i>
+                            <span>Pro Cyberpunk Developer Vault & Security Workbench</span>
+                        </h2>
+                        <p class="text-xs text-slate-400 font-mono">Secret high-precision cryptographic solvers, byte converters, token analyzers & line diff engines.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-slate-900/90 border border-cyan-500/30 rounded-2xl px-4 py-2 text-xs font-mono text-cyan-300">
+                        <span>root@omni-dev:~#</span>
+                        <span class="animate-pulse">_</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- AES-256 Crypto Vault -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-emerald-500/30">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+                            <span>AES-256 GCM Cryptographic Vault</span>
+                        </h3>
+                        <span class="text-[9px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded-md">256-BIT SECURE</span>
+                    </div>
+                    <input type="text" id="aes-key" placeholder="Passphrase Secret Key..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500" />
+                    <textarea id="aes-input" rows="2" placeholder="Sensitive text payload..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
+                    <textarea id="aes-output" rows="2" readonly placeholder="Encrypted Base64 output payload..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none"></textarea>
+                    <div class="flex space-x-2">
+                        <button onclick="runAESEncrypt()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-600/20">Encrypt Payload</button>
+                        <button onclick="runAESDecrypt()" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs transition-all border border-emerald-500/30">Decrypt Payload</button>
+                    </div>
+                </div>
+
+                <!-- Radix Base Converter -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-brand-500/30">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-calculator text-brand-400"></i>
+                            <span>Radix & Binary Byte Matrix Converter</span>
+                        </h3>
+                        <span class="text-[9px] font-mono text-brand-400 bg-brand-950/80 border border-brand-500/30 px-2 py-0.5 rounded-md">LIVE RECURSIVE</span>
+                    </div>
+                    <div class="space-y-2 text-xs font-mono">
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">Decimal (Base 10)</label>
+                            <input type="text" id="radix-dec" onkeyup="convertRadix('dec')" placeholder="255" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-slate-200 focus:outline-none focus:border-brand-500" />
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">Binary (Base 2)</label>
+                            <input type="text" id="radix-bin" onkeyup="convertRadix('bin')" placeholder="11111111" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-cyan-300 focus:outline-none focus:border-cyan-500" />
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">Hexadecimal (Base 16)</label>
+                            <input type="text" id="radix-hex" onkeyup="convertRadix('hex')" placeholder="FF" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-amber-300 focus:outline-none focus:border-amber-500" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JWT Token Inspector -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-purple-500/30">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-key text-purple-400"></i>
+                            <span>JWT Token Inspector & Decoder</span>
+                        </h3>
+                        <span class="text-[9px] font-mono text-purple-400 bg-purple-950/80 border border-purple-500/30 px-2 py-0.5 rounded-md">HEADER + PAYLOAD</span>
+                    </div>
+                    <textarea id="jwt-input" rows="2" placeholder="Paste JWT Token (eyJhbGciOi...)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-purple-300 focus:outline-none focus:border-purple-500"></textarea>
+                    <textarea id="jwt-output" rows="3" readonly placeholder="Parsed Header & Claims JSON..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-300 focus:outline-none"></textarea>
+                    <button onclick="inspectJWT()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-lg shadow-purple-600/20">Inspect Token Claims</button>
+                </div>
+
+                <!-- Visual Line Diff -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-amber-500/30">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-file-diff text-amber-400"></i>
+                            <span>Visual Code Line Diff & Analyzer</span>
+                        </h3>
+                        <span class="text-[9px] font-mono text-amber-400 bg-amber-950/80 border border-amber-500/30 px-2 py-0.5 rounded-md">DELTA SYNC</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <textarea id="diff-text-a" rows="3" placeholder="Original Text..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-amber-500"></textarea>
+                        <textarea id="diff-text-b" rows="3" placeholder="Modified Text..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-amber-500"></textarea>
+                    </div>
+                    <div id="diff-result-container" class="h-24 bg-slate-950 border border-slate-800 rounded-xl p-2 overflow-y-auto"></div>
+                    <button onclick="runVisualDiff()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all shadow-lg shadow-amber-600/20">Analyze Line Differences</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: SCIENCE MULTI-LAB -->
+        <section id="tab-science" class="tab-content hidden space-y-6">
+            <!-- Science Subtabs Navigation -->
+            <div class="flex items-center space-x-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl">
+                <button onclick="switchScienceSubTab('subtab-ptable', this)" class="subtab-btn bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Periodic Table</button>
+                <button onclick="switchScienceSubTab('subtab-chemistry', this)" class="subtab-btn text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Chemistry Solvers</button>
+                <button onclick="switchScienceSubTab('subtab-physics', this)" class="subtab-btn text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Physics Solvers</button>
+                <button onclick="switchScienceSubTab('subtab-units', this)" class="subtab-btn text-slate-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Unit Converter</button>
+            </div>
+
+            <!-- SUBTAB 1: Interactive Periodic Table -->
+            <div id="subtab-ptable" class="science-subtab space-y-4">
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                                <i class="fa-solid fa-atom text-amber-400"></i>
+                                <span>Interactive Periodic Table & Inspector</span>
+                            </h3>
+                            <p class="text-[10px] text-slate-400">Click any element to inspect atomic data or inject directly into Chemistry Solvers.</p>
+                        </div>
+                        <input type="text" id="ptable-search" onkeyup="filterPeriodicTable()" placeholder="Search element, symbol, or #..." class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 w-full md:w-64" />
+                    </div>
+
+                    <!-- Category Filter Pill Bar -->
+                    <div class="flex flex-wrap gap-1.5 text-xs">
+                        <button onclick="filterElemCategory('all', this)" class="elem-filter-btn px-3 py-1 rounded-xl bg-amber-500 text-slate-950 font-bold">All</button>
+                        <button onclick="filterElemCategory('metal', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Metals</button>
+                        <button onclick="filterElemCategory('elem-nonmetal', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Nonmetals</button>
+                        <button onclick="filterElemCategory('elem-noble', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Noble Gases</button>
+                        <button onclick="filterElemCategory('elem-metalloid', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Metalloids</button>
+                        <button onclick="filterElemCategory('elem-halogen', this)" class="elem-filter-btn px-3 py-1 rounded-xl text-slate-400 hover:text-white font-bold">Halogens</button>
+                    </div>
+
+                    <!-- Grid of Element Cards -->
+                    <div id="periodic-table-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 py-2 max-h-[500px] overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+
+            <!-- SUBTAB 2: Chemistry Solvers -->
+            <div id="subtab-chemistry" class="science-subtab hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 1. Molar Mass Solver -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-vial text-emerald-400"></i>
+                        <span>Molar Mass Calculator</span>
+                    </h3>
+                    <input type="text" id="molar-formula-input" value="H2SO4" placeholder="Chemical Formula (e.g. C6H12O6)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300" />
+                    <div id="molar-result-out" class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono">Result will appear here...</div>
+                    <button onclick="solveMolarMass()" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">Calculate Molar Mass</button>
+                </div>
+
+                <!-- 2. Ideal Gas Law -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-cloud text-purple-400"></i>
+                        <span>Ideal Gas Law (PV = nRT)</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <input type="text" id="gas-p" placeholder="P (atm)" value="1" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="gas-v" placeholder="V (L)" value="22.4" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="gas-n" placeholder="n (mol)" value="1" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="gas-t" placeholder="T (K)" value="273.15" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                    </div>
+                    <select id="gas-target" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-bold text-purple-300">
+                        <option value="P">Solve for Pressure (P)</option>
+                        <option value="V">Solve for Volume (V)</option>
+                        <option value="n">Solve for Moles (n)</option>
+                        <option value="T">Solve for Temp (T)</option>
+                    </select>
+                    <div id="gas-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-purple-300 font-mono">Result: -</div>
+                    <button onclick="solveIdealGas()" class="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs">Solve Ideal Gas</button>
+                </div>
+
+                <!-- 3. Dilution Calculator -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-droplet text-cyan-400"></i>
+                        <span>Solution Dilution (M1V1 = M2V2)</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <input type="text" id="dil-m1" placeholder="M1 (Molar)" value="12" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="dil-v1" placeholder="V1 (mL)" value="50" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="dil-m2" placeholder="M2 (Molar)" value="1" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="dil-v2" placeholder="V2 (mL)" value="600" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                    </div>
+                    <select id="dil-target" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs font-bold text-cyan-300">
+                        <option value="M2">Solve for M2</option>
+                        <option value="V2">Solve for V2</option>
+                    </select>
+                    <div id="dil-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-cyan-300 font-mono">Result: -</div>
+                    <button onclick="solveDilution()" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs">Solve Dilution</button>
+                </div>
+
+                <!-- 4. pH & pOH Solver -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-flask text-amber-400"></i>
+                        <span>pH & pOH Calculator</span>
+                    </h3>
+                    <input type="text" id="ph-conc-input" value="0.0001" placeholder="[H+] Concentration (mol/L)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-amber-300 font-mono" />
+                    <div id="ph-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-amber-300 font-mono">Result: -</div>
+                    <button onclick="solvepH()" class="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs">Solve pH</button>
+                </div>
+
+                <!-- 5. Reaction Yield & Stoichiometry -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-flask-vial text-pink-400"></i>
+                        <span>Reaction Yield & Stoichiometry</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <input type="text" id="yield-actual" placeholder="Actual Yield (g)" value="8.5" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="yield-theo" placeholder="Theoretical Yield (g)" value="10.0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                    </div>
+                    <div id="yield-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-pink-300 font-mono">Result: -</div>
+                    <button onclick="solveChemYield()" class="w-full py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs">Calculate Yield %</button>
+                </div>
+
+                <!-- 6. Beer-Lambert Law Spectrophotometry -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-vial-circle-check text-indigo-400"></i>
+                        <span>Beer-Lambert Law Absorbance (A = ε·c·l)</span>
+                    </h3>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <input type="text" id="beer-e" placeholder="Molar Absorptivity ε" value="150" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="beer-c" placeholder="Conc c (mol/L)" value="0.02" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="beer-l" placeholder="Path Length l (cm)" value="1.0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                    </div>
+                    <div id="beer-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-indigo-300 font-mono">Result: -</div>
+                    <button onclick="solveBeerLambert()" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">Calculate Absorbance A</button>
+                </div>
+            </div>
+
+            <!-- SUBTAB 3: Physics Solvers -->
+            <div id="subtab-physics" class="science-subtab hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 1. Kinematics Solver -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-gauge-high text-indigo-400"></i>
+                        <span>Kinematics (v = u + at, s = ut + 0.5at²)</span>
+                    </h3>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <input type="text" id="kin-u" placeholder="u (m/s)" value="0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="kin-a" placeholder="a (m/s²)" value="9.8" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="kin-t" placeholder="t (s)" value="5" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                    </div>
+                    <div id="kin-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-indigo-300 font-mono">Result: -</div>
+                    <button onclick="solvePhysicsKinematics()" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">Solve Kinematics</button>
+                </div>
+
+                <!-- 2. Ohm's Law Calculator -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        <span>Ohm's Law & Power (V = IR, P = VI)</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <input type="text" id="ohm-v" placeholder="Voltage V (Volts)" value="12" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="ohm-r" placeholder="Resistance R (Ohms)" value="4" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                    </div>
+                    <div id="ohm-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-amber-300 font-mono">Result: -</div>
+                    <button onclick="solvePhysicsOhm()" class="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs">Solve Ohm's Law</button>
+                </div>
+
+                <!-- 3. Relativity Mass-Energy & Time Dilation (E = mc²) -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-atom text-purple-400"></i>
+                        <span>Special Relativity & Time Dilation (E = mc²)</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <input type="text" id="rel-m" placeholder="Mass m (kg)" value="1.0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                        <input type="text" id="rel-v" placeholder="Speed v (% of c)" value="80" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200" />
+                    </div>
+                    <div id="rel-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-purple-300 font-mono">Result: -</div>
+                    <button onclick="solvePhysicsRelativity()" class="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs">Calculate E = mc² & γ</button>
+                </div>
+
+                <!-- 4. Universal Gravitation (F = G*m1*m2 / r²) -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-globe text-cyan-400"></i>
+                        <span>Universal Gravitation (F = G·m1·m2 / r²)</span>
+                    </h3>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <input type="text" id="grav-m1" placeholder="m1 (kg)" value="5.972e24" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200 font-mono" />
+                        <input type="text" id="grav-m2" placeholder="m2 (kg)" value="70" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200 font-mono" />
+                        <input type="text" id="grav-r" placeholder="r (meters)" value="6.371e6" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-200 font-mono" />
+                    </div>
+                    <div id="grav-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-cyan-300 font-mono">Result: -</div>
+                    <button onclick="solvePhysicsGravitation()" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs">Calculate Gravity Force</button>
+                </div>
+
+                <!-- 5. Photon Energy & Wavelength (E = hf = hc/λ) -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-sun text-emerald-400"></i>
+                        <span>Photon Energy & Wavelength (E = hc/λ)</span>
+                    </h3>
+                    <input type="text" id="photon-wl" placeholder="Wavelength λ (nanometers nm)..." value="500" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-emerald-300 font-mono" />
+                    <div id="photon-result-out" class="p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-emerald-300 font-mono">Result: -</div>
+                    <button onclick="solvePhysicsPhoton()" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">Calculate Photon Energy</button>
+                </div>
+            </div>
+
+            <!-- SUBTAB 4: Multi-Unit Converter -->
+            <div id="subtab-units" class="science-subtab hidden space-y-4">
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <!-- 10 Category Selector Pill Bar -->
+                    <div class="flex flex-wrap items-center gap-1.5 pb-3 border-b border-slate-800 text-xs">
+                        <button onclick="setUnitCategory('data', this)" class="unit-cat-btn bg-amber-500 text-slate-950 px-3 py-1.5 rounded-xl font-bold">Data Storage</button>
+                        <button onclick="setUnitCategory('length', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Length</button>
+                        <button onclick="setUnitCategory('weight', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Weight / Mass</button>
+                        <button onclick="setUnitCategory('speed', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Speed</button>
+                        <button onclick="setUnitCategory('temperature', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Temperature</button>
+                        <button onclick="setUnitCategory('area', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Area</button>
+                        <button onclick="setUnitCategory('volume', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Volume</button>
+                        <button onclick="setUnitCategory('time', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Time</button>
+                        <button onclick="setUnitCategory('energy', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Energy</button>
+                        <button onclick="setUnitCategory('pressure', this)" class="unit-cat-btn text-slate-400 px-3 py-1.5 rounded-xl font-bold">Pressure</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-slate-400">From Value</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="unit-val-from" value="10" onkeyup="calculateUnitConversion()" class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" />
+                                <select id="unit-type-from" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 max-w-[200px]"></select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-slate-400">To Converted Result</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="unit-val-to" readonly class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold font-mono" />
+                                <select id="unit-type-to" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 max-w-[200px]"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 6: STATS & LOGS -->
+        <section id="tab-stats" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i>
+                        <span>Activity & Conversion Log</span>
+                    </h3>
+                    <button onclick="clearHistoryLog()" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-bold">Clear Log</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] font-mono text-slate-400 border-b border-slate-800">
+                                <th class="p-3">File Name</th>
+                                <th class="p-3">Format</th>
+                                <th class="p-3">Size</th>
+                                <th class="p-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-log-tbody">
+                            <tr><td colspan="4" class="p-4 text-center text-slate-500 text-xs">No conversions recorded yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 7: QUESTS & BADGES -->
+        <section id="tab-quests" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 rounded-3xl space-y-4">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2 mb-2">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <span>Achievements & Badges</span>
+                </h3>
+                <div id="badges-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-4">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            OmniConverter PRO 4.0 Ultra • Built with JavaScript, CSS, & Python Engine
+        </div>
+    </footer>
+
+    <script src="static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Python cache & virtualenvs
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Dynamic User Uploads & Outputs
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+omni_db.json
+
+# Nested legacy directories
+File_Converter_Pro/
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
