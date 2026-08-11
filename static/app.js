@@ -734,18 +734,6 @@ async function processQueue() {
           size: `${(item.file.size / 1024).toFixed(1)} KB`,
           url: downloadUrl
         });
-
-      } else {
-        const downloadUrl = await convertClientSide(item.file, item.targetFormat);
-        const outName = item.file.name.replace(/\.[^/.]+$/, "") + `_converted.${item.targetFormat}`;
-        triggerDownload(downloadUrl, outName);
-
-        appState.history.unshift({
-          name: item.file.name,
-          target: item.targetFormat.toUpperCase(),
-          size: `${(item.file.size / 1024).toFixed(1)} KB`,
-          url: downloadUrl
-        });
       }
 
       appState.filesConverted += 1;

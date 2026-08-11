@@ -30,6 +30,16 @@ body {
   min-height: 100vh;
 }
 
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none !important;
+  z-index: 99;
+}
+
 code, pre, .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
