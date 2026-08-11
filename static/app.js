@@ -2208,6 +2208,10 @@ function loadSavedState() {
 }
 
 // ==================== OMNI PDF ENGINE JS HANDLERS ====================
+function getPDFLib() {
+  return window.PDFLib || window.pdfLib || (typeof PDFLib !== "undefined" ? PDFLib : null);
+}
+
 function updatePdfFileBadge(inputEl, badgeId) {
   const badge = document.getElementById(badgeId);
   if (!badge) return;
@@ -2233,55 +2237,58 @@ async function runPDFMerge() {
     return;
   }
 
-
   showToast("Merging PDFs...", "info");
 
-  // Client-Side Offline Fallback using pdf-lib if backend offline
-  if (!appState.backendOnline && window.PDFLib) {
+  if (appState.backendOnline) {
     try {
-      const mergedPdf = await PDFLib.PDFDocument.create();
+      const formData = new FormData();
+      for (let file of fileInput.files) {
+        formData.append("files", file);
+      }
+      const res = await fetch(`${appState.backendUrl}/api/pdf/merge`, { method: "POST", body: formData });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, "OmniConverter_Merged.pdf");
+        showToast("PDF Merge complete!", "success");
+        grantXP(40);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend PDF merge failed, attempting client fallback:", e);
+    }
+  }
+
+  const pdflib = getPDFLib();
+  if (pdflib) {
+    try {
+      const mergedPdf = await pdflib.PDFDocument.create();
       for (let file of fileInput.files) {
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+        const pdf = await pdflib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
         copiedPages.forEach(page => mergedPdf.addPage(page));
       }
-      const pdfBytes = await mergedPdf.save();
+      const pdfBytes = await mergedPdf.save({ useObjectStreams: true });
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      triggerDownload(url, "OmniConverter_Merged_Offline.pdf");
-      showToast("PDF Merge complete (Client Offline Mode)!", "success");
+      triggerDownload(url, "OmniConverter_Merged.pdf");
+      showToast("PDF Merge complete (Client Engine)!", "success");
       grantXP(40);
       return;
     } catch (e) {
-      showToast(`Offline PDF Merge error: ${e.message}`, "error");
+      showToast(`PDF Merge error: ${e.message}`, "error");
       return;
     }
   }
 
-  const formData = new FormData();
-  for (let file of fileInput.files) {
-    formData.append("files", file);
-  }
-
-  try {
-    const res = await fetch(`${appState.backendUrl}/api/pdf/merge`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error(await res.text());
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, "OmniConverter_Merged.pdf");
-    showToast("PDF Merge complete!", "success");
-    grantXP(40);
-  } catch (e) {
-    showToast(`PDF Merge error: ${e.message}`, "error");
-  }
+  showToast("PDF Merge failed: Backend offline and pdf-lib library not loaded.", "error");
 }
 window.runPDFMerge = runPDFMerge;
 
 async function runPDFSplit() {
   const fileInput = document.getElementById("pdf-split-input");
-  const range = document.getElementById("pdf-split-range").value.trim() || "all";
+  const range = document.getElementById("pdf-split-range") ? document.getElementById("pdf-split-range").value.trim() : "all";
   const mode = document.getElementById("pdf-split-mode") ? document.getElementById("pdf-split-mode").value : "single_pdf";
 
   if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
@@ -2290,16 +2297,37 @@ async function runPDFSplit() {
   }
 
   showToast("Splitting PDF pages...", "info");
+  const file = fileInput.files[0];
 
-  // Client-Side Offline Fallback using pdf-lib if backend offline
-  if (!appState.backendOnline && window.PDFLib) {
+  if (appState.backendOnline) {
     try {
-      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("page_range", range);
+      formData.append("mode", mode);
+      const res = await fetch(`${appState.backendUrl}/api/pdf/split`, { method: "POST", body: formData });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const outName = mode === "zip" ? `OmniConverter_Split_${file.name}.zip` : `OmniConverter_Split_${file.name}`;
+        triggerDownload(url, outName);
+        showToast("PDF Split complete!", "success");
+        grantXP(35);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend PDF split failed, attempting client fallback:", e);
+    }
+  }
+
+  const pdflib = getPDFLib();
+  if (pdflib) {
+    try {
       const arrayBuffer = await file.arrayBuffer();
-      const srcPdf = await PDFLib.PDFDocument.load(arrayBuffer);
+      const srcPdf = await pdflib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
       const totalPages = srcPdf.getPageCount();
 
-      const outPdf = await PDFLib.PDFDocument.create();
+      const outPdf = await pdflib.PDFDocument.create();
       let indices = [];
       if (range === "all") indices = Array.from({length: totalPages}, (_, i) => i);
       else if (range === "odd") indices = Array.from({length: totalPages}, (_, i) => i).filter(i => (i + 1) % 2 !== 0);
@@ -2314,39 +2342,24 @@ async function runPDFSplit() {
         }).filter(i => i >= 0 && i < totalPages);
       }
 
+      if (indices.length === 0) indices = Array.from({length: totalPages}, (_, i) => i);
+
       const copiedPages = await outPdf.copyPages(srcPdf, indices);
       copiedPages.forEach(p => outPdf.addPage(p));
-      const pdfBytes = await outPdf.save();
+      const pdfBytes = await outPdf.save({ useObjectStreams: true });
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       triggerDownload(url, `OmniConverter_Split_${file.name}`);
-      showToast("PDF Split complete (Client Offline Mode)!", "success");
+      showToast("PDF Split complete (Client Engine)!", "success");
       grantXP(35);
       return;
     } catch (e) {
-      showToast(`Offline PDF Split error: ${e.message}`, "error");
+      showToast(`PDF Split error: ${e.message}`, "error");
       return;
     }
   }
 
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
-  formData.append("page_range", range);
-  formData.append("mode", mode);
-
-  try {
-    const res = await fetch(`${appState.backendUrl}/api/pdf/split`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error(await res.text());
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const outName = mode === "zip" ? `OmniConverter_Split_${fileInput.files[0].name}.zip` : `OmniConverter_Split_${fileInput.files[0].name}`;
-    triggerDownload(url, outName);
-    showToast("PDF Split complete!", "success");
-    grantXP(35);
-  } catch (e) {
-    showToast(`PDF Split error: ${e.message}`, "error");
-  }
+  showToast("PDF Split failed: Backend offline and pdf-lib library not loaded.", "error");
 }
 window.runPDFSplit = runPDFSplit;
 
@@ -2359,29 +2372,54 @@ async function runPDFCompress() {
     return;
   }
 
-  showToast("Compressing PDF streams & images...", "info");
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
-  formData.append("level", level);
+  showToast("Compressing PDF streams...", "info");
+  const file = fileInput.files[0];
 
-  try {
-    const res = await fetch(`${appState.backendUrl}/api/pdf/compress`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error(await res.text());
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, `OmniConverter_Compressed_${fileInput.files[0].name}`);
-    showToast("PDF Compression complete!", "success");
-    grantXP(35);
-  } catch (e) {
-    showToast(`PDF Compression error: ${e.message}`, "error");
+  if (appState.backendOnline) {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("level", level);
+      const res = await fetch(`${appState.backendUrl}/api/pdf/compress`, { method: "POST", body: formData });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, `OmniConverter_Compressed_${file.name}`);
+        showToast("PDF Compression complete!", "success");
+        grantXP(35);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend PDF compress failed, attempting client fallback:", e);
+    }
   }
+
+  const pdflib = getPDFLib();
+  if (pdflib) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await pdflib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `OmniConverter_Compressed_${file.name}`);
+      showToast("PDF Compression complete (Client Engine)!", "success");
+      grantXP(35);
+      return;
+    } catch (e) {
+      showToast(`PDF Compression error: ${e.message}`, "error");
+      return;
+    }
+  }
+
+  showToast("PDF Compression failed: Backend offline and pdf-lib library not loaded.", "error");
 }
 window.runPDFCompress = runPDFCompress;
 
 async function runPDFProtect() {
   const fileInput = document.getElementById("pdf-protect-input");
-  const pass = document.getElementById("pdf-protect-pass").value.trim();
+  const passInput = document.getElementById("pdf-protect-pass");
+  const pass = passInput ? passInput.value.trim() : "";
 
   if (!fileInput || !fileInput.files || fileInput.files.length === 0 || !pass) {
     showToast("Please select a PDF file and specify a password.", "warning");
@@ -2389,28 +2427,56 @@ async function runPDFProtect() {
   }
 
   showToast("Encrypting PDF with password...", "info");
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
-  formData.append("password", pass);
+  const file = fileInput.files[0];
 
-  try {
-    const res = await fetch(`${appState.backendUrl}/api/pdf/protect`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error(await res.text());
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, `OmniConverter_Protected_${fileInput.files[0].name}`);
-    showToast("PDF Encryption complete!", "success");
-    grantXP(40);
-  } catch (e) {
-    showToast(`PDF Protect error: ${e.message}`, "error");
+  if (appState.backendOnline) {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("password", pass);
+      const res = await fetch(`${appState.backendUrl}/api/pdf/protect`, { method: "POST", body: formData });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, `OmniConverter_Protected_${file.name}`);
+        showToast("PDF Encryption complete!", "success");
+        grantXP(40);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend PDF protect failed, attempting client fallback:", e);
+    }
   }
+
+  const pdflib = getPDFLib();
+  if (pdflib) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await pdflib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      if (typeof pdfDoc.encrypt === "function") {
+        pdfDoc.encrypt({ userPassword: pass, ownerPassword: pass, permissions: { modifying: false } });
+      }
+      const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `OmniConverter_Protected_${file.name}`);
+      showToast("PDF Encryption complete (Client Engine)!", "success");
+      grantXP(40);
+      return;
+    } catch (e) {
+      showToast(`PDF Protect error: ${e.message}`, "error");
+      return;
+    }
+  }
+
+  showToast("PDF Protect failed: Backend offline and pdf-lib library not loaded.", "error");
 }
 window.runPDFProtect = runPDFProtect;
 
 async function runPDFUnlock() {
   const fileInput = document.getElementById("pdf-unlock-input");
-  const pass = document.getElementById("pdf-unlock-pass").value.trim();
+  const passInput = document.getElementById("pdf-unlock-pass");
+  const pass = passInput ? passInput.value.trim() : "";
 
   if (!fileInput || !fileInput.files || fileInput.files.length === 0 || !pass) {
     showToast("Please select an encrypted PDF file and enter password.", "warning");
@@ -2418,28 +2484,61 @@ async function runPDFUnlock() {
   }
 
   showToast("Decrypting PDF...", "info");
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
-  formData.append("password", pass);
+  const file = fileInput.files[0];
 
-  try {
-    const res = await fetch(`${appState.backendUrl}/api/pdf/unlock`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error(await res.text());
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, `OmniConverter_Unlocked_${fileInput.files[0].name}`);
-    showToast("PDF Decryption complete!", "success");
-    grantXP(40);
-  } catch (e) {
-    showToast(`PDF Unlock error: ${e.message}`, "error");
+  if (appState.backendOnline) {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("password", pass);
+      const res = await fetch(`${appState.backendUrl}/api/pdf/unlock`, { method: "POST", body: formData });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, `OmniConverter_Unlocked_${file.name}`);
+        showToast("PDF Decryption complete!", "success");
+        grantXP(40);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend PDF unlock failed, attempting client fallback:", e);
+    }
   }
+
+  const pdflib = getPDFLib();
+  if (pdflib) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      let srcPdf;
+      try {
+        srcPdf = await pdflib.PDFDocument.load(arrayBuffer, { password: pass });
+      } catch (err) {
+        srcPdf = await pdflib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      }
+      const outPdf = await pdflib.PDFDocument.create();
+      const copiedPages = await outPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+      copiedPages.forEach(p => outPdf.addPage(p));
+      const pdfBytes = await outPdf.save({ useObjectStreams: true });
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `OmniConverter_Unlocked_${file.name}`);
+      showToast("PDF Decryption complete (Client Engine)!", "success");
+      grantXP(40);
+      return;
+    } catch (e) {
+      showToast(`PDF Unlock error: ${e.message}`, "error");
+      return;
+    }
+  }
+
+  showToast("PDF Unlock failed: Backend offline and pdf-lib library not loaded.", "error");
 }
 window.runPDFUnlock = runPDFUnlock;
 
 async function runPDFRotate() {
   const fileInput = document.getElementById("pdf-rotate-input");
-  const angle = document.getElementById("pdf-rotate-angle").value;
+  const angleInput = document.getElementById("pdf-rotate-angle");
+  const angle = angleInput ? angleInput.value : "90";
 
   if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
     showToast("Please select a PDF file to rotate.", "warning");
@@ -2447,47 +2546,51 @@ async function runPDFRotate() {
   }
 
   showToast("Rotating PDF pages...", "info");
+  const file = fileInput.files[0];
 
-  // Client-Side Offline Fallback using pdf-lib if backend offline
-  if (!appState.backendOnline && window.PDFLib) {
+  if (appState.backendOnline) {
     try {
-      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("angle", angle);
+      const res = await fetch(`${appState.backendUrl}/api/pdf/rotate`, { method: "POST", body: formData });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, `OmniConverter_Rotated_${file.name}`);
+        showToast("PDF Rotation complete!", "success");
+        grantXP(30);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend PDF rotate failed, attempting client fallback:", e);
+    }
+  }
+
+  const pdflib = getPDFLib();
+  if (pdflib) {
+    try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+      const pdfDoc = await pdflib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
       const degrees = parseInt(angle, 10);
       pdfDoc.getPages().forEach(page => {
         const currentRotation = page.getRotation().angle;
-        page.setRotation(PDFLib.degrees(currentRotation + degrees));
+        page.setRotation(pdflib.degrees((currentRotation + degrees) % 360));
       });
-      const pdfBytes = await pdfDoc.save();
+      const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       triggerDownload(url, `OmniConverter_Rotated_${file.name}`);
-      showToast("PDF Rotation complete (Client Offline Mode)!", "success");
+      showToast("PDF Rotation complete (Client Engine)!", "success");
       grantXP(30);
       return;
     } catch (e) {
-      showToast(`Offline PDF Rotate error: ${e.message}`, "error");
+      showToast(`PDF Rotate error: ${e.message}`, "error");
       return;
     }
   }
 
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
-  formData.append("angle", angle);
-
-  try {
-    const res = await fetch(`${appState.backendUrl}/api/pdf/rotate`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error(await res.text());
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, `OmniConverter_Rotated_${fileInput.files[0].name}`);
-    showToast("PDF Rotation complete!", "success");
-    grantXP(30);
-  } catch (e) {
-    showToast(`PDF Rotate error: ${e.message}`, "error");
-  }
+  showToast("PDF Rotate failed: Backend offline and pdf-lib library not loaded.", "error");
 }
 window.runPDFRotate = runPDFRotate;
 

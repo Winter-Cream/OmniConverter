@@ -393,15 +393,16 @@ class OmniConverterEngine:
     def merge_pdfs(self, pdf_paths: List[str], out_path: str, passwords: Optional[List[str]] = None):
         if not HAS_PYPDF:
             raise RuntimeError("pypdf library is required for PDF Merge.")
-        merger = pypdf.PdfMerger()
+        writer = pypdf.PdfWriter()
         passwords = passwords or []
         for i, path in enumerate(pdf_paths):
             pwd = passwords[i] if i < len(passwords) else ""
             reader = pypdf.PdfReader(path)
             self._handle_encrypted_reader(reader, pwd)
-            merger.append(reader)
-        merger.write(out_path)
-        merger.close()
+            writer.append(reader)
+        with open(out_path, "wb") as f:
+            writer.write(f)
+        writer.close()
 
     def split_pdf(self, pdf_path: str, page_range: str, out_path: str, mode: str = "single_pdf", password: str = "") -> str:
         if not HAS_PYPDF:
