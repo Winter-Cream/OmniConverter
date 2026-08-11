@@ -384,6 +384,26 @@ html.light .queue-item-card {
 }
 
 /* AI Chatbot Window in Light Mode */
+html.light #ai-chat-window {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.light #ai-chat-window .bg-slate-900\/90,
+html.light #ai-chat-window .bg-slate-950,
+html.light #ai-chat-window .bg-slate-950\/80 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light #ai-chat-input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
 html.light #ai-chat-messages {
   background-color: #f8fafc !important;
   border-color: #cbd5e1 !important;
