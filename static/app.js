@@ -2674,35 +2674,6 @@ async function calculateHashes() {
 }
 window.calculateHashes = calculateHashes;
 
-// ==================== FLOATING AI CHATBOT WIDGET HANDLERS ====================
-function toggleFloatingAIChat() {
-  const win = document.getElementById("ai-chat-window");
-  if (!win) return;
-  const isHidden = win.classList.contains("hidden");
-  if (isHidden) {
-    win.classList.remove("hidden");
-    setTimeout(() => {
-      win.classList.remove("opacity-0", "scale-95");
-      win.classList.add("opacity-100", "scale-100");
-    }, 10);
-    const input = document.getElementById("ai-chat-input");
-    if (input) input.focus();
-  } else {
-    win.classList.remove("opacity-100", "scale-100");
-    win.classList.add("opacity-0", "scale-95");
-    setTimeout(() => {
-      win.classList.add("hidden");
-    }, 200);
-  }
-}
-window.toggleFloatingAIChat = toggleFloatingAIChat;
-
-function toggleAISettingsPanel() {
-  const panel = document.getElementById("ai-settings-panel");
-  if (panel) panel.classList.toggle("hidden");
-}
-window.toggleAISettingsPanel = toggleAISettingsPanel;
-
 // ==================== SPOTLIGHT COMMAND PALETTE ENGINE (CTRL + K) ====================
 const APP_COMMAND_REGISTRY = [
   { id: "cmd-merge-pdf", title: "Merge PDFs", cat: "PDF Suite", icon: "fa-file-circle-plus", action: () => { switchTab('tab-pdf'); focusElem('pdf-merge-input'); } },
@@ -2712,7 +2683,6 @@ const APP_COMMAND_REGISTRY = [
   { id: "cmd-unlock-pdf", title: "Decrypt Locked PDF", cat: "PDF Suite", icon: "fa-lock-open", action: () => { switchTab('tab-pdf'); focusElem('pdf-unlock-pass'); } },
   { id: "cmd-rotate-pdf", title: "Rotate PDF Pages", cat: "PDF Suite", icon: "fa-rotate-right", action: () => { switchTab('tab-pdf'); focusElem('pdf-rotate-input'); } },
   { id: "cmd-unit-converter", title: "Exhaustive Multi-Unit Converter (10 Categories, 100+ Units)", cat: "Unit Converter", icon: "fa-calculator", action: () => { switchTab('tab-science'); } },
-  { id: "cmd-ai-chatbot", title: "Omni AI Assistant & Live Website Guide", cat: "Omni AI", icon: "fa-robot", action: () => { toggleFloatingAIChat(); } },
   { id: "cmd-aes-crypto", title: "AES-256 GCM Encryption Vault", cat: "Pro Cyber Console", icon: "fa-shield-halved", action: () => { unlockProDevConsole(true); focusElem('aes-key'); } },
   { id: "cmd-jwt-inspect", title: "JWT Token Inspector", cat: "Pro Cyber Console", icon: "fa-key", action: () => { unlockProDevConsole(true); focusElem('jwt-input'); } },
   { id: "cmd-line-diff", title: "Visual Code Line Diff", cat: "Pro Cyber Console", icon: "fa-file-diff", action: () => { unlockProDevConsole(true); focusElem('diff-text-a'); } },
