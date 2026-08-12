@@ -1,13 +1,13 @@
-# OmniConverter PRO 4.0 Ultra 🚀
+# OmniConverter 🚀
 
-![Version](https://img.shields.io/badge/version-4.0%20Ultra-6366f1)
+![Version](https://img.shields.io/badge/version-v4.0-6366f1)
 ![Python](https://img.shields.io/badge/python-3.9+-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow?logo=javascript&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38bdf8?logo=tailwindcss&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **OmniConverter PRO 4.0 Ultra** is a modern, high-performance web and desktop application featuring multi-format file conversion, a full PDF suite, exhaustive unit converters, activity logging, and an achievement gamification system.
+> **OmniConverter** is a modern, high-performance web and desktop application featuring multi-format file conversion, a full PDF suite, exhaustive unit converters, activity logging, and an achievement gamification system.
 
 ---
 

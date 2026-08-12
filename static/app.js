@@ -44,7 +44,7 @@ const appState = {
 // MULTI-LANGUAGE TRANSLATION DICTIONARY
 const I18N_DICT = {
   en: {
-    appTitle: "OmniConverter PRO 4.0",
+    appTitle: "OmniConverter",
     fileHub: "File Converter",
     scienceLab: "Unit Converter",
     statsLogs: "Activity Logs",
