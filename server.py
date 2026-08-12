@@ -115,6 +115,11 @@ async def get_index():
         return FileResponse(root_path, media_type="text/html")
     return {"message": "OmniConverter PRO 4.0 Server running."}
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Silences browser favicon 404 console warnings."""
+    return Response(status_code=204)
+
 @app.get("/api/health")
 async def health_check():
     return {
