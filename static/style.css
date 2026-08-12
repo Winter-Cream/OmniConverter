@@ -231,6 +231,7 @@ html.light body {
 html.light header {
   background-color: rgba(255, 255, 255, 0.95) !important;
   border-bottom: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
 }
 
 html.light nav {
@@ -260,7 +261,9 @@ html.light .tab-btn:hover {
   background-color: #e2e8f0 !important;
 }
 
-html.light .tab-btn.active {
+html.light .tab-btn.active,
+html.light .tab-btn.active span,
+html.light .tab-btn.active i {
   color: #ffffff !important;
   background: var(--brand-gradient) !important;
 }
@@ -277,6 +280,11 @@ html.light textarea {
 html.light select option {
   background-color: #ffffff !important;
   color: #0f172a !important;
+}
+
+html.dark select option {
+  background-color: #090d16 !important;
+  color: #f8fafc !important;
 }
 
 html.light input::placeholder,
@@ -305,7 +313,25 @@ html.light .text-slate-500 {
   color: #475569 !important;
 }
 
-/* High Contrast Pastel Accent Text in Light Mode */
+/* Ensure Colored Action Buttons Keep Crisp White Text in Light Mode */
+html.light .bg-brand-600,
+html.light .bg-brand-600 *,
+html.light .bg-indigo-600,
+html.light .bg-indigo-600 *,
+html.light .bg-purple-600,
+html.light .bg-purple-600 *,
+html.light .bg-rose-600,
+html.light .bg-rose-600 *,
+html.light .bg-cyan-600,
+html.light .bg-cyan-600 *,
+html.light .bg-emerald-600,
+html.light .bg-emerald-600 *,
+html.light .bg-blue-600,
+html.light .bg-blue-600 * {
+  color: #ffffff !important;
+}
+
+/* High Contrast Accent Text Colors in Light Mode */
 html.light .text-brand-300,
 html.light .text-brand-400 {
   color: #4f46e5 !important;
@@ -336,32 +362,29 @@ html.light .text-rose-400 {
   color: #e11d48 !important;
 }
 
-/* Container & Badge Backgrounds in Light Mode */
+/* Containers, Badges, and Micro-pills in Light Mode */
 html.light .bg-slate-950,
 html.light .bg-slate-900,
 html.light .bg-slate-800,
 html.light .bg-slate-700,
-html.light .bg-slate-900\/90,
-html.light .bg-slate-900\/80,
-html.light .bg-slate-900\/50,
-html.light .bg-slate-900\/40,
-html.light .bg-slate-950\/80,
-html.light .bg-slate-950\/90,
-html.light .bg-slate-950\/50,
-html.light .bg-indigo-950\/80,
-html.light .bg-indigo-950,
-html.light .bg-cyan-950\/40,
-html.light .bg-cyan-950,
-html.light .bg-brand-950\/50 {
+html.light [class*="bg-slate-950"],
+html.light [class*="bg-slate-900"],
+html.light [class*="bg-slate-800"] {
   background-color: #f1f5f9 !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
 
+/* Accent pill background overrides in Light Mode */
+html.light .bg-amber-500\/10 { background-color: #fef3c7 !important; border-color: #fde68a !important; }
+html.light .bg-blue-500\/10 { background-color: #dbeafe !important; border-color: #bfdbfe !important; }
+html.light .bg-purple-500\/10 { background-color: #f3e8ff !important; border-color: #e9d5ff !important; }
+html.light .bg-indigo-500\/10 { background-color: #e0e7ff !important; border-color: #c7d2fe !important; }
+
 html.light .border-slate-800,
 html.light .border-slate-700,
-html.light .border-slate-800\/80,
-html.light .border-slate-700\/80 {
+html.light [class*="border-slate-800"],
+html.light [class*="border-slate-700"] {
   border-color: #cbd5e1 !important;
 }
 
@@ -383,12 +406,16 @@ html.light .queue-item-card {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
 }
 
-
-
 /* Modals & Command Palette in Light Mode */
-html.light #command-palette-modal,
-html.light #element-modal {
+html.light #command-palette-modal {
   background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+html.light #command-palette-modal > div {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
 }
 
 html.light #cmd-search-input {
@@ -396,7 +423,7 @@ html.light #cmd-search-input {
 }
 
 html.light #cmd-results-list > div {
-  background-color: #ffffff !important;
+  background-color: #f8fafc !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
 }
@@ -412,7 +439,7 @@ html.light kbd {
   border-color: #cbd5e1 !important;
 }
 
-/* Code Diffs */
+/* Code Diffs in Light Mode */
 html.light .diff-add {
   background-color: #d1fae5 !important;
   color: #065f46 !important;
