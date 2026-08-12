@@ -2756,13 +2756,13 @@ window.runPDFRotate = runPDFRotate;
 // ==================== SPOTLIGHT COMMAND PALETTE ENGINE (CTRL + K) ====================
 const APP_COMMAND_REGISTRY = [
   { id: "cmd-batch-converter", title: "Batch File Converter (50+ Formats)", cat: "File Converter", icon: "fa-cloud-arrow-up", action: () => { switchTab('tab-converter'); } },
-  { id: "cmd-watch-folder", title: "Watch Folder Automation Daemon", cat: "File Converter", icon: "fa-folder-gear", action: () => { switchTab('tab-converter'); focusElem('watch-input-folder'); } },
-  { id: "cmd-merge-pdf", title: "Merge PDFs Document", cat: "PDF Suite", icon: "fa-file-circle-plus", action: () => { switchTab('tab-pdf'); focusElem('pdf-merge-input'); } },
+  { id: "cmd-watch-folder", title: "Watch Folder Automation Daemon", cat: "File Converter", icon: "fa-folder-open", action: () => { switchTab('tab-converter'); focusElem('watch-input-folder'); } },
+  { id: "cmd-merge-pdf", title: "Merge PDFs Document", cat: "PDF Suite", icon: "fa-file-pdf", action: () => { switchTab('tab-pdf'); focusElem('pdf-merge-input'); } },
   { id: "cmd-split-pdf", title: "Split & Extract PDF Pages", cat: "PDF Suite", icon: "fa-scissors", action: () => { switchTab('tab-pdf'); focusElem('pdf-split-input'); } },
-  { id: "cmd-compress-pdf", title: "Compress PDF Size (80-90% Reduction)", cat: "PDF Suite", icon: "fa-file-zipper", action: () => { switchTab('tab-pdf'); focusElem('pdf-compress-input'); } },
+  { id: "cmd-compress-pdf", title: "Compress PDF Size (80-90% Reduction)", cat: "PDF Suite", icon: "fa-box-archive", action: () => { switchTab('tab-pdf'); focusElem('pdf-compress-input'); } },
   { id: "cmd-protect-pdf", title: "Encrypt PDF Document (AES Password)", cat: "PDF Suite", icon: "fa-lock", action: () => { switchTab('tab-pdf'); focusElem('pdf-protect-pass'); } },
   { id: "cmd-unlock-pdf", title: "Decrypt Password-Protected PDF", cat: "PDF Suite", icon: "fa-lock-open", action: () => { switchTab('tab-pdf'); focusElem('pdf-unlock-pass'); } },
-  { id: "cmd-rotate-pdf", title: "Rotate PDF Page Orientation", cat: "PDF Suite", icon: "fa-rotate-right", action: () => { switchTab('tab-pdf'); focusElem('pdf-rotate-input'); } },
+  { id: "cmd-rotate-pdf", title: "Rotate PDF Page Orientation", cat: "PDF Suite", icon: "fa-rotate", action: () => { switchTab('tab-pdf'); focusElem('pdf-rotate-input'); } },
   { id: "cmd-unit-converter", title: "Multi-Unit Converter (10 Categories, 100+ Units)", cat: "Unit Converter", icon: "fa-calculator", action: () => { switchTab('tab-science'); } },
   { id: "cmd-activity-logs", title: "Activity Logs & Conversion Analytics", cat: "Activity Logs", icon: "fa-chart-pie", action: () => { switchTab('tab-stats'); } },
   { id: "cmd-achievements", title: "Achievements, Quests & Badges Engine", cat: "Achievements", icon: "fa-trophy", action: () => { switchTab('tab-quests'); } }
