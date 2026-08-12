@@ -2755,13 +2755,17 @@ window.runPDFRotate = runPDFRotate;
 
 // ==================== SPOTLIGHT COMMAND PALETTE ENGINE (CTRL + K) ====================
 const APP_COMMAND_REGISTRY = [
-  { id: "cmd-merge-pdf", title: "Merge PDFs", cat: "PDF Suite", icon: "fa-file-circle-plus", action: () => { switchTab('tab-pdf'); focusElem('pdf-merge-input'); } },
+  { id: "cmd-batch-converter", title: "Batch File Converter (50+ Formats)", cat: "File Converter", icon: "fa-cloud-arrow-up", action: () => { switchTab('tab-converter'); } },
+  { id: "cmd-watch-folder", title: "Watch Folder Automation Daemon", cat: "File Converter", icon: "fa-folder-gear", action: () => { switchTab('tab-converter'); focusElem('watch-input-folder'); } },
+  { id: "cmd-merge-pdf", title: "Merge PDFs Document", cat: "PDF Suite", icon: "fa-file-circle-plus", action: () => { switchTab('tab-pdf'); focusElem('pdf-merge-input'); } },
   { id: "cmd-split-pdf", title: "Split & Extract PDF Pages", cat: "PDF Suite", icon: "fa-scissors", action: () => { switchTab('tab-pdf'); focusElem('pdf-split-input'); } },
-  { id: "cmd-compress-pdf", title: "Compress PDF Size", cat: "PDF Suite", icon: "fa-file-zipper", action: () => { switchTab('tab-pdf'); focusElem('pdf-compress-input'); } },
-  { id: "cmd-protect-pdf", title: "Encrypt PDF Document", cat: "PDF Suite", icon: "fa-lock", action: () => { switchTab('tab-pdf'); focusElem('pdf-protect-pass'); } },
-  { id: "cmd-unlock-pdf", title: "Decrypt Locked PDF", cat: "PDF Suite", icon: "fa-lock-open", action: () => { switchTab('tab-pdf'); focusElem('pdf-unlock-pass'); } },
-  { id: "cmd-rotate-pdf", title: "Rotate PDF Pages", cat: "PDF Suite", icon: "fa-rotate-right", action: () => { switchTab('tab-pdf'); focusElem('pdf-rotate-input'); } },
-  { id: "cmd-unit-converter", title: "Exhaustive Multi-Unit Converter (10 Categories, 100+ Units)", cat: "Unit Converter", icon: "fa-calculator", action: () => { switchTab('tab-science'); } }
+  { id: "cmd-compress-pdf", title: "Compress PDF Size (80-90% Reduction)", cat: "PDF Suite", icon: "fa-file-zipper", action: () => { switchTab('tab-pdf'); focusElem('pdf-compress-input'); } },
+  { id: "cmd-protect-pdf", title: "Encrypt PDF Document (AES Password)", cat: "PDF Suite", icon: "fa-lock", action: () => { switchTab('tab-pdf'); focusElem('pdf-protect-pass'); } },
+  { id: "cmd-unlock-pdf", title: "Decrypt Password-Protected PDF", cat: "PDF Suite", icon: "fa-lock-open", action: () => { switchTab('tab-pdf'); focusElem('pdf-unlock-pass'); } },
+  { id: "cmd-rotate-pdf", title: "Rotate PDF Page Orientation", cat: "PDF Suite", icon: "fa-rotate-right", action: () => { switchTab('tab-pdf'); focusElem('pdf-rotate-input'); } },
+  { id: "cmd-unit-converter", title: "Multi-Unit Converter (10 Categories, 100+ Units)", cat: "Unit Converter", icon: "fa-calculator", action: () => { switchTab('tab-science'); } },
+  { id: "cmd-activity-logs", title: "Activity Logs & Conversion Analytics", cat: "Activity Logs", icon: "fa-chart-pie", action: () => { switchTab('tab-stats'); } },
+  { id: "cmd-achievements", title: "Achievements, Quests & Badges Engine", cat: "Achievements", icon: "fa-trophy", action: () => { switchTab('tab-quests'); } }
 ];
 
 function toggleCommandPalette() {
@@ -2814,21 +2818,21 @@ function renderCommandPaletteResults(items) {
   const container = document.getElementById("cmd-results-list");
   if (!container) return;
   if (items.length === 0) {
-    container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs font-mono">No matching tools found.</div>`;
+    container.innerHTML = `<div class="p-8 text-center text-slate-500 dark:text-slate-400 text-xs font-mono">No matching tools found.</div>`;
     return;
   }
   container.innerHTML = items.map(item => `
-    <div onclick="execCommandItem('${item.id}')" class="p-3 bg-slate-900/80 hover:bg-brand-900/40 border border-slate-800/80 hover:border-brand-500/50 rounded-2xl flex items-center justify-between cursor-pointer transition-all group">
+    <div onclick="execCommandItem('${item.id}')" class="p-3 bg-slate-50/80 dark:bg-slate-900/80 hover:bg-brand-500/10 dark:hover:bg-brand-500/20 border border-slate-200/80 dark:border-slate-800/80 hover:border-brand-500/40 rounded-2xl flex items-center justify-between cursor-pointer transition-all duration-200 group shadow-sm">
       <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 text-brand-400 group-hover:text-white flex items-center justify-center text-xs">
+        <div class="w-8 h-8 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs shadow-sm group-hover:scale-110 transition-transform">
           <i class="fa-solid ${item.icon}"></i>
         </div>
         <div>
-          <span class="text-xs font-bold text-slate-200 group-hover:text-white">${item.title}</span>
-          <span class="text-[10px] text-slate-500 block font-mono">${item.cat}</span>
+          <span class="text-xs font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-300 transition-colors">${item.title}</span>
+          <span class="text-[10px] text-slate-500 dark:text-slate-400 block font-mono">${item.cat}</span>
         </div>
       </div>
-      <span class="text-[10px] font-mono text-slate-500 group-hover:text-brand-300">Launch &rarr;</span>
+      <span class="text-[10px] font-bold text-brand-600 dark:text-brand-400 bg-brand-500/10 border border-brand-500/20 px-2.5 py-1 rounded-xl group-hover:bg-brand-600 group-hover:text-white transition-all flex items-center gap-1 font-mono">Launch <i class="fa-solid fa-arrow-right text-[9px]"></i></span>
     </div>
   `).join('');
 }
