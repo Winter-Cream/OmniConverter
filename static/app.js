@@ -45,12 +45,10 @@ const appState = {
 const I18N_DICT = {
   en: {
     appTitle: "OmniConverter PRO 4.0",
-    fileHub: "File Hub",
-    aiStudio: "Gemini AI Studio",
-    devWorkbench: "Dev & Security Workbench",
-    scienceLab: "Science & Multi-Lab",
-    statsLogs: "Stats & Logs",
-    questsBadges: "Quests & Badges",
+    fileHub: "File Converter",
+    scienceLab: "Unit Converter",
+    statsLogs: "Activity Logs",
+    questsBadges: "Achievements",
     dropzoneTitle: "Drop files here or click to browse",
     dropzoneSub: "Supports PDF, DOCX, XLSX, PPTX, PNG, JPG, WEBP, MP3, MP4, CSV, JSON & 50+ formats",
     processQueueBtn: "Start Batch Conversion",

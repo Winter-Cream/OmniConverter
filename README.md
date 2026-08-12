@@ -7,18 +7,18 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38bdf8?logo=tailwindcss&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **OmniConverter PRO 4.0 Ultra** is a modern, high-performance web and desktop application featuring multi-format file conversion, a full PDF suite, Science & Multi-Lab unit converters, and a dynamic persistent Quests & Badges gamification engine.
+> **OmniConverter PRO 4.0 Ultra** is a modern, high-performance web and desktop application featuring multi-format file conversion, a full PDF suite, exhaustive unit converters, activity logging, and an achievement gamification system.
 
 ---
 
 ## 🌟 Key Features
 
-### 1. 📁 File Hub & Multi-Format Engine
+### 1. 📁 File Converter
 - **50+ Formats Supported**: PDF, DOCX, XLSX, PPTX, PNG, JPG, WEBP, MP3, MP4, CSV, JSON, and more.
 - **Batch Processing Queue**: Drag-and-drop batch queue with real-time conversion progress indicators.
 - **Watch Folder Automation Daemon (`watch_daemon.py`)**: Automatically detects and converts any new files placed in a designated input directory.
 
-### 2. 📄 Omni PDF Engine
+### 2. 📄 PDF Suite
 - **Merge PDFs**: Combine multiple PDF documents into a single file.
 - **Split & Extract**: Extract page ranges (`1-5, odd, even, all`) into single PDF or ZIP multi-page archives.
 - **Compress PDF**: Downsample embedded JPEG/PNG images & optimize content streams for 80-90% file size reduction.
@@ -26,16 +26,19 @@
 - **Rotate Pages**: Rotate document pages by 90°, 180°, or 270°.
 - **Offline Client Fallback**: Client-side fallback powered by `pdf-lib` when backend is offline!
 
-### 3. 🔬 Science & Multi-Lab
+### 3. 🧮 Unit Converter
 - **10-Category Multi-Unit Converter Engine**: Real-time conversions across Data Storage, Length, Weight, Speed, Temperature, Area, Volume, Time, Energy, and Pressure (100+ unit terms).
 
-### 4. 🏆 Dynamic Quests & Badges Gamification Engine
-- **Active Quests & Milestones**: Interactive progress bars and XP rewards for completing task milestones.
-- **Dynamic Badge Unlocking**: Badges lock/unlock dynamically based on actual user actions (PDF processing, scientific unit conversions, and File conversions).
+### 4. 📊 Activity Logs & Stats
+- **Real-Time Analytics**: Monitor files converted, total processed bandwidth, time saved, and historical conversion logs.
+
+### 5. 🏆 Achievements & Badges System
+- **Milestone Quests**: Interactive progress bars and XP rewards for completing task milestones.
+- **Dynamic Badge Unlocking**: Badges lock/unlock dynamically based on actual user actions (PDF processing, unit conversions, and file conversions).
 - **Celebration Popups & Audio SFX**: Real-time toast notifications (`🏆 Badge Unlocked: [Title]!`) and audio chimes.
 - **Persistent Progress**: Saved in `localStorage` (`omni_converter_state`) so all unlocked badges and quest progress persist across page reloads.
 
-### 5. 🔍 Spotlight Quick Command Palette (`Ctrl + K`)
+### 6. 🔍 Spotlight Quick Command Palette (`Ctrl + K`)
 - Press **`Ctrl + K`** anywhere in the app to open the Spotlight search palette for instant navigation across all tools!
 
 ---
@@ -75,7 +78,7 @@ chmod +x run.sh
 ---
 
 ### Option C: Standalone Offline Mode (Zero Dependencies)
-Simply double-click `omni.html` in any browser! All client-side tools (PDF operations via `pdf-lib`, Unit Converters, and Badges & Quests) run 100% offline without needing Python installed.
+Simply double-click `omni.html` in any browser! All client-side tools (PDF operations via `pdf-lib`, Unit Converters, and Achievements) run 100% offline without needing Python installed.
 
 ---
 
