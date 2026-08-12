@@ -24,6 +24,15 @@ const appState = {
   history: [],
   activeElemFilter: "all",
   currentUnitCategory: "data",
+  achievements: {
+    aesUsed: false,
+    periodicExplored: false,
+    aiUsed: false,
+    pdfToolUsed: false,
+    unitConverted: false,
+    unlockedBadges: [],
+    completedQuests: []
+  },
   watchFolder: {
     enabled: false,
     path: "C:\\OmniWatch\\Input",
@@ -209,6 +218,8 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPeriodicTable();
   updateUnitDropdowns("data");
   renderBadges();
+  renderQuests();
+  checkAndUnlockAchievements();
   initConfettiCanvas();
   updateGamificationUI();
   if (typeof loadAISettings === "function") loadAISettings();
@@ -738,6 +749,7 @@ async function processQueue() {
       appState.filesConverted += 1;
       appState.bytesProcessed += item.file.size;
       grantXP(50);
+      checkAndUnlockAchievements();
 
     } catch (e) {
       showToast(`Error converting ${item.file.name}: ${e.message}`, "error");
@@ -1254,7 +1266,10 @@ async function runAESEncrypt() {
   const b64 = btoa(String.fromCharCode(...combined));
   document.getElementById("aes-output").value = b64;
   showToast("AES-256 GCM Encrypted!", "success");
+  if (!appState.achievements) appState.achievements = {};
+  appState.achievements.aesUsed = true;
   grantXP(40);
+  checkAndUnlockAchievements();
 }
 window.runAESEncrypt = runAESEncrypt;
 
@@ -1286,6 +1301,9 @@ async function runAESDecrypt() {
     const decText = new TextDecoder().decode(decrypted);
     outEl.value = decText;
     showToast("Decryption successful!", "success");
+    if (!appState.achievements) appState.achievements = {};
+    appState.achievements.aesUsed = true;
+    checkAndUnlockAchievements();
   } catch(e) {
     showToast("Decryption failed: Invalid key or payload", "error");
   }
@@ -1765,6 +1783,9 @@ function calculateUnitConversion() {
   }
 
   if (outEl) outEl.value = res.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  if (!appState.achievements) appState.achievements = {};
+  appState.achievements.unitConverted = true;
+  checkAndUnlockAchievements();
 }
 window.calculateUnitConversion = calculateUnitConversion;
 
@@ -1893,27 +1914,29 @@ const FULL_PERIODIC_TABLE = [
 function filterElemCategory(cat, btn) {
   appState.activeElemFilter = cat;
   document.querySelectorAll(".elem-filter-btn").forEach(b => {
-    b.classList.remove("bg-amber-500", "text-slate-950");
-    b.classList.add("text-slate-400");
+    b.classList.remove("bg-cyan-500", "text-slate-950", "bg-amber-500");
+    b.classList.add("text-slate-400", "bg-slate-800");
   });
   if (btn) {
-    btn.classList.add("bg-amber-500", "text-slate-950");
-    btn.classList.remove("text-slate-400");
+    btn.classList.add("bg-cyan-500", "text-slate-950");
+    btn.classList.remove("text-slate-400", "bg-slate-800");
   }
   renderPeriodicTable();
 }
 window.filterElemCategory = filterElemCategory;
+window.filterPeriodicTableCategory = filterElemCategory;
 
 function renderPeriodicTable() {
   const container = document.getElementById("periodic-table-grid");
   if (!container) return;
 
-  const query = (document.getElementById("ptable-search")?.value || "").toLowerCase();
+  const searchEl = document.getElementById("elem-search-input") || document.getElementById("ptable-search");
+  const query = (searchEl?.value || "").toLowerCase();
   const filterCat = appState.activeElemFilter;
 
   const filtered = FULL_PERIODIC_TABLE.filter(e => {
     const matchesSearch = e.name.toLowerCase().includes(query) || e.sym.toLowerCase().includes(query) || e.num.toString().includes(query);
-    const matchesCat = filterCat === "all" || e.cat === filterCat || (filterCat === "metal" && (e.cat === "elem-alkali" || e.cat === "elem-alkaline" || e.cat === "elem-transition"));
+    const matchesCat = filterCat === "all" || e.cat === filterCat || e.cat.includes(filterCat) || (filterCat === "metal" && (e.cat === "elem-alkali" || e.cat === "elem-alkaline" || e.cat === "elem-transition"));
     return matchesSearch && matchesCat;
   });
 
@@ -1979,6 +2002,9 @@ function openElementModal(num) {
 
   modal.classList.remove("hidden");
   playSFX(783.99, "sine");
+  if (!appState.achievements) appState.achievements = {};
+  appState.achievements.periodicExplored = true;
+  checkAndUnlockAchievements();
 }
 window.openElementModal = openElementModal;
 
@@ -2025,28 +2051,154 @@ function updateGamificationUI() {
   if (xpBar) xpBar.style.width = `${(appState.xp / (appState.level * 200)) * 100}%`;
 }
 
+const MASTER_BADGES = [
+  { id: "conv_1", title: "Conversion Novice", desc: "Converted 1st file", icon: "fa-star", check: () => appState.filesConverted >= 1 },
+  { id: "conv_10", title: "Media Master", desc: "Converted 10 files", icon: "fa-film", check: () => appState.filesConverted >= 10 },
+  { id: "conv_50", title: "Power Converter", desc: "Converted 50 files", icon: "fa-bolt", check: () => appState.filesConverted >= 50 },
+  { id: "aes_used", title: "Cyber Sentinel", desc: "AES Encryption used", icon: "fa-shield-halved", check: () => !!appState.achievements?.aesUsed },
+  { id: "periodic_exp", title: "Quantum Chemist", desc: "Periodic table explored", icon: "fa-atom", check: () => !!appState.achievements?.periodicExplored },
+  { id: "ai_used", title: "AI Strategist", desc: "Used Gemini AI Studio", icon: "fa-brain", check: () => !!appState.achievements?.aiUsed },
+  { id: "pdf_used", title: "PDF Wizard", desc: "Processed a PDF document", icon: "fa-file-pdf", check: () => !!appState.achievements?.pdfToolUsed },
+  { id: "unit_used", title: "Science Scholar", desc: "Converted scientific units", icon: "fa-flask", check: () => !!appState.achievements?.unitConverted },
+  { id: "level_5", title: "Veteran Explorer", desc: "Reached Level 5", icon: "fa-crown", check: () => appState.level >= 5 }
+];
+
+const MASTER_QUESTS = [
+  { id: "q_first_conv", title: "First Step", desc: "Convert at least 1 file", rewardXP: 100, target: 1, current: () => Math.min(1, appState.filesConverted), icon: "fa-upload" },
+  { id: "q_cyber", title: "Cyber Shield", desc: "Encrypt or Decrypt text with AES", rewardXP: 150, target: 1, current: () => appState.achievements?.aesUsed ? 1 : 0, icon: "fa-lock" },
+  { id: "q_atomic", title: "Atomic Discovery", desc: "Explore element details on Periodic Table", rewardXP: 100, target: 1, current: () => appState.achievements?.periodicExplored ? 1 : 0, icon: "fa-vial" },
+  { id: "q_batch", title: "Batch Specialist", desc: "Convert 5 files in total", rewardXP: 250, target: 5, current: () => Math.min(5, appState.filesConverted), icon: "fa-cubes" },
+  { id: "q_pdf", title: "PDF Alchemist", desc: "Perform any PDF operation (merge, split, etc.)", rewardXP: 150, target: 1, current: () => appState.achievements?.pdfToolUsed ? 1 : 0, icon: "fa-wand-magic-sparkles" }
+];
+
+function checkAndUnlockAchievements() {
+  if (!appState.achievements) {
+    appState.achievements = {
+      aesUsed: false,
+      periodicExplored: false,
+      aiUsed: false,
+      pdfToolUsed: false,
+      unitConverted: false,
+      unlockedBadges: [],
+      completedQuests: []
+    };
+  }
+
+  let stateChanged = false;
+
+  // Check Badges
+  MASTER_BADGES.forEach(badge => {
+    const isUnlockedNow = badge.check();
+    if (isUnlockedNow && !appState.achievements.unlockedBadges.includes(badge.id)) {
+      appState.achievements.unlockedBadges.push(badge.id);
+      stateChanged = true;
+
+      showToast(`🏆 Badge Unlocked: ${badge.title}!`, "success");
+      if (typeof playSFX === "function") playSFX(880, "sine");
+      grantXP(50);
+    }
+  });
+
+  // Check Quests
+  MASTER_QUESTS.forEach(quest => {
+    const progress = quest.current();
+    if (progress >= quest.target && !appState.achievements.completedQuests.includes(quest.id)) {
+      appState.achievements.completedQuests.push(quest.id);
+      stateChanged = true;
+
+      showToast(`📜 Quest Completed: ${quest.title}! (+${quest.rewardXP} XP)`, "success");
+      if (typeof playSFX === "function") playSFX(1046.5, "sine");
+      grantXP(quest.rewardXP);
+    }
+  });
+
+  if (stateChanged) {
+    saveStateToStorage();
+  }
+
+  renderBadges();
+  renderQuests();
+}
+
 function renderBadges() {
   const container = document.getElementById("badges-container");
   if (!container) return;
 
-  const badges = [
-    { title: "Conversion Novice", desc: "Converted 1st file", icon: "fa-star", unlocked: appState.filesConverted >= 1 },
-    { title: "Media Master", desc: "Converted 10 files", icon: "fa-film", unlocked: appState.filesConverted >= 10 },
-    { title: "Cyber Sentinel", desc: "AES Encryption used", icon: "fa-shield-halved", unlocked: true },
-    { title: "Quantum Chemist", desc: "Periodic table explored", icon: "fa-atom", unlocked: true }
-  ];
+  const unlockedList = appState.achievements?.unlockedBadges || [];
 
-  container.innerHTML = badges.map(b => `
-    <div class="p-4 bg-slate-900/90 border ${b.unlocked ? 'border-amber-500/40 bg-amber-500/5' : 'border-slate-800 opacity-60'} rounded-2xl flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-xl ${b.unlocked ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-500'} flex items-center justify-center text-lg">
-        <i class="fa-solid ${b.icon}"></i>
+  const statBadgesEl = document.getElementById("stat-badges-count");
+  if (statBadgesEl) {
+    statBadgesEl.innerText = `${unlockedList.length} / ${MASTER_BADGES.length}`;
+  }
+
+  container.innerHTML = MASTER_BADGES.map(b => {
+    const unlocked = unlockedList.includes(b.id) || b.check();
+    return `
+      <div class="p-4 bg-slate-900/90 border ${unlocked ? 'border-amber-500/50 bg-amber-500/10 shadow-lg shadow-amber-500/5' : 'border-slate-800/80 opacity-60'} rounded-2xl flex items-center space-x-3 transition-all duration-300">
+        <div class="w-10 h-10 rounded-xl ${unlocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'} flex items-center justify-center text-lg flex-shrink-0">
+          <i class="fa-solid ${b.icon}"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold ${unlocked ? 'text-amber-200' : 'text-slate-400'} truncate">${b.title}</h4>
+            ${unlocked ? '<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">UNLOCKED</span>' : '<span class="text-[9px] font-bold text-slate-500">LOCKED</span>'}
+          </div>
+          <p class="text-[10px] text-slate-400 mt-0.5">${b.desc}</p>
+        </div>
       </div>
-      <div>
-        <h4 class="text-xs font-bold ${b.unlocked ? 'text-slate-100' : 'text-slate-400'}">${b.title}</h4>
-        <p class="text-[10px] text-slate-400">${b.desc}</p>
+    `;
+  }).join('');
+}
+
+function renderQuests() {
+  const container = document.getElementById("quests-container");
+  if (!container) return;
+
+  const completedList = appState.achievements?.completedQuests || [];
+
+  const statQuestsEl = document.getElementById("stat-quests-count");
+  if (statQuestsEl) {
+    statQuestsEl.innerText = `${completedList.length} / ${MASTER_QUESTS.length}`;
+  }
+
+  const statXpEl = document.getElementById("stat-total-xp");
+  if (statXpEl) {
+    statXpEl.innerText = `${appState.xp || 0} XP`;
+  }
+
+  container.innerHTML = MASTER_QUESTS.map(q => {
+    const isCompleted = completedList.includes(q.id) || q.current() >= q.target;
+    const curr = q.current();
+    const pct = Math.min(100, Math.round((curr / q.target) * 100));
+
+    return `
+      <div class="p-4 bg-slate-900/90 border ${isCompleted ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-800'} rounded-2xl space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg ${isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-indigo-400'} flex items-center justify-center text-sm">
+              <i class="fa-solid ${q.icon}"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-slate-200">${q.title}</h4>
+              <p class="text-[10px] text-slate-400">${q.desc}</p>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-indigo-950 text-indigo-300 border border-indigo-800/50'}">
+            +${q.rewardXP} XP
+          </span>
+        </div>
+        <div class="space-y-1">
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span>Progress: ${curr} / ${q.target}</span>
+            <span>${pct}%</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="h-full ${isCompleted ? 'bg-emerald-400' : 'bg-indigo-500'} transition-all duration-500" style="width: ${pct}%"></div>
+          </div>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderHistoryLog() {
@@ -2186,7 +2338,8 @@ function saveStateToStorage() {
       xp: appState.xp,
       level: appState.level,
       streak: appState.streak,
-      currentLang: appState.currentLang
+      currentLang: appState.currentLang,
+      achievements: appState.achievements
     }));
   } catch(e) {}
 }
@@ -2203,6 +2356,17 @@ function loadSavedState() {
       appState.level = p.level || 1;
       appState.streak = p.streak || 1;
       appState.currentLang = p.currentLang || "en";
+      if (p.achievements) {
+        appState.achievements = {
+          aesUsed: !!p.achievements.aesUsed,
+          periodicExplored: !!p.achievements.periodicExplored,
+          aiUsed: !!p.achievements.aiUsed,
+          pdfToolUsed: !!p.achievements.pdfToolUsed,
+          unitConverted: !!p.achievements.unitConverted,
+          unlockedBadges: Array.isArray(p.achievements.unlockedBadges) ? p.achievements.unlockedBadges : [],
+          completedQuests: Array.isArray(p.achievements.completedQuests) ? p.achievements.completedQuests : []
+        };
+      }
     }
   } catch(e) {}
 }
@@ -2251,7 +2415,10 @@ async function runPDFMerge() {
         const url = URL.createObjectURL(blob);
         triggerDownload(url, "OmniConverter_Merged.pdf");
         showToast("PDF Merge complete!", "success");
+        if (!appState.achievements) appState.achievements = {};
+        appState.achievements.pdfToolUsed = true;
         grantXP(40);
+        checkAndUnlockAchievements();
         return;
       }
     } catch (e) {
