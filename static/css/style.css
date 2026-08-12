@@ -1,0 +1,498 @@
+/* 
+  OmniConverter - CSS Design System & Master Stylesheet
+  Themes: Ultra Dark, Glassmorphism 2.0, Ambient Radial Mesh, Fluid Micro-Animations
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+
+:root {
+  --bg-main: #060911;
+  --bg-card: rgba(13, 18, 33, 0.82);
+  --bg-card-hover: rgba(22, 31, 56, 0.9);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(99, 102, 241, 0.6);
+  --brand-primary: #6366f1;
+  --brand-secondary: #818cf8;
+  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  --glow-brand: 0 0 35px rgba(99, 102, 241, 0.35);
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(217, 70, 239, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: #f1f5f9;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none !important;
+  z-index: 99;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* --- FLUID TAB TRANSITION ANIMATIONS --- */
+.tab-content {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- GLASSMORPHISM UTILITIES 2.0 --- */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  border-color: var(--border-active);
+  box-shadow: var(--glow-brand);
+  transform: translateY(-3px);
+}
+
+/* --- TAB BUTTONS & NAV --- */
+.tab-btn {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.tab-btn.active {
+  background: var(--brand-gradient);
+  color: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+  font-weight: 700;
+  transform: scale(1.02);
+}
+
+.tab-btn.active i {
+  color: #ffffff !important;
+}
+
+/* --- DRAG & DROP ZONE --- */
+#dropzone {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#dropzone.dragover {
+  border-color: #6366f1 !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+  transform: scale(1.01);
+  box-shadow: 0 0 50px rgba(99, 102, 241, 0.4);
+}
+
+/* --- PERIODIC TABLE LAB --- */
+.periodic-grid {
+  display: grid;
+  grid-template-columns: repeat(18, minmax(0, 1fr));
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.elem-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.elem-card:hover {
+  transform: scale(1.28);
+  z-index: 50;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.9);
+  border-color: #f59e0b !important;
+}
+
+.elem-nonmetal { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); }
+.elem-noble { background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); }
+.elem-alkali { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
+.elem-alkaline { background: rgba(249, 115, 22, 0.2); border-color: rgba(249, 115, 22, 0.4); }
+.elem-metalloid { background: rgba(20, 184, 166, 0.2); border-color: rgba(20, 184, 166, 0.4); }
+.elem-halogen { background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.4); }
+.elem-transition { background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.4); }
+
+/* --- CODE DIFF STYLES --- */
+.diff-add {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+  border-left: 4px solid #10b981;
+  color: #a7f3d0;
+}
+
+.diff-del {
+  background-color: rgba(244, 63, 94, 0.18) !important;
+  border-left: 4px solid #f43f5e;
+  color: #fecdd3;
+}
+
+.diff-same {
+  color: #94a3b8;
+}
+
+/* --- SPOTLIGHT COMMAND PALETTE MODAL --- */
+#command-palette-modal {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- CUSTOM SCROLLBAR --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(10, 15, 30, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6366f1;
+}
+
+/* --- CONFETTI CANVAS --- */
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 99999;
+}
+
+/* --- TOAST NOTIFICATIONS --- */
+.toast-msg {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* --- LIGHT MODE THEME ENGINE SYSTEM --- */
+html.light {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --border-glass: #cbd5e1;
+  --border-active: #4f46e5;
+  color: #0f172a;
+}
+
+html.light body {
+  background-color: #f8fafc !important;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(217, 70, 239, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%) !important;
+  color: #0f172a !important;
+}
+
+/* Light mode header & nav */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light nav {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .glass-panel {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
+  color: #0f172a !important;
+}
+
+html.light .glass-panel-hover:hover {
+  border-color: #6366f1 !important;
+  box-shadow: 0 12px 35px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Tab Navigation Buttons in Light Mode */
+html.light .tab-btn {
+  color: #475569 !important;
+}
+
+html.light .tab-btn:hover {
+  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+}
+
+html.light .tab-btn.active,
+html.light .tab-btn.active span,
+html.light .tab-btn.active i {
+  color: #ffffff !important;
+  background: var(--brand-gradient) !important;
+}
+
+/* Inputs, Textareas, Selects in Light Mode */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.dark select option {
+  background-color: #090d16 !important;
+  color: #f8fafc !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #4f46e5 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+}
+
+/* Text Overrides in Light Mode */
+html.light .text-white,
+html.light .text-slate-100,
+html.light .text-slate-200,
+html.light .text-slate-300 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-400,
+html.light .text-slate-500 {
+  color: #475569 !important;
+}
+
+/* Ensure Colored Action Buttons Keep Crisp White Text in Light Mode */
+html.light .bg-brand-600,
+html.light .bg-brand-600 *,
+html.light .bg-indigo-600,
+html.light .bg-indigo-600 *,
+html.light .bg-purple-600,
+html.light .bg-purple-600 *,
+html.light .bg-rose-600,
+html.light .bg-rose-600 *,
+html.light .bg-cyan-600,
+html.light .bg-cyan-600 *,
+html.light .bg-emerald-600,
+html.light .bg-emerald-600 *,
+html.light .bg-blue-600,
+html.light .bg-blue-600 * {
+  color: #ffffff !important;
+}
+
+/* High Contrast Accent Text Colors in Light Mode */
+html.light .text-brand-300,
+html.light .text-brand-400 {
+  color: #4f46e5 !important;
+}
+
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #d97706 !important;
+}
+
+html.light .text-purple-300,
+html.light .text-purple-400 {
+  color: #7c3aed !important;
+}
+
+html.light .text-cyan-300,
+html.light .text-cyan-400 {
+  color: #0891b2 !important;
+}
+
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html.light .text-rose-300,
+html.light .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+/* Containers, Badges, and Micro-pills in Light Mode */
+html.light .bg-slate-950:not(#spotlight-trigger-btn):not(#cmd-search-input),
+html.light .bg-slate-900:not(#spotlight-trigger-btn):not(#cmd-search-input),
+html.light .bg-slate-800:not(#spotlight-trigger-btn):not(#cmd-search-input) {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Accent pill background overrides in Light Mode */
+html.light .bg-amber-500\/10 { background-color: #fef3c7 !important; border-color: #fde68a !important; }
+html.light .bg-blue-500\/10 { background-color: #dbeafe !important; border-color: #bfdbfe !important; }
+html.light .bg-purple-500\/10 { background-color: #f3e8ff !important; border-color: #e9d5ff !important; }
+html.light .bg-indigo-500\/10 { background-color: #e0e7ff !important; border-color: #c7d2fe !important; }
+
+html.light .border-slate-800,
+html.light .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Dropzone in Light Mode */
+html.light #dropzone {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light #dropzone:hover {
+  background-color: #f8fafc !important;
+  border-color: #6366f1 !important;
+}
+
+/* Queue Item Cards in Light Mode */
+html.light .queue-item-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Spotlight Search Trigger Button in Light Mode */
+html.light #spotlight-trigger-btn {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light #spotlight-trigger-btn:hover {
+  background-color: #f8fafc !important;
+  border-color: #4f46e5 !important;
+  color: #0f172a !important;
+}
+
+html.light #spotlight-trigger-btn kbd {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #4f46e5 !important;
+}
+
+/* Modals & Command Palette in Light Mode */
+html.light #command-palette-modal {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+html.light #command-palette-modal > div {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.light #command-palette-modal .bg-slate-950,
+html.light #command-palette-modal .bg-slate-100 {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light #cmd-search-input {
+  color: #0f172a !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html.light #cmd-search-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+html.light #cmd-search-input::placeholder {
+  color: #64748b !important;
+}
+
+html.light #command-palette-modal kbd {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+html.light #cmd-results-list > div {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light #cmd-results-list > div:hover {
+  background-color: #e0e7ff !important;
+  border-color: #6366f1 !important;
+}
+
+/* Code Diffs in Light Mode */
+html.light .diff-add {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-left-color: #10b981 !important;
+}
+
+html.light .diff-del {
+  background-color: #ffe4e6 !important;
+  color: #9f1239 !important;
+  border-left-color: #f43f5e !important;
+}
+
+html.light .diff-same {
+  color: #475569 !important;
+}
+
+/* Footer in Light Mode */
+html.light footer {
+  background-color: #ffffff !important;
+  border-top: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+}

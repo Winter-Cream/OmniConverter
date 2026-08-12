@@ -107,13 +107,16 @@ def cleanup_temp_file(file_path: str):
 # Serve main application HTML page
 @app.get("/")
 async def get_index():
+    index_path = TEMPLATES_DIR / "index.html"
     template_path = TEMPLATES_DIR / "omni.html"
     root_path = BASE_DIR / "omni.html"
-    if template_path.exists():
+    if index_path.exists():
+        return FileResponse(index_path, media_type="text/html")
+    elif template_path.exists():
         return FileResponse(template_path, media_type="text/html")
     elif root_path.exists():
         return FileResponse(root_path, media_type="text/html")
-    return {"message": "OmniConverter PRO 4.0 Server running."}
+    return {"message": "OmniConverter Server running."}
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -125,7 +128,7 @@ async def health_check():
     return {
         "status": "online",
         "version": "4.0.0",
-        "engine": "OmniConverter PRO 4.0 Python Engine",
+        "engine": "OmniConverter Python Engine",
         "has_ffmpeg": check_ffmpeg(),
         "has_fcp": getattr(sys.modules["converter_engine"], "HAS_FCP", False),
         "daemon_running": daemon.is_running(),
@@ -194,6 +197,7 @@ async def convert_single_file(
     )
 
 @app.post("/api/batch-convert")
+@app.post("/api/convert/zip")
 async def convert_batch_files(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),

@@ -5,6 +5,7 @@
   <p><i>Convert 50+ formats locally or in your browser with zero data tracking and offline client fallback.</i></p>
 
   <p>
+    <a href="https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml"><img src="https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml/badge.svg" alt="CI Pipeline"></a>
     <a href="https://github.com/Winter-Cream/OmniConverter"><img src="https://img.shields.io/badge/version-v4.0-6366f1?style=for-the-badge&logo=rocket" alt="Version"></a>
     <a href="https://www.python.org"><img src="https://img.shields.io/badge/python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
     <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
@@ -16,6 +17,8 @@
 
   <p>
     <a href="#-quick-start"><b>🚀 Quick Start</b></a> •
+    <a href="#-docker-deployment"><b>🐳 Docker</b></a> •
+    <a href="#-external-dependencies"><b>📦 System Binaries</b></a> •
     <a href="#-key-features"><b>🌟 Key Features</b></a> •
     <a href="#-supported-file-formats"><b>📑 Formats Matrix</b></a> •
     <a href="#-omniconverter-vs-commercial-tools"><b>⚖️ Comparison</b></a> •
@@ -43,8 +46,8 @@
 | **Data Privacy** | **100% Local / Self-Hosted** | Files stored on external servers | Files uploaded to cloud |
 | **Browser Offline Mode** | **Yes (`pdf-lib` fallback)** | ❌ No | ❌ No |
 | **Watch Folder Automation** | **Yes (`watch_daemon.py`)** | ❌ No | ❌ No |
+| **Batch ZIP Exports** | **Yes (`/api/convert/zip`)** | Limited | Limited |
 | **Spotlight Command Palette (`Ctrl+K`)** | **Yes** | ❌ No | ❌ No |
-| **Gamification & Quests** | **Yes (Badges & XP)** | ❌ No | ❌ No |
 | **Multi-Language Support** | **7 Languages (EN, ES, FR, DE, JA, ZH, HI)** | English Only | Limited |
 
 ---
@@ -53,7 +56,7 @@
 
 | Feature Module | Description & Capabilities |
 | :--- | :--- |
-| 📁 **Batch File Converter** | Convert **50+ formats** (Document, Image, Audio, Video, Data). Drag-and-drop queue with real-time conversion progress bars. |
+| 📁 **Batch File Converter** | Convert **50+ formats** (Document, Image, Audio, Video, Data). Drag-and-drop queue with real-time conversion progress bars and ZIP downloads. |
 | ⚡ **Watch Folder Daemon** | Background automation daemon (`watch_daemon.py`) that monitors designated local input folders and converts incoming files automatically. |
 | 📄 **Full PDF Suite** | **Merge**, **Split** (custom ranges & ZIP archives), **Compress** (80-90% size reduction), **Encrypt** (AES password), **Decrypt**, and **Rotate** PDFs. |
 | 🌐 **Offline Client Mode** | Standalone browser execution mode using `pdf-lib` when running without a Python server backend. |
@@ -75,6 +78,27 @@ OmniConverter supports automated format auto-detection and conversion across 50+
 | 🎵 **Audio** | `MP3`, `WAV`, `AAC`, `OGG`, `FLAC`, `M4A` |
 | 🎥 **Video** | `MP4`, `AVI`, `MKV`, `MOV`, `WEBM` |
 | 📊 **Data & Code** | `CSV`, `JSON`, `XML`, `YAML`, `TSV`, `SQL` |
+
+---
+
+## 📦 System Binaries Installation
+
+For media (Audio/Video) and advanced PDF rasterization, install **FFmpeg**:
+
+- **🪟 Windows**:
+  ```powershell
+  winget install FFmpeg
+  # or via Chocolatey
+  choco install ffmpeg
+  ```
+- **🐧 Linux (Ubuntu / Debian)**:
+  ```bash
+  sudo apt update && sudo apt install -y ffmpeg poppler-utils
+  ```
+- **🍎 macOS**:
+  ```bash
+  brew install ffmpeg poppler
+  ```
 
 ---
 
@@ -119,9 +143,27 @@ chmod +x run.sh
 
 ---
 
-### 🔌 Option 3: Offline Browser Mode (Zero Dependencies)
+### 🐳 Docker Deployment
 
-Double-click `omni.html` directly in any web browser! All client-side tools (PDF operations via `pdf-lib`, Unit Converters, and Achievements) run **100% offline** without requiring Python installed.
+Run OmniConverter inside an isolated, production-hardened Docker container with zero setup:
+
+1. **Build the container image**:
+   ```bash
+   docker build -t omniconverter .
+   ```
+
+2. **Run container**:
+   ```bash
+   docker run -d -p 8500:8500 --name omniconverter_app omniconverter
+   ```
+
+3. Open `http://localhost:8500`.
+
+---
+
+### 🔌 Option 4: Offline Browser Mode (Zero Dependencies)
+
+Double-click `omni.html` or `templates/index.html` directly in any web browser! All client-side tools (PDF operations via `pdf-lib`, Unit Converters, and Achievements) run **100% offline** without requiring Python installed.
 
 ---
 
@@ -145,7 +187,7 @@ python watch_daemon.py --input ./watch_input --output ./watch_output --target pd
 
 OmniConverter provides a comprehensive RESTful API for seamless backend integration:
 
-### 1. Batch File Conversion
+### 1. Single File Conversion
 ```http
 POST /api/convert
 Content-Type: multipart/form-data
@@ -154,7 +196,16 @@ file: [Binary File]
 target_format: "pdf" | "docx" | "png" | "jpg" | "webp" | "mp3" | "json"
 ```
 
-### 2. Merge PDFs
+### 2. Batch Conversion ZIP Export
+```http
+POST /api/convert/zip
+Content-Type: multipart/form-data
+
+files: [Binary File 1, Binary File 2, ...]
+target_format: "png" | "pdf" | "docx"
+```
+
+### 3. Merge PDFs
 ```http
 POST /api/pdf/merge
 Content-Type: multipart/form-data
@@ -162,17 +213,17 @@ Content-Type: multipart/form-data
 files: [Binary File 1, Binary File 2, ...]
 ```
 
-### 3. Split PDF
+### 4. Split PDF
 ```http
 POST /api/pdf/split
 Content-Type: multipart/form-data
 
 file: [Binary File]
-range: "1-3, odd"
-output_type: "single_pdf" | "zip"
+page_range: "1-3, odd"
+mode: "single_pdf" | "zip"
 ```
 
-### 4. Compress PDF
+### 5. Compress PDF
 ```http
 POST /api/pdf/compress
 Content-Type: multipart/form-data
@@ -181,7 +232,7 @@ file: [Binary File]
 level: "low" | "medium" | "high"
 ```
 
-### 5. Encrypt PDF (Protect)
+### 6. Encrypt PDF (Protect)
 ```http
 POST /api/pdf/protect
 Content-Type: multipart/form-data
@@ -190,7 +241,7 @@ file: [Binary File]
 password: "SecretPassword123"
 ```
 
-### 6. Decrypt PDF (Unlock)
+### 7. Decrypt PDF (Unlock)
 ```http
 POST /api/pdf/unlock
 Content-Type: multipart/form-data
@@ -199,7 +250,7 @@ file: [Binary File]
 password: "SecretPassword123"
 ```
 
-### 7. Health Check
+### 8. Health Check
 ```http
 GET /api/health
 ```
@@ -229,18 +280,30 @@ GET /api/health
 ## 🏗️ Architecture & Repository Structure
 
 ```
-OmniConverter Repository
-├── omni.html              # Standalone single-page frontend application
-├── server.py              # FastAPI REST API server & routing
-├── converter_engine.py    # Multi-format conversion & PDF processing engine
-├── watch_daemon.py        # Background folder automation daemon
+OmniConverter Repository Structure
+├── server.py               # FastAPI application & REST routing
+├── converter_engine.py     # Multi-format conversion & PDF processing engine
+├── watch_daemon.py         # Background folder automation daemon
+├── requirements.txt        # Python dependencies manifest
+├── Dockerfile              # Multi-stage container definition
+├── run.bat                 # Windows launcher script
+├── run.sh                  # Linux/macOS launcher script
+├── tests/
+│   └── test_api.py         # Pytest REST API test suite
+├── .github/
+│   ├── CONTRIBUTING.md     # Open source contribution guide
+│   └── workflows/
+│       └── ci.yml          # GitHub Actions CI/CD workflow
 ├── static/
-│   ├── app.js             # Core JS application state & client-side solvers
-│   └── style.css          # Glassmorphism design system & theme tokens
-├── templates/
-│   └── omni.html          # Jinja2 synchronized HTML template
-├── run.bat                # Windows launcher script
-└── run.sh                 # Linux/macOS launcher script
+│   ├── css/
+│   │   └── style.css       # Fluid design system & glassmorphism stylesheet
+│   ├── js/
+│   │   └── app.js          # Core frontend JavaScript application
+│   ├── app.js              # Backwards-compatible JS entry point
+│   └── style.css           # Backwards-compatible CSS entry point
+└── templates/
+    ├── index.html          # Primary Jinja2 entry point HTML template
+    └── omni.html           # Synchronized application HTML template
 ```
 
 ---
