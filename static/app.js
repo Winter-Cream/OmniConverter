@@ -2055,9 +2055,7 @@ const MASTER_BADGES = [
   { id: "conv_1", title: "Conversion Novice", desc: "Converted 1st file", icon: "fa-star", check: () => appState.filesConverted >= 1 },
   { id: "conv_10", title: "Media Master", desc: "Converted 10 files", icon: "fa-film", check: () => appState.filesConverted >= 10 },
   { id: "conv_50", title: "Power Converter", desc: "Converted 50 files", icon: "fa-bolt", check: () => appState.filesConverted >= 50 },
-  { id: "aes_used", title: "Cyber Sentinel", desc: "AES Encryption used", icon: "fa-shield-halved", check: () => !!appState.achievements?.aesUsed },
   { id: "periodic_exp", title: "Quantum Chemist", desc: "Periodic table explored", icon: "fa-atom", check: () => !!appState.achievements?.periodicExplored },
-  { id: "ai_used", title: "AI Strategist", desc: "Used Gemini AI Studio", icon: "fa-brain", check: () => !!appState.achievements?.aiUsed },
   { id: "pdf_used", title: "PDF Wizard", desc: "Processed a PDF document", icon: "fa-file-pdf", check: () => !!appState.achievements?.pdfToolUsed },
   { id: "unit_used", title: "Science Scholar", desc: "Converted scientific units", icon: "fa-flask", check: () => !!appState.achievements?.unitConverted },
   { id: "level_5", title: "Veteran Explorer", desc: "Reached Level 5", icon: "fa-crown", check: () => appState.level >= 5 }
@@ -2065,10 +2063,9 @@ const MASTER_BADGES = [
 
 const MASTER_QUESTS = [
   { id: "q_first_conv", title: "First Step", desc: "Convert at least 1 file", rewardXP: 100, target: 1, current: () => Math.min(1, appState.filesConverted), icon: "fa-upload" },
-  { id: "q_cyber", title: "Cyber Shield", desc: "Encrypt or Decrypt text with AES", rewardXP: 150, target: 1, current: () => appState.achievements?.aesUsed ? 1 : 0, icon: "fa-lock" },
   { id: "q_atomic", title: "Atomic Discovery", desc: "Explore element details on Periodic Table", rewardXP: 100, target: 1, current: () => appState.achievements?.periodicExplored ? 1 : 0, icon: "fa-vial" },
   { id: "q_batch", title: "Batch Specialist", desc: "Convert 5 files in total", rewardXP: 250, target: 5, current: () => Math.min(5, appState.filesConverted), icon: "fa-cubes" },
-  { id: "q_pdf", title: "PDF Alchemist", desc: "Perform any PDF operation (merge, split, etc.)", rewardXP: 150, target: 1, current: () => appState.achievements?.pdfToolUsed ? 1 : 0, icon: "fa-wand-magic-sparkles" }
+  { id: "q_pdf", title: "PDF Alchemist", desc: "Perform any PDF operation (merge, split, etc.)", rewardXP: 150, target: 1, current: () => Math.min(1, appState.achievements?.pdfToolUsed ? 1 : 0), icon: "fa-wand-magic-sparkles" }
 ];
 
 function checkAndUnlockAchievements() {
