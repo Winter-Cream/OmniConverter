@@ -7,7 +7,7 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38bdf8?logo=tailwindcss&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **OmniConverter PRO 4.0 Ultra** is an all-in-one desktop & web application providing file conversion, PDF suite tools, Gemini AI sandbox tools, interactive science solvers, multi-category unit converters, and secret developer security utilities.
+> **OmniConverter PRO 4.0 Ultra** is a state-of-the-art all-in-one web and desktop application featuring multi-format file conversion, a full PDF suite, Gemini AI Studio sandbox, Dev & Security Workbench, Science & Multi-Lab with an interactive 118-element periodic table, and a dynamic persistent Quests & Badges gamification engine.
 
 ---
 
@@ -27,36 +27,29 @@
 - **Offline Client Fallback**: Client-side fallback powered by `pdf-lib` when backend is offline!
 
 ### 3. 🤖 Gemini AI Studio
-- **AI Text-to-Speech Synthesizer**: Convert plain text into synthetic speech audio files.
-- **AI Image Art Prompt Sandbox**: Generate canvas art renders from textual prompts.
-- **AI Code Transpiler**: Convert snippets between Python, TypeScript, Go, and Rust.
+- **AI Text-to-Speech (TTS)**: Convert plain text into natural synthetic speech audio with built-in playback player.
+- **AI Generative Canvas Studio**: Generate artwork canvas renders from textual prompts with style presets (Cyberpunk Neon, Anime Fantasy, Photorealistic HD) and direct **"Inject Image to Conversion Queue"**!
+- **AI Code Transpiler**: Convert code snippets between Python 3, TypeScript, and Go.
 - **AI Vision OCR Extractor**: Extract raw text lines from uploaded images.
+- **AI Provider Settings Manager**: Seamlessly switch between Google Gemini, OpenAI (GPT-4o), xAI Grok, and Custom Ollama/LocalAI endpoints.
 
-### 4. 🧪 Science & Multi-Lab
-- **Interactive 118-Element Periodic Table**: Complete dataset (Hydrogen #1 to Oganesson #118) with atomic weights, electron configs, Pauling electronegativities, and STP phase states. Includes direct **"Inject to Molar Mass Solver"**!
-- **Chemistry Solvers**:
-  - Molar Mass Calculator
-  - Ideal Gas Law ($PV = nRT$)
-  - Solution Dilution ($M_1 V_1 = M_2 V_2$)
-  - pH & pOH Calculator
-  - Reaction Percent Yield Calculator
-  - Beer-Lambert Law Spectrophotometry ($A = \epsilon \cdot c \cdot l$)
-- **Physics Solvers**:
-  - Kinematics ($v = u + at, s = ut + \frac{1}{2}at^2$)
-  - Ohm's Law & Power ($V = IR, P = VI$)
-  - Special Relativity & Time Dilation ($E = mc^2, \gamma$)
-  - Universal Gravitation ($F = G \frac{m_1 m_2}{r^2}$)
-  - Photon Energy & Wavelength ($E = hf = \frac{hc}{\lambda}$)
-- **10-Category Multi-Unit Converter**: Data Storage, Length, Weight, Speed, Temperature, Area, Volume, Time, Energy, Pressure (100+ unit terms).
+### 4. 🛠️ Dev & Security Workbench
+- **AES-256 GCM Cryptography Suite**: Encrypt and decrypt sensitive messages using a 256-bit passphrase.
+- **JWT Inspector**: Decode JWT bearer tokens with interactive header & payload claims JSON viewers.
+- **Multi-Algorithmic Hashing Engine**: Calculate real-time MD5 and SHA-256 hashes.
+- **Base64 & JSON Utilities**: Base64 encoder/decoder and JSON Formatter / Minifier.
 
-### 5. 🥷 Secret Pro Cyberpunk Developer Vault
-- **Secret Unlock**: Unlocked via **`Ctrl + Shift + D`**, **`~`** (tilde), or triple-clicking the **`PRO 4.0`** header badge!
-- **AES-256 GCM Cryptographic Vault**: Encrypt/Decrypt sensitive payloads with custom passphrases.
-- **Radix & Binary Byte Matrix Converter**: Live recursive conversions across Decimal, Binary, and Hexadecimal.
-- **JWT Inspector**: Decode JWT headers and claims payloads.
-- **Visual Code Line Diff**: Side-by-side line delta visualizer.
+### 5. 🔬 Science & Multi-Lab
+- **Interactive 118-Element Periodic Table**: Complete dataset (Hydrogen #1 to Oganesson #118) with category filter pills, element search bar, atomic weights, electron configs, Pauling electronegativities, and STP phase states. Includes interactive element detail modal with direct **"Inject to Molar Mass Solver"**!
+- **10-Category Multi-Unit Converter Engine**: Real-time conversions across Data Storage, Length, Weight, Speed, Temperature, Area, Volume, Time, Energy, and Pressure (100+ unit terms).
 
-### 6. 🔍 Spotlight Quick Command Palette (`Ctrl + K`)
+### 6. 🏆 Dynamic Quests & Badges Gamification Engine
+- **Active Quests & Milestones**: Interactive progress bars and XP rewards for completing task milestones.
+- **Dynamic Badge Unlocking**: Badges lock/unlock dynamically based on actual user actions (AES Encryption, Periodic Table exploration, PDF processing, AI usage, and File conversions).
+- **Celebration Popups & Audio SFX**: Real-time toast notifications (`🏆 Badge Unlocked: [Title]!`) and audio chimes.
+- **Persistent Progress**: Saved in `localStorage` (`omni_converter_state`) so all unlocked badges and quest progress persist across page reloads.
+
+### 7. 🔍 Spotlight Quick Command Palette (`Ctrl + K`)
 - Press **`Ctrl + K`** anywhere in the app to open the Spotlight search palette for instant navigation across all 25+ tools!
 
 ---
@@ -96,7 +89,7 @@ chmod +x run.sh
 ---
 
 ### Option C: Standalone Offline Mode (Zero Dependencies)
-Simply double-click `omni.html` in any browser! All client-side tools (PDF operations via `pdf-lib`, Science Solvers, Unit Converters, Dev Utilities, and Periodic Table) run 100% offline without needing Python installed.
+Simply double-click `omni.html` in any browser! All client-side tools (PDF operations via `pdf-lib`, Unit Converters, Dev Utilities, Periodic Table, and Badges & Quests) run 100% offline without needing Python installed.
 
 ---
 
