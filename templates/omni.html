@@ -106,17 +106,47 @@
             </div>
 
             <!-- Action Controls Toolbar -->
-            <div class="flex items-center space-x-1.5 p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl backdrop-blur-md shadow-sm">
-                <!-- Multi-Language Selector -->
-                <select onchange="setLanguage(this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-300 font-bold focus:outline-none focus:border-brand-500 transition-all cursor-pointer">
-                    <option value="en">🇺🇸 EN</option>
-                    <option value="es">🇪🇸 ES</option>
-                    <option value="fr">🇫🇷 FR</option>
-                    <option value="de">🇩🇪 DE</option>
-                    <option value="ja">🇯🇵 JA</option>
-                    <option value="zh">🇨🇳 ZH</option>
-                    <option value="hi">🇮🇳 HI</option>
-                </select>
+            <div class="flex items-center space-x-1.5 p-1 bg-slate-900/80 dark:bg-slate-900/80 light:bg-white border border-slate-800/80 dark:border-slate-800/80 light:border-slate-200 rounded-2xl backdrop-blur-md shadow-sm">
+                <!-- Custom Glassmorphic Multi-Language Dropdown -->
+                <div class="relative inline-block text-left" id="lang-dropdown-wrapper">
+                    <button onclick="toggleLangDropdown(event)" id="lang-dropdown-btn" class="h-8 px-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs text-slate-200 dark:text-slate-200 light:text-slate-800 font-bold flex items-center space-x-1.5 hover:border-brand-500/50 transition-all shadow-sm cursor-pointer">
+                        <span id="current-lang-flag">🇺🇸</span>
+                        <span id="current-lang-code" class="font-mono">EN</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" id="lang-chevron"></i>
+                    </button>
+
+                    <!-- Floating Dropdown Menu -->
+                    <div id="lang-dropdown-menu" class="hidden absolute right-0 mt-2 w-44 rounded-2xl bg-slate-900/95 dark:bg-slate-900/95 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl backdrop-blur-xl p-1.5 z-50 space-y-0.5 transition-all">
+                        <div onclick="selectLanguage('en', '🇺🇸', 'EN')" class="lang-opt-item px-3 py-2 rounded-xl text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white hover:bg-brand-500/20 dark:hover:bg-brand-500/20 light:hover:bg-brand-500/10 flex items-center justify-between cursor-pointer transition-all">
+                            <span class="flex items-center space-x-2"><span>🇺🇸</span> <span>English</span></span>
+                            <i class="fa-solid fa-check text-[10px] text-brand-400 lang-check-en"></i>
+                        </div>
+                        <div onclick="selectLanguage('es', '🇪🇸', 'ES')" class="lang-opt-item px-3 py-2 rounded-xl text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white hover:bg-brand-500/20 dark:hover:bg-brand-500/20 light:hover:bg-brand-500/10 flex items-center justify-between cursor-pointer transition-all">
+                            <span class="flex items-center space-x-2"><span>🇪🇸</span> <span>Español</span></span>
+                            <i class="fa-solid fa-check text-[10px] text-brand-400 hidden lang-check-es"></i>
+                        </div>
+                        <div onclick="selectLanguage('fr', '🇫🇷', 'FR')" class="lang-opt-item px-3 py-2 rounded-xl text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white hover:bg-brand-500/20 dark:hover:bg-brand-500/20 light:hover:bg-brand-500/10 flex items-center justify-between cursor-pointer transition-all">
+                            <span class="flex items-center space-x-2"><span>🇫🇷</span> <span>Français</span></span>
+                            <i class="fa-solid fa-check text-[10px] text-brand-400 hidden lang-check-fr"></i>
+                        </div>
+                        <div onclick="selectLanguage('de', '🇩🇪', 'DE')" class="lang-opt-item px-3 py-2 rounded-xl text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white hover:bg-brand-500/20 dark:hover:bg-brand-500/20 light:hover:bg-brand-500/10 flex items-center justify-between cursor-pointer transition-all">
+                            <span class="flex items-center space-x-2"><span>🇩🇪</span> <span>Deutsch</span></span>
+                            <i class="fa-solid fa-check text-[10px] text-brand-400 hidden lang-check-de"></i>
+                        </div>
+                        <div onclick="selectLanguage('ja', '🇯🇵', 'JA')" class="lang-opt-item px-3 py-2 rounded-xl text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white hover:bg-brand-500/20 dark:hover:bg-brand-500/20 light:hover:bg-brand-500/10 flex items-center justify-between cursor-pointer transition-all">
+                            <span class="flex items-center space-x-2"><span>🇯🇵</span> <span>日本語</span></span>
+                            <i class="fa-solid fa-check text-[10px] text-brand-400 hidden lang-check-ja"></i>
+                        </div>
+                        <div onclick="selectLanguage('zh', '🇨🇳', 'ZH')" class="lang-opt-item px-3 py-2 rounded-xl text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white hover:bg-brand-500/20 dark:hover:bg-brand-500/20 light:hover:bg-brand-500/10 flex items-center justify-between cursor-pointer transition-all">
+                            <span class="flex items-center space-x-2"><span>🇨🇳</span> <span>中文</span></span>
+                            <i class="fa-solid fa-check text-[10px] text-brand-400 hidden lang-check-zh"></i>
+                        </div>
+                        <div onclick="selectLanguage('hi', '🇮🇳', 'HI')" class="lang-opt-item px-3 py-2 rounded-xl text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white hover:bg-brand-500/20 dark:hover:bg-brand-500/20 light:hover:bg-brand-500/10 flex items-center justify-between cursor-pointer transition-all">
+                            <span class="flex items-center space-x-2"><span>🇮🇳</span> <span>हिन्दी</span></span>
+                            <i class="fa-solid fa-check text-[10px] text-brand-400 hidden lang-check-hi"></i>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Audio SFX Toggle Button -->
                 <button onclick="toggleAudioSFX()" id="sfx-toggle-btn" class="w-8 h-8 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800/80 text-brand-400 hover:text-white transition-all flex items-center justify-center group" title="Toggle Sound FX">

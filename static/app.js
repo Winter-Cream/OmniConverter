@@ -250,9 +250,74 @@ function t(key) {
   return (I18N_DICT[lang] && I18N_DICT[lang][key]) || (I18N_DICT.en[key]) || key;
 }
 
+const LANG_MAP = {
+  en: { flag: "🇺🇸", label: "EN" },
+  es: { flag: "🇪🇸", label: "ES" },
+  fr: { flag: "🇫🇷", label: "FR" },
+  de: { flag: "🇩🇪", label: "DE" },
+  ja: { flag: "🇯🇵", label: "JA" },
+  zh: { flag: "🇨🇳", label: "ZH" },
+  hi: { flag: "🇮🇳", label: "HI" }
+};
+
+function toggleLangDropdown(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById("lang-dropdown-menu");
+  const chevron = document.getElementById("lang-chevron");
+  if (!menu) return;
+  const isHidden = menu.classList.contains("hidden");
+  if (isHidden) {
+    menu.classList.remove("hidden");
+    if (chevron) chevron.style.transform = "rotate(180deg)";
+  } else {
+    menu.classList.add("hidden");
+    if (chevron) chevron.style.transform = "rotate(0deg)";
+  }
+}
+window.toggleLangDropdown = toggleLangDropdown;
+
+function selectLanguage(code, flag, label) {
+  const flagEl = document.getElementById("current-lang-flag");
+  const codeEl = document.getElementById("current-lang-code");
+  if (flagEl) flagEl.innerText = flag;
+  if (codeEl) codeEl.innerText = label;
+
+  document.querySelectorAll("[class*='lang-check-']").forEach(el => el.classList.add("hidden"));
+  const checkMark = document.querySelector(`.lang-check-${code}`);
+  if (checkMark) checkMark.classList.remove("hidden");
+
+  setLanguage(code);
+  const menu = document.getElementById("lang-dropdown-menu");
+  const chevron = document.getElementById("lang-chevron");
+  if (menu) menu.classList.add("hidden");
+  if (chevron) chevron.style.transform = "rotate(0deg)";
+}
+window.selectLanguage = selectLanguage;
+
+// Close dropdown on outside click
+document.addEventListener("click", (e) => {
+  const wrapper = document.getElementById("lang-dropdown-wrapper");
+  const menu = document.getElementById("lang-dropdown-menu");
+  const chevron = document.getElementById("lang-chevron");
+  if (wrapper && !wrapper.contains(e.target) && menu && !menu.classList.contains("hidden")) {
+    menu.classList.add("hidden");
+    if (chevron) chevron.style.transform = "rotate(0deg)";
+  }
+});
+
 function setLanguage(langCode) {
   appState.currentLang = langCode;
   saveStateToStorage();
+
+  const langInfo = LANG_MAP[langCode] || LANG_MAP.en;
+  const flagEl = document.getElementById("current-lang-flag");
+  const codeEl = document.getElementById("current-lang-code");
+  if (flagEl) flagEl.innerText = langInfo.flag;
+  if (codeEl) codeEl.innerText = langInfo.label;
+
+  document.querySelectorAll("[class*='lang-check-']").forEach(el => el.classList.add("hidden"));
+  const checkMark = document.querySelector(`.lang-check-${langCode}`);
+  if (checkMark) checkMark.classList.remove("hidden");
 
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const k = el.getAttribute("data-i18n");
