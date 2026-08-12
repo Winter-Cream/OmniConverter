@@ -48,7 +48,7 @@
         <div class="glass-panel p-4 rounded-3xl max-w-2xl w-full space-y-3 relative border border-slate-700/80 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center space-x-3 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3">
                 <i class="fa-solid fa-magnifying-glass text-brand-400 text-base"></i>
-                <input type="text" id="cmd-search-input" onkeyup="filterCommandPalette()" placeholder="Type to search any tool (PDF Merge, Periodic Table, AI Speech, Base64)..." class="w-full bg-transparent text-sm text-white font-medium focus:outline-none placeholder-slate-500" />
+                <input type="text" id="cmd-search-input" onkeyup="filterCommandPalette()" placeholder="Type to search any tool (File Converter, PDF Suite, Unit Converter, Activity Logs)..." class="w-full bg-transparent text-sm text-white font-medium focus:outline-none focus:ring-0 placeholder-slate-500 border-none outline-none" />
                 <kbd class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">ESC</kbd>
             </div>
             <div id="cmd-results-list" class="max-h-80 overflow-y-auto space-y-1.5 pr-1"></div>
@@ -74,7 +74,7 @@
             </div>
 
             <!-- Quick Spotlight Command Palette Trigger -->
-            <button onclick="toggleCommandPalette()" class="hidden lg:flex items-center space-x-2.5 px-4 py-1.5 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-brand-500/50 text-slate-400 hover:text-slate-200 text-xs transition-all duration-300 shadow-sm backdrop-blur-md group">
+            <button onclick="toggleCommandPalette()" id="spotlight-trigger-btn" class="hidden lg:flex items-center space-x-2.5 px-4 py-1.5 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-brand-500/50 text-slate-400 hover:text-slate-200 text-xs transition-all duration-300 shadow-sm backdrop-blur-md group">
                 <i class="fa-solid fa-magnifying-glass text-brand-400 group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium">Search tools...</span>
                 <kbd class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono text-brand-300 font-bold shadow-inner">Ctrl K</kbd>
