@@ -68,17 +68,13 @@
 
 OmniConverter supports automated format auto-detection and conversion across 50+ media types:
 
-```
-┌─────────────────┬──────────────────────────────────────────────────────────────────┐
-│ Category        │ Supported File Formats & Extensions                              │
-├─────────────────┼──────────────────────────────────────────────────────────────────┤
-│ 📄 Documents     │ PDF, DOCX, XLSX, PPTX, TXT, RTF, ODT, HTML                       │
-│ 🖼️ Images        │ PNG, JPG, JPEG, WEBP, GIF, BMP, TIFF, SVG                        │
-│ 🎵 Audio        │ MP3, WAV, AAC, OGG, FLAC, M4A                                    │
-│ 🎥 Video        │ MP4, AVI, MKV, MOV, WEBM                                         │
-│ 📊 Data & Code  │ CSV, JSON, XML, YAML, TSV, SQL                                   │
-└─────────────────┴──────────────────────────────────────────────────────────────────┘
-```
+| Media Category | Supported Extension Formats |
+| :--- | :--- |
+| 📄 **Documents** | `PDF`, `DOCX`, `XLSX`, `PPTX`, `TXT`, `RTF`, `ODT`, `HTML` |
+| 🖼️ **Images** | `PNG`, `JPG`, `JPEG`, `WEBP`, `GIF`, `BMP`, `TIFF`, `SVG` |
+| 🎵 **Audio** | `MP3`, `WAV`, `AAC`, `OGG`, `FLAC`, `M4A` |
+| 🎥 **Video** | `MP4`, `AVI`, `MKV`, `MOV`, `WEBM` |
+| 📊 **Data & Code** | `CSV`, `JSON`, `XML`, `YAML`, `TSV`, `SQL` |
 
 ---
 
