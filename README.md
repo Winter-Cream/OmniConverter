@@ -7,7 +7,7 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38bdf8?logo=tailwindcss&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **OmniConverter PRO 4.0 Ultra** is a modern, high-performance web and desktop application featuring multi-format file conversion, a full PDF suite, Science & Multi-Lab with an interactive 118-element periodic table, and a dynamic persistent Quests & Badges gamification engine.
+> **OmniConverter PRO 4.0 Ultra** is a modern, high-performance web and desktop application featuring multi-format file conversion, a full PDF suite, Science & Multi-Lab unit converters, and a dynamic persistent Quests & Badges gamification engine.
 
 ---
 
@@ -27,12 +27,11 @@
 - **Offline Client Fallback**: Client-side fallback powered by `pdf-lib` when backend is offline!
 
 ### 3. 🔬 Science & Multi-Lab
-- **Interactive 118-Element Periodic Table**: Complete dataset (Hydrogen #1 to Oganesson #118) with category filter pills, element search bar, atomic weights, electron configs, Pauling electronegativities, and STP phase states. Includes interactive element detail modal with direct **"Inject to Molar Mass Solver"**!
 - **10-Category Multi-Unit Converter Engine**: Real-time conversions across Data Storage, Length, Weight, Speed, Temperature, Area, Volume, Time, Energy, and Pressure (100+ unit terms).
 
 ### 4. 🏆 Dynamic Quests & Badges Gamification Engine
 - **Active Quests & Milestones**: Interactive progress bars and XP rewards for completing task milestones.
-- **Dynamic Badge Unlocking**: Badges lock/unlock dynamically based on actual user actions (Periodic Table exploration, PDF processing, scientific unit conversions, and File conversions).
+- **Dynamic Badge Unlocking**: Badges lock/unlock dynamically based on actual user actions (PDF processing, scientific unit conversions, and File conversions).
 - **Celebration Popups & Audio SFX**: Real-time toast notifications (`🏆 Badge Unlocked: [Title]!`) and audio chimes.
 - **Persistent Progress**: Saved in `localStorage` (`omni_converter_state`) so all unlocked badges and quest progress persist across page reloads.
 
@@ -76,7 +75,7 @@ chmod +x run.sh
 ---
 
 ### Option C: Standalone Offline Mode (Zero Dependencies)
-Simply double-click `omni.html` in any browser! All client-side tools (PDF operations via `pdf-lib`, Unit Converters, Periodic Table, and Badges & Quests) run 100% offline without needing Python installed.
+Simply double-click `omni.html` in any browser! All client-side tools (PDF operations via `pdf-lib`, Unit Converters, and Badges & Quests) run 100% offline without needing Python installed.
 
 ---
 

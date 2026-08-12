@@ -55,15 +55,6 @@
         </div>
     </div>
 
-    <!-- Element Detail Modal Inspector -->
-    <div id="element-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="glass-panel p-6 rounded-3xl max-w-lg w-full space-y-4 relative border border-slate-700 shadow-2xl">
-            <button onclick="closeElementModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl bg-slate-900 border border-slate-800">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-            <div id="element-modal-content"></div>
-        </div>
-    </div>
 
     <!-- Main Navigation Header -->
     <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
@@ -360,92 +351,48 @@
 
         <!-- TAB 5: SCIENCE & MULTI-LAB -->
         <section id="tab-science" class="tab-content hidden space-y-6">
-            <!-- Subtab Switcher -->
-            <div class="flex items-center justify-center space-x-2 p-1.5 bg-slate-900/80 rounded-2xl max-w-md mx-auto border border-slate-800">
-                <button onclick="switchScienceSubTab('subtab-converter', this)" class="subtab-btn flex-1 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 shadow-md">
-                    <i class="fa-solid fa-calculator mr-1"></i> Multi-Unit Converter
-                </button>
-                <button onclick="switchScienceSubTab('subtab-periodic', this)" class="subtab-btn flex-1 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">
-                    <i class="fa-solid fa-atom mr-1 text-cyan-400"></i> Periodic Table (118)
-                </button>
-            </div>
-
-            <!-- Subtab 1: Multi-Unit Converter -->
-            <div id="subtab-converter" class="science-subtab space-y-6">
-                <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6 max-w-5xl mx-auto border border-amber-500/30">
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-                        <div>
-                            <h3 class="text-base font-bold text-white flex items-center space-x-2">
-                                <i class="fa-solid fa-calculator text-amber-400 text-lg"></i>
-                                <span>Exhaustive Multi-Unit Converter Engine</span>
-                            </h3>
-                            <p class="text-xs text-slate-400">Convert data storage, length, weight, speed, temperature, volume, area, time, pressure & energy in real time.</p>
-                        </div>
-                        <span class="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold">100+ UNITS</span>
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6 max-w-5xl mx-auto border border-amber-500/30">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-calculator text-amber-400 text-lg"></i>
+                            <span>Exhaustive Multi-Unit Converter Engine</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Convert data storage, length, weight, speed, temperature, volume, area, time, pressure & energy in real time.</p>
                     </div>
-
-                    <!-- 10 Category Selector Pill Bar -->
-                    <div class="flex flex-wrap items-center gap-2 pb-2 text-xs">
-                        <button onclick="setUnitCategory('data', this)" class="unit-cat-btn bg-amber-500 text-slate-950 px-3.5 py-1.5 rounded-xl font-bold shadow-md">Data Storage</button>
-                        <button onclick="setUnitCategory('length', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Length / Distance</button>
-                        <button onclick="setUnitCategory('weight', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Weight / Mass</button>
-                        <button onclick="setUnitCategory('speed', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Speed / Velocity</button>
-                        <button onclick="setUnitCategory('temperature', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Temperature</button>
-                        <button onclick="setUnitCategory('area', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Area</button>
-                        <button onclick="setUnitCategory('volume', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Volume</button>
-                        <button onclick="setUnitCategory('time', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Time</button>
-                        <button onclick="setUnitCategory('energy', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Energy</button>
-                        <button onclick="setUnitCategory('pressure', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Pressure</button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                        <div class="space-y-2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">From Input Value</label>
-                            <div class="flex space-x-2">
-                                <input type="number" id="unit-val-from" value="10" onkeyup="calculateUnitConversion()" onchange="calculateUnitConversion()" class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-amber-500" />
-                                <select id="unit-type-from" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500 max-w-[200px]"></select>
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">To Converted Result</label>
-                            <div class="flex space-x-2">
-                                <input type="text" id="unit-val-to" readonly class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-amber-300 font-bold font-mono focus:outline-none" />
-                                <select id="unit-type-to" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500 max-w-[200px]"></select>
-                            </div>
-                        </div>
-                    </div>
+                    <span class="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold">100+ UNITS</span>
                 </div>
-            </div>
 
-            <!-- Subtab 2: 118-Element Interactive Periodic Table -->
-            <div id="subtab-periodic" class="science-subtab hidden space-y-6">
-                <div class="glass-panel p-6 rounded-3xl space-y-4 border border-cyan-500/30">
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-                        <div>
-                            <h3 class="text-base font-bold text-white flex items-center space-x-2">
-                                <i class="fa-solid fa-atom text-cyan-400 text-lg"></i>
-                                <span>Interactive 118-Element Periodic Table of Elements</span>
-                            </h3>
-                            <p class="text-xs text-slate-400">Click any element to inspect atomic weight, electron configuration, electronegativity & quantum properties.</p>
+                <!-- 10 Category Selector Pill Bar -->
+                <div class="flex flex-wrap items-center gap-2 pb-2 text-xs">
+                    <button onclick="setUnitCategory('data', this)" class="unit-cat-btn bg-amber-500 text-slate-950 px-3.5 py-1.5 rounded-xl font-bold shadow-md">Data Storage</button>
+                    <button onclick="setUnitCategory('length', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Length / Distance</button>
+                    <button onclick="setUnitCategory('weight', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Weight / Mass</button>
+                    <button onclick="setUnitCategory('speed', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Speed / Velocity</button>
+                    <button onclick="setUnitCategory('temperature', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Temperature</button>
+                    <button onclick="setUnitCategory('area', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Area</button>
+                    <button onclick="setUnitCategory('volume', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Volume</button>
+                    <button onclick="setUnitCategory('time', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Time</button>
+                    <button onclick="setUnitCategory('energy', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Energy</button>
+                    <button onclick="setUnitCategory('pressure', this)" class="unit-cat-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition-all">Pressure</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">From Input Value</label>
+                        <div class="flex space-x-2">
+                            <input type="number" id="unit-val-from" value="10" onkeyup="calculateUnitConversion()" onchange="calculateUnitConversion()" class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-amber-500" />
+                            <select id="unit-type-from" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500 max-w-[200px]"></select>
                         </div>
-                        <input type="text" id="elem-search-input" onkeyup="filterPeriodicTable(this.value)" placeholder="Search element e.g., Gold, Au..." class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-cyan-300 focus:outline-none" />
                     </div>
 
-                    <!-- Category Filter Bar -->
-                    <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-                        <button onclick="filterPeriodicTableCategory('all', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold">All (118)</button>
-                        <button onclick="filterPeriodicTableCategory('reactive-nonmetal', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white">Nonmetals</button>
-                        <button onclick="filterPeriodicTableCategory('noble-gas', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white">Noble Gases</button>
-                        <button onclick="filterPeriodicTableCategory('alkali-metal', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white">Alkali Metals</button>
-                        <button onclick="filterPeriodicTableCategory('alkaline-earth', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white">Alkaline Earth</button>
-                        <button onclick="filterPeriodicTableCategory('transition-metal', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white">Transition Metals</button>
-                        <button onclick="filterPeriodicTableCategory('post-transition', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white">Post-Transition</button>
-                        <button onclick="filterPeriodicTableCategory('metalloid', this)" class="elem-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white">Metalloids</button>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">To Converted Result</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="unit-val-to" readonly class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-amber-300 font-bold font-mono focus:outline-none" />
+                            <select id="unit-type-to" onchange="calculateUnitConversion()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500 max-w-[200px]"></select>
+                        </div>
                     </div>
-
-                    <!-- 118 Elements CSS Grid Container -->
-                    <div id="periodic-table-grid" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 lg:grid-cols-12 gap-2 max-h-[520px] overflow-y-auto pr-1"></div>
                 </div>
             </div>
         </section>
