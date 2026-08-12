@@ -1,11 +1,11 @@
 # OmniConverter 🚀
 
-![Version](https://img.shields.io/badge/version-v4.0-6366f1)
-![Python](https://img.shields.io/badge/python-3.9+-blue?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow?logo=javascript&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38bdf8?logo=tailwindcss&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-green)
+[![Version](https://img.shields.io/badge/version-v4.0-6366f1)](https://github.com/Winter-Cream/OmniConverter)
+[![Python](https://img.shields.io/badge/python-3.9+-blue?logo=python&logoColor=white)](https://www.python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow?logo=javascript&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0+-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 
 > **OmniConverter** is a modern, high-performance web and desktop application featuring multi-format file conversion, a full PDF suite, exhaustive unit converters, activity logging, and an achievement gamification system.
 
