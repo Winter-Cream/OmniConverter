@@ -5,14 +5,16 @@
   <p><i>Convert 50+ formats locally or in your browser with zero data tracking and offline client fallback.</i></p>
 
   <p>
-    <a href="https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml"><img src="https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml/badge.svg" alt="CI Pipeline"></a>
+    <a href="https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Winter-Cream/OmniConverter/ci.yml?branch=main&label=CI%20Build&style=for-the-badge&logo=github" alt="CI Pipeline"></a>
     <a href="https://github.com/Winter-Cream/OmniConverter"><img src="https://img.shields.io/badge/version-v4.0-6366f1?style=for-the-badge&logo=rocket" alt="Version"></a>
     <a href="https://www.python.org"><img src="https://img.shields.io/badge/python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
     <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
+  </p>
+  <p>
     <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"><img src="https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript"></a>
     <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/TailwindCSS-3.0+-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="TailwindCSS"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"></a>
-    <a href="https://github.com/Winter-Cream/OmniConverter/stargazers"><img src="https://img.shields.io/github/stars/Winter-Cream/OmniConverter?style=for-the-badge&color=gold" alt="GitHub Stars"></a>
+    <a href="https://github.com/Winter-Cream/OmniConverter/stargazers"><img src="https://img.shields.io/github/stars/Winter-Cream/OmniConverter?style=for-the-badge&color=gold&logo=github" alt="GitHub Stars"></a>
   </p>
 
   <p>
