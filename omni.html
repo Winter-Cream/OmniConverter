@@ -57,63 +57,63 @@
 
 
     <!-- Main Navigation Header -->
-    <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
             
             <!-- Logo & Application Title -->
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('tab-converter')">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/20 group">
-                    <i class="fa-solid fa-arrows-rotate text-white text-lg transition-transform duration-700 group-hover:rotate-180"></i>
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="switchTab('tab-converter')">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 ring-1 ring-white/20 transition-all duration-500 group-hover:scale-105 group-hover:shadow-indigo-500/40">
+                    <i class="fa-solid fa-arrows-rotate text-white text-base transition-transform duration-700 group-hover:rotate-180"></i>
                 </div>
                 <div>
-                    <span class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                        OmniConverter <span onclick="triggerProSecretUnlock(event)" title="Triple-click or press Ctrl+Shift+D to unlock secret Pro Console" class="bg-gradient-to-r from-brand-400 via-purple-400 to-pink-400 bg-clip-text text-transparent text-xs px-2 py-0.5 rounded-full border border-brand-500/30 bg-brand-950/50 font-mono cursor-pointer select-none">PRO 4.0</span>
+                    <span class="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
+                        OmniConverter 
+                        <span onclick="triggerProSecretUnlock(event)" title="Triple-click or press Ctrl+Shift+D to unlock secret Pro Console" class="bg-gradient-to-r from-brand-500/20 via-purple-500/20 to-pink-500/20 hover:from-brand-500/30 hover:to-pink-500/30 text-indigo-300 text-[10px] px-2.5 py-0.5 rounded-full border border-indigo-500/40 font-mono font-extrabold shadow-sm transition-all cursor-pointer select-none">PRO 4.0</span>
                     </span>
                 </div>
             </div>
 
             <!-- Quick Spotlight Command Palette Trigger -->
-            <button onclick="toggleCommandPalette()" class="hidden lg:flex items-center space-x-2 px-3.5 py-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-brand-500/50 text-slate-400 hover:text-slate-200 text-xs transition-all shadow-inner group">
+            <button onclick="toggleCommandPalette()" class="hidden lg:flex items-center space-x-2.5 px-4 py-1.5 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-brand-500/50 text-slate-400 hover:text-slate-200 text-xs transition-all duration-300 shadow-sm backdrop-blur-md group">
                 <i class="fa-solid fa-magnifying-glass text-brand-400 group-hover:scale-110 transition-transform"></i>
-                <span>Search tools...</span>
-                <kbd class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-brand-300 font-bold">Ctrl K</kbd>
+                <span class="font-medium">Search tools...</span>
+                <kbd class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono text-brand-300 font-bold shadow-inner">Ctrl K</kbd>
             </button>
 
             <!-- Backend Status & Gamification Widget -->
-            <div class="hidden md:flex items-center space-x-4 bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-1.5 shadow-inner">
-                <div id="backend-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1.5">
+            <div class="hidden md:flex items-center space-x-2.5">
+                <!-- Backend Status Badge -->
+                <div id="backend-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-900/80 text-slate-400 border border-slate-800 flex items-center space-x-1.5 shadow-sm">
                     <span class="w-2 h-2 rounded-full bg-slate-500"></span>
-                    <span data-i18n="pythonBackendOffline">Client Standalone Mode</span>
+                    <span data-i18n="pythonBackendOffline">Client Mode</span>
                 </div>
-
-                <div class="w-px h-4 bg-slate-800"></div>
 
                 <!-- Daily Streak -->
-                <div class="flex items-center space-x-1.5 text-xs font-bold text-amber-400" title="Daily Conversion Streak">
-                    <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i>
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 shadow-sm" title="Daily Conversion Streak">
+                    <i class="fa-solid fa-fire text-amber-400 animate-bounce"></i>
                     <span id="header-streak-val">1 Day</span>
                 </div>
-                <div class="w-px h-4 bg-slate-800"></div>
 
-                <!-- Total Files -->
-                <div class="flex items-center space-x-1.5 text-xs text-slate-300" title="Total Files Converted">
-                    <i class="fa-solid fa-file-check text-brand-400"></i>
-                    <span id="header-files-val" class="font-bold font-mono">0</span>
+                <!-- Total Files Converted -->
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 shadow-sm" title="Total Files Converted">
+                    <i class="fa-solid fa-circle-check text-blue-400"></i>
+                    <span id="header-files-val" class="font-mono">0</span>
+                    <span class="text-[10px] text-blue-300/80">Converted</span>
                 </div>
-                <div class="w-px h-4 bg-slate-800"></div>
 
                 <!-- XP Level Progress Bar -->
-                <div class="flex items-center space-x-2 text-xs">
-                    <span id="header-level-badge" class="font-extrabold text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-800/50">LVL 1</span>
-                    <div class="w-20 bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div id="header-xp-bar" class="bg-gradient-to-r from-brand-500 to-purple-500 h-full w-0 transition-all duration-500"></div>
+                <div class="flex items-center space-x-2 text-xs font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 shadow-sm">
+                    <span id="header-level-badge" class="text-purple-300 font-extrabold font-mono">LVL 1</span>
+                    <div class="w-16 bg-slate-950/80 h-2 rounded-full overflow-hidden border border-purple-500/20 p-0.5">
+                        <div id="header-xp-bar" class="bg-gradient-to-r from-brand-500 via-purple-500 to-pink-500 h-full w-0 rounded-full transition-all duration-500"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Controls & Multi-Language Selector -->
-            <div class="flex items-center space-x-3">
-                <select onchange="setLanguage(this.value)" class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-300 font-bold focus:outline-none focus:border-brand-500">
+            <!-- Action Controls Toolbar -->
+            <div class="flex items-center space-x-1.5 p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl backdrop-blur-md shadow-sm">
+                <!-- Multi-Language Selector -->
+                <select onchange="setLanguage(this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-300 font-bold focus:outline-none focus:border-brand-500 transition-all cursor-pointer">
                     <option value="en">🇺🇸 EN</option>
                     <option value="es">🇪🇸 ES</option>
                     <option value="fr">🇫🇷 FR</option>
@@ -123,12 +123,14 @@
                     <option value="hi">🇮🇳 HI</option>
                 </select>
 
-                <button onclick="toggleAudioSFX()" id="sfx-toggle-btn" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-brand-400 hover:text-white transition-all shadow-sm" title="Toggle Sound FX">
-                    <i class="fa-solid fa-volume-high text-xs"></i>
+                <!-- Audio SFX Toggle Button -->
+                <button onclick="toggleAudioSFX()" id="sfx-toggle-btn" class="w-8 h-8 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800/80 text-brand-400 hover:text-white transition-all flex items-center justify-center group" title="Toggle Sound FX">
+                    <i class="fa-solid fa-volume-high text-xs group-hover:scale-110 transition-transform"></i>
                 </button>
 
-                <button onclick="toggleTheme()" id="theme-toggle-btn" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 hover:text-white transition-all shadow-sm" title="Toggle Light/Dark Theme">
-                    <i class="fa-solid fa-sun text-xs"></i>
+                <!-- Light/Dark Theme Switcher -->
+                <button onclick="toggleTheme()" id="theme-toggle-btn" class="w-8 h-8 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800/80 text-amber-400 hover:text-white transition-all flex items-center justify-center group" title="Toggle Light/Dark Theme">
+                    <i class="fa-solid fa-sun text-xs transition-transform duration-500 group-hover:rotate-180"></i>
                 </button>
             </div>
         </div>
