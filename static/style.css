@@ -363,13 +363,9 @@ html.light .text-rose-400 {
 }
 
 /* Containers, Badges, and Micro-pills in Light Mode */
-html.light .bg-slate-950,
-html.light .bg-slate-900,
-html.light .bg-slate-800,
-html.light .bg-slate-700,
-html.light [class*="bg-slate-950"],
-html.light [class*="bg-slate-900"],
-html.light [class*="bg-slate-800"] {
+html.light .bg-slate-950:not(#spotlight-trigger-btn):not(#cmd-search-input),
+html.light .bg-slate-900:not(#spotlight-trigger-btn):not(#cmd-search-input),
+html.light .bg-slate-800:not(#spotlight-trigger-btn):not(#cmd-search-input) {
   background-color: #f1f5f9 !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
@@ -382,9 +378,7 @@ html.light .bg-purple-500\/10 { background-color: #f3e8ff !important; border-col
 html.light .bg-indigo-500\/10 { background-color: #e0e7ff !important; border-color: #c7d2fe !important; }
 
 html.light .border-slate-800,
-html.light .border-slate-700,
-html.light [class*="border-slate-800"],
-html.light [class*="border-slate-700"] {
+html.light .border-slate-700 {
   border-color: #cbd5e1 !important;
 }
 
@@ -411,7 +405,7 @@ html.light #spotlight-trigger-btn {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #475569 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
 html.light #spotlight-trigger-btn:hover {
@@ -438,7 +432,8 @@ html.light #command-palette-modal > div {
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15) !important;
 }
 
-html.light #command-palette-modal .bg-slate-950 {
+html.light #command-palette-modal .bg-slate-950,
+html.light #command-palette-modal .bg-slate-100 {
   background-color: #f8fafc !important;
   border-color: #cbd5e1 !important;
 }
@@ -454,6 +449,7 @@ html.light #cmd-search-input {
 html.light #cmd-search-input:focus {
   outline: none !important;
   box-shadow: none !important;
+  border: none !important;
 }
 
 html.light #cmd-search-input::placeholder {
@@ -466,10 +462,6 @@ html.light #command-palette-modal kbd {
   color: #475569 !important;
 }
 
-html.light #cmd-search-input {
-  color: #0f172a !important;
-}
-
 html.light #cmd-results-list > div {
   background-color: #f8fafc !important;
   border-color: #cbd5e1 !important;
@@ -479,12 +471,6 @@ html.light #cmd-results-list > div {
 html.light #cmd-results-list > div:hover {
   background-color: #e0e7ff !important;
   border-color: #6366f1 !important;
-}
-
-html.light kbd {
-  background-color: #e2e8f0 !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
 }
 
 /* Code Diffs in Light Mode */
