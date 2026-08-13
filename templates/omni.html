@@ -511,7 +511,9 @@
     <!-- Floating AI Chatbot Launcher Button (Bottom Right) -->
     <div id="ai-chat-launcher" class="fixed bottom-6 right-6 z-40 flex items-center group">
         <button onclick="toggleAIChat()" id="ai-chat-toggle-btn" class="relative w-14 h-14 rounded-full bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-500/35 hover:shadow-indigo-500/55 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center border-2 border-white/25 focus:outline-none" title="Ask OmniAI Assistant">
-            <i id="ai-launcher-icon" class="fa-solid fa-sparkles text-xl transition-transform duration-300 group-hover:rotate-12"></i>
+            <svg id="ai-launcher-icon" class="w-6 h-6 text-white transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/>
+            </svg>
             <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900 animate-pulse"></span>
         </button>
         <div class="hidden sm:flex absolute right-16 px-3 py-1.5 rounded-xl bg-slate-900/90 dark:bg-slate-800/95 text-white text-xs font-semibold shadow-lg border border-slate-700/50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
