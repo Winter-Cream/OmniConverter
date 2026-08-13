@@ -97,6 +97,12 @@ Cloud-based conversion tools often subject users to **paywalls, restrictive 15�
 - **Dark Theme**: Deep navy space glassmorphism (`#090d16` canvas with frosted-glass panels).
 - **Fluid Animation Engine**: Snappy `0.14s` cubic-bezier easing curves, responsive tactile button feedback, and audio sound FX synthesizer.
 
+### 🤖 7. OmniAI Floating Assistant (Gemini, OpenAI, Grok, Claude)
+- Floating interactive chatbot hovering at the bottom-right corner.
+- Provides immediate guidance on merging/splitting PDFs, converting 50+ formats, Watch Folder automation, and unit conversions.
+- **Multi-Model Provider Support**: Connect your own **Google Gemini**, **OpenAI**, **xAI Grok**, or **Anthropic Claude** API keys, or use the **Built-in Free Offline Knowledge Engine** with zero setup!
+- Stores keys securely and locally inside your browser's `localStorage`.
+
 ---
 
 ## 📑 Supported Formats Matrix
@@ -277,7 +283,25 @@ curl -X POST "http://localhost:8500/api/pdf/compress" \
 </details>
 
 <details>
-<summary><b>▶️ 6. Health & Diagnostics (<code>GET /api/health</code>)</b></summary>
+<summary><b>▶️ 6. AI Assistant Chat (<code>POST /api/ai/chat</code>)</b></summary>
+
+```bash
+curl -X POST "http://localhost:8500/api/ai/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "How do I merge PDFs?", "provider": "builtin"}'
+```
+**Response**:
+```json
+{
+  "reply": "### 📄 How to Merge PDFs in OmniConverter\n1. Switch to the **PDF Suite** tab...",
+  "provider": "builtin",
+  "model": "OmniKnowledge-v4"
+}
+```
+</details>
+
+<details>
+<summary><b>▶️ 7. Health & Diagnostics (<code>GET /api/health</code>)</b></summary>
 
 ```bash
 curl -X GET "http://localhost:8500/api/health"

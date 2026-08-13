@@ -15,6 +15,7 @@ import threading
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
+from pydantic import BaseModel
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse, JSONResponse
@@ -447,6 +448,228 @@ async def api_pdf_rotate(
 
     background_tasks.add_task(cleanup_temp_file, out_path)
     return FileResponse(path=out_path, filename=Path(out_path).name, media_type="application/pdf")
+
+
+class AIChatRequest(BaseModel):
+    message: str
+    provider: str = "builtin"
+    api_key: Optional[str] = None
+    model: Optional[str] = None
+    history: Optional[List[Dict[str, str]]] = []
+
+
+def get_builtin_knowledge_reply(query: str) -> str:
+    q = query.lower()
+    if any(k in q for k in ["merge", "combine"]):
+        return (
+            "### 📄 How to Merge PDFs in OmniConverter\n\n"
+            "1. Switch to the **PDF Suite** tab (or press `Ctrl + K` and select *Merge PDFs*).\n"
+            "2. Select or drag multiple PDF files into the **Merge PDFs** box.\n"
+            "3. Drag files up/down to arrange their merge order.\n"
+            "4. Click **Merge PDFs** — your unified PDF will download instantly!\n\n"
+            "*Tip: PDF merging runs 100% locally with zero uploads.*"
+        )
+    elif any(k in q for k in ["split", "extract"]):
+        return (
+            "### ✂️ How to Split & Extract PDF Pages\n\n"
+            "1. Go to the **PDF Suite** tab and find **Split & Extract Pages**.\n"
+            "2. Upload your PDF and choose your target extraction:\n"
+            "   - **Custom Range**: e.g., `1-3, 5, 8`\n"
+            "   - **Even / Odd Pages**: extracts only even or odd numbered pages.\n"
+            "3. Select **Mode**:\n"
+            "   - *Single Combined PDF*: combines selected pages into 1 document.\n"
+            "   - *ZIP Archive*: extracts each page into separate PDFs inside a `.zip` archive!\n"
+            "4. Click **Split PDF**."
+        )
+    elif any(k in q for k in ["compress", "reduce size", "smaller"]):
+        return (
+            "### 🗜️ How to Compress PDFs & Reduce File Size\n\n"
+            "1. Open the **PDF Suite** tab and locate **Compress PDF Size**.\n"
+            "2. Select your compression preset:\n"
+            "   - **Low**: Minimal quality loss (15–30% size reduction)\n"
+            "   - **Medium (Recommended)**: Balanced optimization (40–60% reduction)\n"
+            "   - **High**: Maximum compression (up to 85–90% reduction)\n"
+            "3. Upload your PDF and click **Compress PDF**."
+        )
+    elif any(k in q for k in ["protect", "encrypt", "password", "lock"]):
+        return (
+            "### 🔒 How to Encrypt & Protect PDFs\n\n"
+            "1. Navigate to **PDF Suite** $\\rightarrow$ **Encrypt PDF Document**.\n"
+            "2. Upload your PDF and enter a secure password.\n"
+            "3. Click **Protect PDF** — your document is now secured with standard AES encryption."
+        )
+    elif any(k in q for k in ["unlock", "decrypt", "remove password"]):
+        return (
+            "### 🔓 How to Decrypt / Unlock Password-Protected PDFs\n\n"
+            "1. Go to **PDF Suite** $\\rightarrow$ **Decrypt Password-Protected PDF**.\n"
+            "2. Upload the locked document and type the current password.\n"
+            "3. Click **Unlock PDF** to strip the password restrictions."
+        )
+    elif any(k in q for k in ["watch", "folder", "daemon", "automate"]):
+        return (
+            "### ⚡ How Watch Folder Automation Works\n\n"
+            "OmniConverter includes a background automation daemon that converts files the moment you drop them in a folder!\n\n"
+            "1. In the **File Converter** tab, expand the **Watch Folder Automation** panel.\n"
+            "2. Specify your **Input Folder** (e.g. `C:\\OmniWatch\\Input`) and **Output Folder**.\n"
+            "3. Choose your default target format (e.g., `PDF`, `PNG`, `MP3`).\n"
+            "4. Or run via terminal:\n"
+            "   ```bash\n"
+            "   python watch_daemon.py --input ./watch_input --output ./watch_output --target pdf\n"
+            "   ```"
+        )
+    elif any(k in q for k in ["format", "supported", "extension", "type"]):
+        return (
+            "### 📑 Supported File Formats (50+ Types)\n\n"
+            "- **📄 Documents**: `PDF`, `DOCX`, `XLSX`, `PPTX`, `TXT`, `RTF`, `ODT`, `HTML`\n"
+            "- **🖼️ Images**: `PNG`, `JPG`, `WEBP`, `GIF`, `BMP`, `TIFF`, `SVG`, `ICO`\n"
+            "- **🎵 Audio**: `MP3`, `WAV`, `AAC`, `OGG`, `FLAC`, `M4A`, `OPUS`\n"
+            "- **🎥 Video**: `MP4`, `AVI`, `MKV`, `MOV`, `WEBM`, `FLV`\n"
+            "- **📊 Data & Code**: `CSV`, `JSON`, `XML`, `YAML`, `TSV`, `SQL`"
+        )
+    elif any(k in q for k in ["shortcut", "hotkey", "command", "ctrl+k", "spotlight"]):
+        return (
+            "### ⌨️ Keyboard Shortcuts\n\n"
+            "- **`Ctrl + K` / `Cmd + K`**: Opens the **Spotlight Command Palette** for instant tool search.\n"
+            "- **`Esc`**: Closes modals, popups, and the AI Assistant.\n"
+            "- **`Enter`**: Submits conversion jobs or sends AI messages."
+        )
+    elif any(k in q for k in ["unit", "conversion", "science", "calculate", "temperature", "weight", "length"]):
+        return (
+            "### 🧮 Multi-Unit Converter Engine\n\n"
+            "Switch to the **Unit Converter** tab to convert over **100+ units across 10 categories**:\n"
+            "- *Data Storage, Length, Weight & Mass, Speed, Temperature, Area, Volume, Time, Energy, Pressure*.\n"
+            "Values update bidirectionally in real-time as you type!"
+        )
+    elif any(k in q for k in ["api", "key", "gemini", "openai", "grok", "claude", "settings"]):
+        return (
+            "### ⚙️ How to Connect Gemini, OpenAI, or Grok API Keys\n\n"
+            "1. Click the **Gear icon (⚙️)** in the top right of this chat window.\n"
+            "2. Select your AI Provider (**Google Gemini**, **OpenAI**, **xAI Grok**, or **Claude**).\n"
+            "3. Paste your API Key and click **Save & Connect**.\n"
+            "4. Your key is stored securely and locally in your browser session!"
+        )
+    else:
+        return (
+            f"### 🤖 OmniAI Assistant\n\n"
+            f"I can help you with anything in **OmniConverter**! Here are some things you can ask me:\n\n"
+            f"- *\"How do I merge multiple PDFs?\"*\n"
+            f"- *\"How do I split a PDF into separate files inside a ZIP?\"*\n"
+            f"- *\"How to compress a PDF by 80%?\"*\n"
+            f"- *\"How do I configure the Watch Folder background daemon?\"*\n"
+            f"- *\"What video and audio formats can I convert?\"*\n"
+            f"- *\"How to configure Google Gemini, OpenAI, or Grok API keys?\"*\n\n"
+            f"Feel free to ask or click the gear ⚙️ to connect your favorite AI model!"
+        )
+
+
+@app.post("/api/ai/chat")
+async def api_ai_chat(req: AIChatRequest):
+    provider = (req.provider or "builtin").lower()
+    system_prompt = (
+        "You are OmniAI, the expert AI assistant for OmniConverter (Universal File Converter & PDF Suite). "
+        "Help the user efficiently with file conversions (PDF, Video, Audio, Image, Data), Watch Folder daemon, "
+        "PDF operations (Merge, Split, Compress, Protect, Unlock, Rotate), and Unit conversions. "
+        "Format responses cleanly with markdown and bullet points."
+    )
+
+    if provider == "builtin" or not req.api_key:
+        reply = get_builtin_knowledge_reply(req.message)
+        return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v4"}
+
+    try:
+        # GOOGLE GEMINI
+        if provider == "gemini":
+            model = req.model or "gemini-1.5-flash"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={req.api_key}"
+            
+            prompt_text = f"{system_prompt}\n\nUser Question: {req.message}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt_text}]}],
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1024}
+            }
+            
+            data = json.dumps(payload).encode("utf-8")
+            h_req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(h_req, timeout=30) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                candidates = res_data.get("candidates", [])
+                if candidates and "content" in candidates[0]:
+                    parts = candidates[0]["content"].get("parts", [])
+                    reply = "".join(p.get("text", "") for p in parts)
+                    return {"reply": reply, "provider": "gemini", "model": model}
+                return {"reply": "No response generated from Gemini.", "provider": "gemini", "model": model}
+
+        # OPENAI (GPT-4o / GPT-4o-mini)
+        elif provider == "openai":
+            model = req.model or "gpt-4o-mini"
+            url = "https://api.openai.com/v1/chat/completions"
+            messages = [{"role": "system", "content": system_prompt}]
+            if req.history:
+                for h in req.history[-4:]:
+                    messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
+            messages.append({"role": "user", "content": req.message})
+
+            payload = {"model": model, "messages": messages, "temperature": 0.7}
+            data = json.dumps(payload).encode("utf-8")
+            h_req = urllib.request.Request(url, data=data, headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {req.api_key}"
+            })
+            with urllib.request.urlopen(h_req, timeout=30) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                reply = res_data["choices"][0]["message"]["content"]
+                return {"reply": reply, "provider": "openai", "model": model}
+
+        # xAI GROK
+        elif provider == "grok":
+            model = req.model or "grok-2-latest"
+            url = "https://api.x.ai/v1/chat/completions"
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": req.message}
+            ]
+            payload = {"model": model, "messages": messages, "temperature": 0.7}
+            data = json.dumps(payload).encode("utf-8")
+            h_req = urllib.request.Request(url, data=data, headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {req.api_key}"
+            })
+            with urllib.request.urlopen(h_req, timeout=30) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                reply = res_data["choices"][0]["message"]["content"]
+                return {"reply": reply, "provider": "grok", "model": model}
+
+        # ANTHROPIC CLAUDE
+        elif provider == "claude":
+            model = req.model or "claude-3-5-sonnet-20241022"
+            url = "https://api.anthropic.com/v1/messages"
+            payload = {
+                "model": model,
+                "max_tokens": 1024,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": req.message}]
+            }
+            data = json.dumps(payload).encode("utf-8")
+            h_req = urllib.request.Request(url, data=data, headers={
+                "Content-Type": "application/json",
+                "x-api-key": req.api_key,
+                "anthropic-version": "2023-06-01"
+            })
+            with urllib.request.urlopen(h_req, timeout=30) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                content = res_data.get("content", [])
+                reply = "".join(c.get("text", "") for c in content if c.get("type") == "text")
+                return {"reply": reply, "provider": "claude", "model": model}
+
+        else:
+            reply = get_builtin_knowledge_reply(req.message)
+            return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v4"}
+
+    except urllib.error.HTTPError as he:
+        err_body = he.read().decode("utf-8", errors="ignore")
+        return {"reply": f"⚠️ **API Request Error ({he.code})**: {err_body}\n\nFalling back to built-in knowledge:\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
+    except Exception as e:
+        return {"reply": f"⚠️ **Connection Error**: {str(e)}\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
 
 
 if __name__ == "__main__":

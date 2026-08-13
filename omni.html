@@ -49,8 +49,8 @@
 
     <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
 
-    <!-- Floating Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+    <!-- Floating Toast Notification Container (Top Right) -->
+    <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
     <!-- Spotlight Command Palette Modal (Ctrl + K) -->
     <div id="command-palette-modal" class="fixed inset-0 z-50 hidden bg-slate-950/60 dark:bg-slate-950/80 backdrop-blur-md flex items-start justify-center pt-20 p-4" onclick="closeCommandPalette(event)">
@@ -507,6 +507,138 @@
         </section>
 
     </main>
+
+    <!-- Floating AI Chatbot Launcher Button (Bottom Right) -->
+    <div id="ai-chat-launcher" class="fixed bottom-6 right-6 z-40 flex items-center group">
+        <button onclick="toggleAIChat()" id="ai-chat-toggle-btn" class="relative w-14 h-14 rounded-full bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-500/35 hover:shadow-indigo-500/55 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center border-2 border-white/25 focus:outline-none" title="Ask OmniAI Assistant">
+            <i id="ai-launcher-icon" class="fa-solid fa-sparkles text-xl transition-transform duration-300 group-hover:rotate-12"></i>
+            <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900 animate-pulse"></span>
+        </button>
+        <div class="hidden sm:flex absolute right-16 px-3 py-1.5 rounded-xl bg-slate-900/90 dark:bg-slate-800/95 text-white text-xs font-semibold shadow-lg border border-slate-700/50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+            <span>✨ Need help? Ask OmniAI</span>
+        </div>
+    </div>
+
+    <!-- Floating AI Chatbot Window -->
+    <div id="ai-chat-window" class="fixed bottom-24 right-6 z-50 hidden w-[380px] sm:w-[430px] max-w-[calc(100vw-2rem)] h-[580px] max-h-[calc(100vh-8rem)] rounded-3xl flex flex-col glass-panel shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-200">
+        <!-- Chat Header -->
+        <div class="px-4 py-3.5 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/90 dark:bg-slate-950/70 backdrop-blur-md flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i class="fa-solid fa-robot text-sm"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-xs font-bold text-slate-900 dark:text-white">OmniAI Assistant</h3>
+                        <span id="ai-provider-badge" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">Built-in</span>
+                    </div>
+                    <div class="flex items-center space-x-1 text-[10px] text-slate-500 dark:text-slate-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span id="ai-status-text">Online • Ready to help</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1">
+                <button onclick="toggleAISettings()" id="ai-settings-toggle-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all text-xs" title="AI Provider Settings (Gemini, OpenAI, Grok, Claude)">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button onclick="clearAIChatHistory()" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all text-xs" title="Clear Chat History">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <button onclick="toggleAIChat()" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all text-xs" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Settings Panel (Overlay) -->
+        <div id="ai-settings-panel" class="hidden absolute inset-x-0 top-[59px] bottom-0 z-20 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md overflow-y-auto space-y-4 text-xs">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                <h4 class="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                    <i class="fa-solid fa-sliders text-brand-500"></i>
+                    <span>AI Provider & API Key Setup</span>
+                </h4>
+                <button onclick="toggleAISettings()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Provider Selection -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700 dark:text-slate-300">Choose AI Provider</label>
+                <select id="ai-provider-select" onchange="onAIProviderChange()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-500">
+                    <option value="builtin">Built-in Expert Engine (Free / No Key Required)</option>
+                    <option value="gemini">Google Gemini (Gemini 1.5 Flash / Pro)</option>
+                    <option value="openai">OpenAI (GPT-4o / GPT-4o Mini)</option>
+                    <option value="grok">xAI Grok (Grok-2 / Grok Beta)</option>
+                    <option value="claude">Anthropic Claude (Claude 3.5 Sonnet)</option>
+                </select>
+            </div>
+
+            <!-- Model Input / Selection -->
+            <div id="ai-model-container" class="space-y-1.5 hidden">
+                <label class="block font-bold text-slate-700 dark:text-slate-300">Model Name</label>
+                <input type="text" id="ai-model-input" placeholder="e.g. gemini-1.5-flash or gpt-4o-mini" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-500" />
+            </div>
+
+            <!-- API Key Input -->
+            <div id="ai-apikey-container" class="space-y-1.5 hidden">
+                <label class="block font-bold text-slate-700 dark:text-slate-300">API Key</label>
+                <div class="relative">
+                    <input type="password" id="ai-apikey-input" placeholder="Paste your API key here..." class="w-full px-3 py-2 pr-10 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-brand-500" />
+                    <button type="button" onclick="toggleAPIKeyVisibility()" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i id="ai-apikey-eye" class="fa-solid fa-eye text-xs"></i>
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">Your API key is stored securely in your local browser storage (`localStorage`) and never logged.</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-2 flex items-center space-x-2">
+                <button type="button" onclick="saveAISettings()" class="flex-1 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold shadow-md shadow-brand-500/20 active:scale-95 transition-all text-center">
+                    <i class="fa-solid fa-floppy-disk mr-1"></i> Save & Connect
+                </button>
+                <button type="button" onclick="resetAIToBuiltin()" class="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold active:scale-95 transition-all">
+                    Reset Free
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+            <!-- Initial Welcome Message from OmniAI -->
+            <div class="flex items-start space-x-2.5">
+                <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
+                    <i class="fa-solid fa-robot text-[10px]"></i>
+                </div>
+                <div class="space-y-1 max-w-[85%]">
+                    <div class="p-3 rounded-2xl rounded-tl-none bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200/60 dark:border-slate-700/60 leading-relaxed">
+                        <p class="font-bold text-slate-900 dark:text-white mb-1">👋 Hi there! I'm OmniAI.</p>
+                        <p>I can help you navigate tools, batch convert 50+ file formats, merge/compress PDFs, configure the Watch Folder daemon, or calculate unit conversions.</p>
+                        <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">💡 Click the ⚙️ gear icon to connect your own **Gemini**, **OpenAI**, or **Grok** API key anytime!</p>
+                    </div>
+                    <div class="text-[9px] text-slate-400 dark:text-slate-500 pl-1">OmniAI • Just now</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Prompt Suggestions Chips -->
+        <div id="ai-quick-chips" class="px-3.5 py-2 flex items-center space-x-1.5 overflow-x-auto no-scrollbar border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/60 dark:bg-slate-950/40">
+            <button onclick="sendQuickPrompt('How do I merge PDFs?')" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white hover:border-brand-400 text-[10px] font-medium shadow-sm transition-all">📄 Merge PDFs</button>
+            <button onclick="sendQuickPrompt('How does Watch Folder automation work?')" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white hover:border-brand-400 text-[10px] font-medium shadow-sm transition-all">⚡ Watch Folder</button>
+            <button onclick="sendQuickPrompt('How to split PDF into ZIP archive?')" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white hover:border-brand-400 text-[10px] font-medium shadow-sm transition-all">✂️ Split to ZIP</button>
+            <button onclick="sendQuickPrompt('How do I compress a PDF?')" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white hover:border-brand-400 text-[10px] font-medium shadow-sm transition-all">🗜️ Compress PDF</button>
+            <button onclick="sendQuickPrompt('What file formats are supported?')" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white hover:border-brand-400 text-[10px] font-medium shadow-sm transition-all">📑 50+ Formats</button>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form id="ai-chat-form" onsubmit="handleAIChatSubmit(event)" class="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center space-x-2">
+            <input type="text" id="ai-chat-input" placeholder="Ask anything about OmniConverter..." autocomplete="off" class="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 text-xs font-medium" />
+            <button type="submit" id="ai-send-btn" class="w-9 h-9 rounded-xl bg-brand-600 hover:bg-brand-500 active:scale-95 text-white flex items-center justify-center shadow-md shadow-brand-500/25 transition-all shrink-0">
+                <i class="fa-solid fa-paper-plane text-xs"></i>
+            </button>
+        </form>
+    </div>
 
     <footer class="border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-950 py-4 transition-colors">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 dark:text-slate-500 font-medium">

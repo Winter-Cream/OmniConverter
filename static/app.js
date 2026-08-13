@@ -220,6 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initConfettiCanvas();
   updateGamificationUI();
   if (typeof loadAISettings === "function") loadAISettings();
+  if (typeof initAIAssistant === "function") initAIAssistant();
 });
 
 // BACKEND HEALTH CHECK
@@ -2917,8 +2918,397 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "Escape") {
     closeCommandPalette();
+    if (aiState.isOpen) toggleAIChat();
   }
 });
+
+/* ==========================================================================
+   OMNIAI FLOATING ASSISTANT CONTROLLER (GEMINI, OPENAI, GROK, CLAUDE, BUILTIN)
+   ========================================================================== */
+
+const aiState = {
+  isOpen: false,
+  isSettingsOpen: false,
+  provider: localStorage.getItem("omni_ai_provider") || "builtin",
+  apiKey: localStorage.getItem("omni_ai_key") || "",
+  model: localStorage.getItem("omni_ai_model") || "",
+  messages: [],
+  isLoading: false
+};
+
+function initAIAssistant() {
+  loadAISettings();
+  renderAIMessages();
+}
+
+function toggleAIChat() {
+  const win = document.getElementById("ai-chat-window");
+  const launcher = document.getElementById("ai-chat-launcher");
+  if (!win) return;
+
+  aiState.isOpen = !aiState.isOpen;
+  if (aiState.isOpen) {
+    win.classList.remove("hidden");
+    if (launcher) launcher.classList.add("scale-95");
+    playSFX(587.33, "sine");
+    setTimeout(() => {
+      const inp = document.getElementById("ai-chat-input");
+      if (inp) inp.focus();
+      scrollAIChatToBottom();
+    }, 100);
+  } else {
+    win.classList.add("hidden");
+    if (launcher) launcher.classList.remove("scale-95");
+  }
+}
+window.toggleAIChat = toggleAIChat;
+
+function toggleAISettings() {
+  const panel = document.getElementById("ai-settings-panel");
+  if (!panel) return;
+  aiState.isSettingsOpen = !aiState.isSettingsOpen;
+  if (aiState.isSettingsOpen) {
+    panel.classList.remove("hidden");
+    populateAISettingsFields();
+  } else {
+    panel.classList.add("hidden");
+  }
+}
+window.toggleAISettings = toggleAISettings;
+
+function populateAISettingsFields() {
+  const sel = document.getElementById("ai-provider-select");
+  const keyInp = document.getElementById("ai-apikey-input");
+  const modelInp = document.getElementById("ai-model-input");
+
+  if (sel) sel.value = aiState.provider;
+  if (keyInp) keyInp.value = aiState.apiKey;
+  if (modelInp) modelInp.value = aiState.model;
+
+  onAIProviderChange();
+}
+
+function onAIProviderChange() {
+  const sel = document.getElementById("ai-provider-select");
+  const keyCont = document.getElementById("ai-apikey-container");
+  const modelCont = document.getElementById("ai-model-container");
+  const modelInp = document.getElementById("ai-model-input");
+
+  if (!sel) return;
+  const p = sel.value;
+
+  if (p === "builtin") {
+    if (keyCont) keyCont.classList.add("hidden");
+    if (modelCont) modelCont.classList.add("hidden");
+  } else {
+    if (keyCont) keyCont.classList.remove("hidden");
+    if (modelCont) modelCont.classList.remove("hidden");
+
+    if (modelInp && !modelInp.value) {
+      if (p === "gemini") modelInp.value = "gemini-1.5-flash";
+      else if (p === "openai") modelInp.value = "gpt-4o-mini";
+      else if (p === "grok") modelInp.value = "grok-2-latest";
+      else if (p === "claude") modelInp.value = "claude-3-5-sonnet-20241022";
+    }
+  }
+}
+window.onAIProviderChange = onAIProviderChange;
+
+function toggleAPIKeyVisibility() {
+  const inp = document.getElementById("ai-apikey-input");
+  const eye = document.getElementById("ai-apikey-eye");
+  if (!inp || !eye) return;
+  if (inp.type === "password") {
+    inp.type = "text";
+    eye.className = "fa-solid fa-eye-slash text-xs";
+  } else {
+    inp.type = "password";
+    eye.className = "fa-solid fa-eye text-xs";
+  }
+}
+window.toggleAPIKeyVisibility = toggleAPIKeyVisibility;
+
+function saveAISettings() {
+  const sel = document.getElementById("ai-provider-select");
+  const keyInp = document.getElementById("ai-apikey-input");
+  const modelInp = document.getElementById("ai-model-input");
+
+  if (sel) aiState.provider = sel.value;
+  if (keyInp) aiState.apiKey = keyInp.value.trim();
+  if (modelInp) aiState.model = modelInp.value.trim();
+
+  localStorage.setItem("omni_ai_provider", aiState.provider);
+  localStorage.setItem("omni_ai_key", aiState.apiKey);
+  localStorage.setItem("omni_ai_model", aiState.model);
+
+  updateAIProviderBadge();
+  toggleAISettings();
+  showToast(`AI Assistant connected to ${aiState.provider.toUpperCase()}!`, "success");
+}
+window.saveAISettings = saveAISettings;
+
+function resetAIToBuiltin() {
+  aiState.provider = "builtin";
+  aiState.apiKey = "";
+  aiState.model = "";
+
+  localStorage.setItem("omni_ai_provider", "builtin");
+  localStorage.removeItem("omni_ai_key");
+  localStorage.removeItem("omni_ai_model");
+
+  populateAISettingsFields();
+  updateAIProviderBadge();
+  toggleAISettings();
+  showToast("Switched to Built-in Free Assistant", "info");
+}
+window.resetAIToBuiltin = resetAIToBuiltin;
+
+function loadAISettings() {
+  aiState.provider = localStorage.getItem("omni_ai_provider") || "builtin";
+  aiState.apiKey = localStorage.getItem("omni_ai_key") || "";
+  aiState.model = localStorage.getItem("omni_ai_model") || "";
+  updateAIProviderBadge();
+}
+
+function updateAIProviderBadge() {
+  const badge = document.getElementById("ai-provider-badge");
+  if (!badge) return;
+
+  const names = {
+    builtin: "Built-in",
+    gemini: "Gemini",
+    openai: "OpenAI",
+    grok: "xAI Grok",
+    claude: "Claude"
+  };
+  badge.textContent = names[aiState.provider] || "OmniAI";
+}
+
+function formatAIMarkdown(text) {
+  if (!text) return "";
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Code blocks ```code```
+  html = html.replace(/```([a-z0-9_-]*)\n([\s\S]*?)```/gi, (match, lang, code) => {
+    return `<pre class="my-2 p-2.5 rounded-xl bg-slate-950 text-slate-100 font-mono text-[11px] overflow-x-auto border border-slate-800"><code>${code.trim()}</code></pre>`;
+  });
+
+  // Inline `code`
+  html = html.replace(/`([^`]+)`/g, `<code class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 font-mono text-[10px]">$1</code>`);
+
+  // Headers
+  html = html.replace(/^### (.*$)/gim, '<h4 class="font-bold text-slate-900 dark:text-white mt-2 mb-1 text-xs">$1</h4>');
+  html = html.replace(/^## (.*$)/gim, '<h3 class="font-bold text-slate-900 dark:text-white mt-2.5 mb-1.5 text-xs">$1</h3>');
+
+  // Bold & Italic
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>');
+
+  // Bullet points
+  html = html.replace(/^\s*[-•]\s+(.*$)/gim, '<li class="ml-3 list-disc my-0.5">$1</li>');
+
+  // Numbered lists
+  html = html.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<li class="ml-3 list-decimal my-0.5">$2</li>');
+
+  // Newlines
+  html = html.replace(/\n\n+/g, '<div class="h-2"></div>');
+  html = html.replace(/\n/g, '<br>');
+
+  return html;
+}
+
+function sendQuickPrompt(promptText) {
+  const input = document.getElementById("ai-chat-input");
+  if (input) {
+    input.value = promptText;
+    handleAIChatSubmit(new Event("submit"));
+  }
+}
+window.sendQuickPrompt = sendQuickPrompt;
+
+async function handleAIChatSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const input = document.getElementById("ai-chat-input");
+  if (!input) return;
+
+  const msg = input.value.trim();
+  if (!msg || aiState.isLoading) return;
+
+  input.value = "";
+  playSFX(784.0, "sine");
+
+  // Add User Message Bubble
+  appendUserMessage(msg);
+  aiState.messages.push({ role: "user", content: msg });
+
+  // Show Typing Indicator
+  showAITypingIndicator();
+  aiState.isLoading = true;
+
+  try {
+    const res = await fetch(`${appState.backendUrl}/api/ai/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: msg,
+        provider: aiState.provider,
+        api_key: aiState.apiKey,
+        model: aiState.model,
+        history: aiState.messages
+      })
+    });
+
+    removeAITypingIndicator();
+
+    if (res.ok) {
+      const data = await res.json();
+      const reply = data.reply || "I couldn't process that response.";
+      appendAIMessage(reply, data.provider);
+      aiState.messages.push({ role: "assistant", content: reply });
+      playSFX(880.0, "sine");
+    } else {
+      const fallbackReply = getClientFallbackKnowledge(msg);
+      appendAIMessage(fallbackReply, "builtin");
+      aiState.messages.push({ role: "assistant", content: fallbackReply });
+    }
+  } catch (err) {
+    removeAITypingIndicator();
+    const fallbackReply = getClientFallbackKnowledge(msg);
+    appendAIMessage(fallbackReply, "builtin");
+    aiState.messages.push({ role: "assistant", content: fallbackReply });
+  } finally {
+    aiState.isLoading = false;
+    scrollAIChatToBottom();
+  }
+}
+window.handleAIChatSubmit = handleAIChatSubmit;
+
+function appendUserMessage(text) {
+  const container = document.getElementById("ai-chat-messages");
+  if (!container) return;
+
+  const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement("div");
+  div.className = "flex items-start justify-end space-x-2";
+  div.innerHTML = `
+    <div class="space-y-1 max-w-[85%]">
+      <div class="p-3 rounded-2xl rounded-tr-none bg-brand-600 text-white shadow-md leading-relaxed break-words">
+        ${escapeHTML(text)}
+      </div>
+      <div class="text-[9px] text-slate-400 dark:text-slate-500 text-right pr-1">You • ${timeStr}</div>
+    </div>
+    <div class="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0 shadow-sm mt-0.5 font-bold text-[10px]">
+      <i class="fa-solid fa-user"></i>
+    </div>
+  `;
+  container.appendChild(div);
+  scrollAIChatToBottom();
+}
+
+function appendAIMessage(text, provider) {
+  const container = document.getElementById("ai-chat-messages");
+  if (!container) return;
+
+  const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formattedHTML = formatAIMarkdown(text);
+  const div = document.createElement("div");
+  div.className = "flex items-start space-x-2.5";
+  div.innerHTML = `
+    <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
+      <i class="fa-solid fa-robot text-[10px]"></i>
+    </div>
+    <div class="space-y-1 max-w-[85%]">
+      <div class="p-3 rounded-2xl rounded-tl-none bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200/60 dark:border-slate-700/60 leading-relaxed break-words">
+        ${formattedHTML}
+      </div>
+      <div class="text-[9px] text-slate-400 dark:text-slate-500 pl-1">OmniAI (${provider || 'Built-in'}) • ${timeStr}</div>
+    </div>
+  `;
+  container.appendChild(div);
+  scrollAIChatToBottom();
+}
+
+function showAITypingIndicator() {
+  const container = document.getElementById("ai-chat-messages");
+  if (!container) return;
+
+  const div = document.createElement("div");
+  div.id = "ai-typing-indicator";
+  div.className = "flex items-start space-x-2.5";
+  div.innerHTML = `
+    <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
+      <i class="fa-solid fa-robot text-[10px]"></i>
+    </div>
+    <div class="p-3 rounded-2xl rounded-tl-none bg-slate-100 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60 flex items-center space-x-1.5">
+      <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-bounce"></span>
+      <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-bounce" style="animation-delay: 0.15s"></span>
+      <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-bounce" style="animation-delay: 0.3s"></span>
+    </div>
+  `;
+  container.appendChild(div);
+  scrollAIChatToBottom();
+}
+
+function removeAITypingIndicator() {
+  const el = document.getElementById("ai-typing-indicator");
+  if (el) el.remove();
+}
+
+function scrollAIChatToBottom() {
+  const container = document.getElementById("ai-chat-messages");
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+function clearAIChatHistory() {
+  aiState.messages = [];
+  const container = document.getElementById("ai-chat-messages");
+  if (container) {
+    container.innerHTML = `
+      <div class="flex items-start space-x-2.5">
+        <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
+          <i class="fa-solid fa-robot text-[10px]"></i>
+        </div>
+        <div class="space-y-1 max-w-[85%]">
+          <div class="p-3 rounded-2xl rounded-tl-none bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200/60 dark:border-slate-700/60 leading-relaxed">
+            <p class="font-bold text-slate-900 dark:text-white mb-1">👋 Chat history cleared.</p>
+            <p>How can I assist you with OmniConverter today?</p>
+          </div>
+          <div class="text-[9px] text-slate-400 dark:text-slate-500 pl-1">OmniAI • Just now</div>
+        </div>
+      </div>
+    `;
+  }
+  showToast("Chat history cleared", "info");
+}
+window.clearAIChatHistory = clearAIChatHistory;
+
+function renderAIMessages() {
+  // If no previous messages, default welcome is preserved in HTML
+}
+
+function getClientFallbackKnowledge(query) {
+  const q = query.toLowerCase();
+  if (q.includes("merge") || q.includes("combine")) {
+    return "### 📄 How to Merge PDFs\n1. Go to the **PDF Suite** tab.\n2. In **Merge PDFs**, drag or select multiple PDF files.\n3. Arrange page order and click **Merge PDFs**.\n\n*Merging runs completely local and private!*";
+  } else if (q.includes("split") || q.includes("extract")) {
+    return "### ✂️ How to Split PDF Pages\n1. Select the **PDF Suite** tab $\\rightarrow$ **Split & Extract Pages**.\n2. Input your custom range (e.g. `1-3, 5-8, odd, even`).\n3. Choose *Single Combined PDF* or *ZIP Archive* to extract individual pages.\n4. Click **Split PDF**.";
+  } else if (q.includes("compress") || q.includes("reduce") || q.includes("size")) {
+    return "### 🗜️ How to Compress PDF Size\n1. Go to **PDF Suite** $\\rightarrow$ **Compress PDF Size**.\n2. Select **Low**, **Medium (Recommended)**, or **High** compression level.\n3. Click **Compress PDF** for up to 80-90% reduction.";
+  } else if (q.includes("protect") || q.includes("encrypt") || q.includes("password")) {
+    return "### 🔒 How to Protect / Encrypt PDF\n1. Go to **PDF Suite** $\\rightarrow$ **Encrypt PDF Document**.\n2. Type your secret password and click **Protect PDF**.\n3. Your document is locked with AES encryption.";
+  } else if (q.includes("watch") || q.includes("folder") || q.includes("daemon")) {
+    return "### ⚡ Watch Folder Automation\n1. In the **File Converter** tab, expand **Watch Folder Automation**.\n2. Choose input folder and target format.\n3. Files dropped into the folder are automatically converted in background!";
+  } else if (q.includes("unit") || q.includes("converter") || q.includes("calculate")) {
+    return "### 🧮 Multi-Unit Converter\nSwitch to the **Unit Converter** tab to convert between 100+ units across 10 categories (Data, Length, Weight, Speed, Temperature, Area, Volume, Time, Energy, Pressure).";
+  } else {
+    return "### 🤖 OmniAI Assistant\nI can help you with:\n- 📄 **PDF Suite**: Merge, Split into PDF/ZIP, Compress, Protect, Unlock, Rotate\n- 📁 **Batch File Converter**: 50+ Document, Image, Video, Audio formats\n- ⚡ **Watch Folder Automation**: Background daemon\n- 🧮 **Unit Converter**: 100+ units\n\n*Click the ⚙️ gear icon above to connect your Gemini, OpenAI, or Grok API key!*";
+  }
+}
 
 
 

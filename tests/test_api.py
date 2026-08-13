@@ -208,3 +208,16 @@ def test_watch_folder_config_endpoint():
     assert data["status"] == "success"
     assert data["watchFolder"]["enabled"] is False
 
+
+def test_ai_chat_endpoint():
+    """Verify POST /api/ai/chat returns intelligent guidance on OmniConverter features."""
+    response = client.post(
+        "/api/ai/chat",
+        json={"message": "How do I merge PDFs?", "provider": "builtin"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "reply" in data
+    assert "Merge" in data["reply"]
+    assert data["provider"] == "builtin"
+
