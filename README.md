@@ -8,23 +8,32 @@
 
   <p align="center">
     <a href="https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Winter-Cream/OmniConverter/ci.yml?branch=main&label=CI%20Build&style=for-the-badge&logo=githubactions&logoColor=white&color=10b981" alt="CI Status"></a>
+    <a href="https://winter-cream.github.io/OmniConverter/"><img src="https://img.shields.io/badge/🌐_Live_Demo-Try_Online_Now-4f46e5?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Live Demo"></a>
     <a href="https://github.com/Winter-Cream/OmniConverter/releases"><img src="https://img.shields.io/badge/version-v4.1.0-6366f1?style=for-the-badge&logo=rocket&logoColor=white" alt="Version"></a>
     <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
     <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
-    <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="TailwindCSS"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License"></a>
   </p>
 
   <p align="center">
+    <a href="https://winter-cream.github.io/OmniConverter/"><b>🌐 Try Live Demo</b></a> •
     <a href="#-quick-start"><b>🚀 Quick Start</b></a> •
     <a href="#-core-capabilities"><b>✨ Features</b></a> •
     <a href="#-supported-formats-matrix"><b>📑 50+ Formats</b></a> •
     <a href="#-pdf-power-suite"><b>📄 PDF Suite</b></a> •
     <a href="#-watch-folder-daemon"><b>⚡ Watch Folder</b></a> •
     <a href="#-architecture"><b>🏗️ Architecture</b></a> •
-    <a href="#-rest-api-reference"><b>🔌 API</b></a> •
-    <a href="#-docker-deployment"><b>🐳 Docker</b></a>
+    <a href="#-rest-api-reference"><b>🔌 API</b></a>
   </p>
+
+  <br>
+
+  <div align="center">
+    <a href="https://winter-cream.github.io/OmniConverter/">
+      <img src="docs/preview.png" width="96%" alt="OmniConverter Dashboard UI Preview" style="border-radius: 14px; box-shadow: 0 20px 50px -10px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);"/>
+    </a>
+    <p><i>✨ Interactive Dashboard Preview with File Converter Dropzone, PDF Suite, Multi-Unit Engine & Floating OmniAI Assistant</i></p>
+  </div>
 
 </div>
 
