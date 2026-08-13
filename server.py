@@ -107,15 +107,20 @@ def cleanup_temp_file(file_path: str):
 # Serve main application HTML page
 @app.get("/")
 async def get_index():
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
     index_path = TEMPLATES_DIR / "index.html"
     template_path = TEMPLATES_DIR / "omni.html"
     root_path = BASE_DIR / "omni.html"
     if index_path.exists():
-        return FileResponse(index_path, media_type="text/html")
+        return FileResponse(index_path, media_type="text/html", headers=headers)
     elif template_path.exists():
-        return FileResponse(template_path, media_type="text/html")
+        return FileResponse(template_path, media_type="text/html", headers=headers)
     elif root_path.exists():
-        return FileResponse(root_path, media_type="text/html")
+        return FileResponse(root_path, media_type="text/html", headers=headers)
     return {"message": "OmniConverter Server running."}
 
 @app.get("/favicon.ico", include_in_schema=False)

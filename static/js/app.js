@@ -555,14 +555,14 @@ function renderQueue() {
     let controlsHTML = "";
     if (item.category === "video") {
       controlsHTML = `
-        <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs">
+        <div class="p-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <i class="fa-solid fa-video text-purple-400"></i> Video Export Options
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fa-solid fa-video text-purple-600 dark:text-purple-400"></i> Video Export Options
             </span>
             <div class="flex items-center space-x-2">
-              <label class="text-[10px] text-slate-300 font-bold">Export Format:</label>
-              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-brand-300 font-bold focus:outline-none">
+              <label class="text-[10px] text-slate-600 dark:text-slate-300 font-bold">Export Format:</label>
+              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-brand-600 dark:text-brand-300 font-bold focus:outline-none">
                 <option value="mp4" ${item.targetFormat === 'mp4' ? 'selected' : ''}>MP4 Video</option>
                 <option value="webm" ${item.targetFormat === 'webm' ? 'selected' : ''}>WEBM Video</option>
                 <option value="gif" ${item.targetFormat === 'gif' ? 'selected' : ''}>Animated GIF</option>
@@ -575,10 +575,10 @@ function renderQueue() {
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/80">
             <div>
-              <label class="block text-[10px] text-slate-400 mb-1">Quality Preset</label>
-              <select onchange="updateQueueItemOption('${item.id}', 'videoQuality', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 font-semibold">
+              <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-1">Quality Preset</label>
+              <select onchange="updateQueueItemOption('${item.id}', 'videoQuality', this.value)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 text-xs text-slate-800 dark:text-slate-200 font-semibold">
                 <option value="Original" ${item.videoQuality === 'Original' ? 'selected' : ''}>Original Resolution</option>
                 <option value="1080p" ${item.videoQuality === '1080p' ? 'selected' : ''}>1080p (Full HD)</option>
                 <option value="720p" ${item.videoQuality === '720p' ? 'selected' : ''}>720p (HD)</option>
@@ -588,8 +588,8 @@ function renderQueue() {
             </div>
 
             <div class="flex items-center space-x-2 pt-4">
-              <input type="checkbox" id="strip-audio-${item.id}" ${item.stripAudio ? 'checked' : ''} onchange="updateQueueItemOption('${item.id}', 'stripAudio', this.checked)" class="w-4 h-4 accent-rose-500 rounded" />
-              <label for="strip-audio-${item.id}" class="text-xs font-bold text-rose-400 cursor-pointer">
+              <input type="checkbox" id="strip-audio-${item.id}" ${item.stripAudio ? 'checked' : ''} onchange="updateQueueItemOption('${item.id}', 'stripAudio', this.checked)" class="w-4 h-4 accent-rose-500 rounded cursor-pointer" />
+              <label for="strip-audio-${item.id}" class="text-xs font-bold text-rose-600 dark:text-rose-400 cursor-pointer">
                 Strip Audio (Mute Video)
               </label>
             </div>
@@ -599,14 +599,14 @@ function renderQueue() {
     } 
     else if (item.category === "audio") {
       controlsHTML = `
-        <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs">
+        <div class="p-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <i class="fa-solid fa-music text-emerald-400"></i> Audio Export Options
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fa-solid fa-music text-emerald-600 dark:text-emerald-400"></i> Audio Export Options
             </span>
             <div class="flex items-center space-x-2">
-              <label class="text-[10px] text-slate-300 font-bold">Target Audio Format:</label>
-              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-300 font-bold focus:outline-none">
+              <label class="text-[10px] text-slate-600 dark:text-slate-300 font-bold">Target Audio Format:</label>
+              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-700 dark:text-emerald-300 font-bold focus:outline-none">
                 <option value="mp3" ${item.targetFormat === 'mp3' ? 'selected' : ''}>MP3 Audio</option>
                 <option value="wav" ${item.targetFormat === 'wav' ? 'selected' : ''}>WAV Audio</option>
                 <option value="aac" ${item.targetFormat === 'aac' ? 'selected' : ''}>AAC Audio</option>
@@ -616,9 +616,9 @@ function renderQueue() {
             </div>
           </div>
 
-          <div class="pt-1 border-t border-slate-800/80">
-            <label class="block text-[10px] text-slate-400 mb-1">Audio Bitrate / Quality</label>
-            <select onchange="updateQueueItemOption('${item.id}', 'audioBitrate', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 font-semibold">
+          <div class="pt-1 border-t border-slate-200 dark:border-slate-800/80">
+            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-1">Audio Bitrate / Quality</label>
+            <select onchange="updateQueueItemOption('${item.id}', 'audioBitrate', this.value)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 text-xs text-slate-800 dark:text-slate-200 font-semibold">
               <option value="320k" ${item.audioBitrate === '320k' ? 'selected' : ''}>320 kbps (Ultra High)</option>
               <option value="256k" ${item.audioBitrate === '256k' ? 'selected' : ''}>256 kbps (High Quality)</option>
               <option value="192k" ${item.audioBitrate === '192k' ? 'selected' : ''}>192 kbps (Standard)</option>
@@ -630,14 +630,14 @@ function renderQueue() {
     }
     else if (item.category === "image") {
       controlsHTML = `
-        <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs">
+        <div class="p-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <i class="fa-solid fa-image text-cyan-400"></i> Image Resize & Compression
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fa-solid fa-image text-cyan-600 dark:text-cyan-400"></i> Image Resize & Compression
             </span>
             <div class="flex items-center space-x-2">
-              <label class="text-[10px] text-slate-300 font-bold">Target Image Format:</label>
-              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-cyan-300 font-bold focus:outline-none">
+              <label class="text-[10px] text-slate-600 dark:text-slate-300 font-bold">Target Image Format:</label>
+              <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-cyan-700 dark:text-cyan-300 font-bold focus:outline-none">
                 <option value="png" ${item.targetFormat === 'png' ? 'selected' : ''}>PNG Image</option>
                 <option value="jpg" ${item.targetFormat === 'jpg' ? 'selected' : ''}>JPG Image</option>
                 <option value="webp" ${item.targetFormat === 'webp' ? 'selected' : ''}>WEBP Image</option>
@@ -647,15 +647,15 @@ function renderQueue() {
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-800/80">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-200 dark:border-slate-800/80">
             <div class="space-y-1">
-              <label class="block text-[10px] text-slate-400">Image Dimensions (px)</label>
+              <label class="block text-[10px] text-slate-500 dark:text-slate-400">Image Dimensions (px)</label>
               <div class="flex items-center space-x-1.5">
-                <input type="number" placeholder="W" value="${item.resizeWidth || ''}" onchange="updateImageDimensions('${item.id}', 'width', this.value)" class="w-20 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono" />
-                <span class="text-slate-500">×</span>
-                <input type="number" placeholder="H" value="${item.resizeHeight || ''}" onchange="updateImageDimensions('${item.id}', 'height', this.value)" class="w-20 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono" />
+                <input type="number" placeholder="W" value="${item.resizeWidth || ''}" onchange="updateImageDimensions('${item.id}', 'width', this.value)" class="w-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono" />
+                <span class="text-slate-400 dark:text-slate-500">×</span>
+                <input type="number" placeholder="H" value="${item.resizeHeight || ''}" onchange="updateImageDimensions('${item.id}', 'height', this.value)" class="w-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-mono" />
                 
-                <button onclick="toggleAspectLock('${item.id}')" title="Aspect Ratio Lock" class="p-1.5 rounded-lg ${item.lockAspect ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' : 'bg-slate-900 text-slate-500 border border-slate-800'} transition-all">
+                <button onclick="toggleAspectLock('${item.id}')" title="Aspect Ratio Lock" class="p-1.5 rounded-lg ${item.lockAspect ? 'bg-brand-50 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-500/30' : 'bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800'} transition-all">
                   <i class="fa-solid ${item.lockAspect ? 'fa-link' : 'fa-link-slash'} text-xs"></i>
                 </button>
               </div>
@@ -663,19 +663,19 @@ function renderQueue() {
 
             <div class="space-y-1">
               <div class="flex justify-between text-[10px]">
-                <span class="text-slate-400">Scale Ratio</span>
-                <span class="font-bold text-cyan-400 font-mono">${item.scale}%</span>
+                <span class="text-slate-500 dark:text-slate-400">Scale Ratio</span>
+                <span class="font-bold text-cyan-600 dark:text-cyan-400 font-mono">${item.scale}%</span>
               </div>
-              <input type="range" min="50" max="200" step="5" value="${item.scale}" oninput="updateImageScale('${item.id}', this.value)" class="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
+              <input type="range" min="50" max="200" step="5" value="${item.scale}" oninput="updateImageScale('${item.id}', this.value)" class="w-full h-1.5 bg-slate-200 dark:bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
             </div>
           </div>
 
           <div class="pt-1 space-y-1">
             <div class="flex justify-between text-[10px]">
-              <span class="text-slate-400">Compression Quality</span>
-              <span class="font-bold text-amber-400 font-mono">${item.compressionQuality}%</span>
+              <span class="text-slate-500 dark:text-slate-400">Compression Quality</span>
+              <span class="font-bold text-amber-600 dark:text-amber-400 font-mono">${item.compressionQuality}%</span>
             </div>
-            <input type="range" min="10" max="100" step="5" value="${item.compressionQuality}" oninput="updateQueueItemOption('${item.id}', 'compressionQuality', parseInt(this.value, 10))" class="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+            <input type="range" min="10" max="100" step="5" value="${item.compressionQuality}" oninput="updateQueueItemOption('${item.id}', 'compressionQuality', parseInt(this.value, 10))" class="w-full h-1.5 bg-slate-200 dark:bg-slate-900 rounded-lg appearance-none cursor-pointer accent-amber-500" />
           </div>
         </div>
       `;
@@ -683,8 +683,8 @@ function renderQueue() {
     else {
       controlsHTML = `
         <div class="flex items-center space-x-3">
-          <label class="text-xs font-bold text-slate-400">Target Format:</label>
-          <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-brand-300 font-bold focus:outline-none focus:border-brand-500">
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Target Format:</label>
+          <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-brand-600 dark:text-brand-300 font-bold focus:outline-none focus:border-brand-500">
             <option value="pdf" ${item.targetFormat === 'pdf' ? 'selected' : ''}>PDF Document</option>
             <option value="docx" ${item.targetFormat === 'docx' ? 'selected' : ''}>Word DOCX</option>
             <option value="txt" ${item.targetFormat === 'txt' ? 'selected' : ''}>Plain Text TXT</option>
@@ -697,23 +697,23 @@ function renderQueue() {
     }
 
     return `
-      <div class="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3 queue-item-card transition-all">
+      <div class="p-4 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 queue-item-card shadow-sm transition-all">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3 truncate">
-            <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-mono font-bold text-xs uppercase">
+            <div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center font-mono font-bold text-xs uppercase">
               .${ext}
             </div>
             <div class="truncate">
-              <h4 class="text-xs font-bold text-slate-200 truncate">${escapeHTML(item.file.name)}</h4>
-              <div class="flex items-center space-x-2 text-[10px] text-slate-400 font-mono">
+              <h4 class="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">${escapeHTML(item.file.name)}</h4>
+              <div class="flex items-center space-x-2 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                 <span>${(item.file.size / 1024).toFixed(1)} KB</span>
                 <span>•</span>
-                <span class="font-bold text-brand-400 uppercase">${item.category}</span>
+                <span class="font-bold text-brand-600 dark:text-brand-400 uppercase">${item.category}</span>
               </div>
             </div>
           </div>
 
-          <button onclick="removeQueueItem('${item.id}')" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all" title="Remove from Queue">
+          <button onclick="removeQueueItem('${item.id}')" class="p-2 text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all" title="Remove from Queue">
             <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
         </div>
@@ -2191,16 +2191,16 @@ function renderBadges() {
   container.innerHTML = MASTER_BADGES.map(b => {
     const unlocked = unlockedList.includes(b.id) || b.check();
     return `
-      <div class="p-4 bg-slate-900/90 border ${unlocked ? 'border-amber-500/50 bg-amber-500/10 shadow-lg shadow-amber-500/5' : 'border-slate-800/80 opacity-60'} rounded-2xl flex items-center space-x-3 transition-all duration-300">
-        <div class="w-10 h-10 rounded-xl ${unlocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'} flex items-center justify-center text-lg flex-shrink-0">
+      <div class="p-4 bg-white dark:bg-slate-900/90 border ${unlocked ? 'border-amber-300 dark:border-amber-500/50 bg-amber-50/70 dark:bg-amber-500/10 shadow-sm' : 'border-slate-200 dark:border-slate-800/80 opacity-60'} rounded-2xl flex items-center space-x-3 transition-all duration-200">
+        <div class="w-10 h-10 rounded-xl ${unlocked ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'} flex items-center justify-center text-lg flex-shrink-0">
           <i class="fa-solid ${b.icon}"></i>
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between">
-            <h4 class="text-xs font-bold ${unlocked ? 'text-amber-200' : 'text-slate-400'} truncate">${b.title}</h4>
-            ${unlocked ? '<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">UNLOCKED</span>' : '<span class="text-[9px] font-bold text-slate-500">LOCKED</span>'}
+            <h4 class="text-xs font-bold ${unlocked ? 'text-amber-800 dark:text-amber-200' : 'text-slate-500 dark:text-slate-400'} truncate">${b.title}</h4>
+            ${unlocked ? '<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">UNLOCKED</span>' : '<span class="text-[9px] font-bold text-slate-400 dark:text-slate-500">LOCKED</span>'}
           </div>
-          <p class="text-[10px] text-slate-400 mt-0.5">${b.desc}</p>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">${b.desc}</p>
         </div>
       </div>
     `;
@@ -2229,28 +2229,28 @@ function renderQuests() {
     const pct = Math.min(100, Math.round((curr / q.target) * 100));
 
     return `
-      <div class="p-4 bg-slate-900/90 border ${isCompleted ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-800'} rounded-2xl space-y-3">
+      <div class="p-4 bg-white dark:bg-slate-900/90 border ${isCompleted ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/60 dark:bg-emerald-500/5' : 'border-slate-200 dark:border-slate-800'} rounded-2xl space-y-3 shadow-sm transition-all">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2.5">
-            <div class="w-8 h-8 rounded-lg ${isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-indigo-400'} flex items-center justify-center text-sm">
+            <div class="w-8 h-8 rounded-lg ${isCompleted ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400'} flex items-center justify-center text-sm flex-shrink-0">
               <i class="fa-solid ${q.icon}"></i>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-slate-200">${q.title}</h4>
-              <p class="text-[10px] text-slate-400">${q.desc}</p>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-slate-200">${q.title}</h4>
+              <p class="text-[10px] text-slate-500 dark:text-slate-400">${q.desc}</p>
             </div>
           </div>
-          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-indigo-950 text-indigo-300 border border-indigo-800/50'}">
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${isCompleted ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30' : 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50'}">
             +${q.rewardXP} XP
           </span>
         </div>
         <div class="space-y-1">
-          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+          <div class="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono">
             <span>Progress: ${curr} / ${q.target}</span>
             <span>${pct}%</span>
           </div>
-          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-            <div class="h-full ${isCompleted ? 'bg-emerald-400' : 'bg-indigo-500'} transition-all duration-500" style="width: ${pct}%"></div>
+          <div class="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="h-full ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-600 dark:bg-indigo-500'} transition-all duration-300" style="width: ${pct}%"></div>
           </div>
         </div>
       </div>
@@ -2263,17 +2263,17 @@ function renderHistoryLog() {
   if (!tbody) return;
 
   if (appState.history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500 text-xs">No conversions recorded yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 dark:text-slate-500 text-xs">No conversions recorded yet.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = appState.history.map(item => `
-    <tr class="hover:bg-slate-900/50 transition-all border-b border-slate-800/40">
-      <td class="p-3 font-bold text-slate-200 text-xs truncate max-w-[200px]">${escapeHTML(item.name)}</td>
-      <td class="p-3 font-mono text-brand-400 text-xs font-bold">${item.target}</td>
-      <td class="p-3 text-slate-400 text-xs">${item.size}</td>
+    <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all border-b border-slate-200 dark:border-slate-800/40">
+      <td class="p-3 font-bold text-slate-900 dark:text-slate-200 text-xs truncate max-w-[200px]">${escapeHTML(item.name)}</td>
+      <td class="p-3 font-mono text-brand-600 dark:text-brand-400 text-xs font-bold">${item.target}</td>
+      <td class="p-3 text-slate-500 dark:text-slate-400 text-xs">${item.size}</td>
       <td class="p-3">
-        <a href="${item.url}" download="converted_${item.name}" class="text-emerald-400 hover:text-emerald-300 font-bold text-xs flex items-center space-x-1">
+        <a href="${item.url}" download="converted_${item.name}" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold text-xs flex items-center space-x-1">
           <i class="fa-solid fa-download"></i><span>Download</span>
         </a>
       </td>
@@ -2366,19 +2366,19 @@ function showToast(msg, type = "info") {
   if (!container) return;
 
   const toast = document.createElement("div");
-  const bgClass = type === "success" ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-200" :
-                  type === "error" ? "bg-rose-950/90 border-rose-500/50 text-rose-200" :
-                  type === "warning" ? "bg-amber-950/90 border-amber-500/50 text-amber-200" :
-                  "bg-slate-900/90 border-brand-500/50 text-slate-200";
+  const bgClass = type === "success" ? "bg-emerald-50 dark:bg-emerald-950/90 border-emerald-300 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-200" :
+                  type === "error" ? "bg-rose-50 dark:bg-rose-950/90 border-rose-300 dark:border-rose-500/50 text-rose-800 dark:text-rose-200" :
+                  type === "warning" ? "bg-amber-50 dark:bg-amber-950/90 border-amber-300 dark:border-amber-500/50 text-amber-800 dark:text-amber-200" :
+                  "bg-white dark:bg-slate-900/90 border-brand-300 dark:border-brand-500/50 text-slate-800 dark:text-slate-200";
 
-  toast.className = `toast-msg flex items-center space-x-3 px-4 py-3 rounded-2xl border backdrop-blur-md shadow-2xl text-xs font-semibold ${bgClass}`;
+  toast.className = `toast-msg flex items-center space-x-3 px-4 py-3 rounded-2xl border backdrop-blur-md shadow-xl text-xs font-semibold ${bgClass}`;
   toast.innerHTML = `<span>${escapeHTML(msg)}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
     toast.style.opacity = "0";
-    toast.style.transition = "opacity 0.3s ease";
-    setTimeout(() => toast.remove(), 300);
+    toast.style.transition = "opacity 0.2s ease";
+    setTimeout(() => toast.remove(), 200);
   }, 3500);
 }
 

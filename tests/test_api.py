@@ -144,3 +144,67 @@ def test_pdf_rotate_endpoint():
     )
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
+
+
+def test_pdf_split_zip_mode_endpoint():
+    """Verify POST /api/pdf/split with mode='zip' returns a valid zip archive containing individual pages."""
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    writer.add_blank_page(width=612, height=792)
+    buf = io.BytesIO()
+    writer.write(buf)
+    pdf_bytes = buf.getvalue()
+
+    response = client.post(
+        "/api/pdf/split",
+        files={"file": ("multipage.pdf", pdf_bytes, "application/pdf")},
+        data={"page_range": "all", "mode": "zip"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+
+
+def test_image_conversion_endpoint():
+    """Verify POST /api/convert with image input and options."""
+    from PIL import Image
+    img = Image.new("RGBA", (50, 50), color=(0, 128, 255, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    response = client.post(
+        "/api/convert",
+        files={"file": ("sample.png", png_bytes, "image/png")},
+        data={"target_format": "webp", "quality": 80}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] in ["image/webp", "application/octet-stream"]
+
+
+def test_ai_tts_endpoint():
+    """Verify POST /api/ai/tts returns audio/wav data."""
+    response = client.post(
+        "/api/ai/tts",
+        data={"text": "OmniConverter test speech", "voice": "female"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/wav"
+    assert len(response.content) > 1000
+
+
+def test_watch_folder_config_endpoint():
+    """Verify POST /api/watch-folder/config configures and updates the daemon state."""
+    response = client.post(
+        "/api/watch-folder/config",
+        data={
+            "enabled": False,
+            "path": "./watch_input",
+            "output_path": "./watch_output",
+            "target_format": "pdf"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["watchFolder"]["enabled"] is False
+
