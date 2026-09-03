@@ -12,6 +12,8 @@ import json
 import shutil
 import socket
 import threading
+import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -25,9 +27,9 @@ from converter_engine import converter_engine, check_ffmpeg
 from watch_daemon import WatchFolderDaemon
 
 app = FastAPI(
-    title="OmniConverter PRO 4.0 Ultra Server",
+    title="OmniConverter PRO 4.1.0 Server",
     description="Python-powered backend conversion engine & automation daemon",
-    version="4.0.0"
+    version="4.1.0"
 )
 
 # Enable CORS for local web applications & development
@@ -46,12 +48,19 @@ STATIC_DIR.mkdir(exist_ok=True)
 TEMPLATES_DIR = BASE_DIR / "templates"
 TEMPLATES_DIR.mkdir(exist_ok=True)
 DATA_FILE = BASE_DIR / "omni_db.json"
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
+FRONTEND_ASSETS = FRONTEND_DIST / "assets"
 
 # Mount static files directory
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+if FRONTEND_ASSETS.exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_ASSETS)), name="assets")
+
+# Global thread lock for database access
+DB_LOCK = threading.Lock()
 
 # Instantiate Watch Folder Daemon
-daemon = WatchFolderDaemon(DATA_FILE)
+daemon = WatchFolderDaemon(DATA_FILE, db_lock=DB_LOCK)
 
 def find_available_port(start_port: int = 8500) -> int:
     """Finds an available free port starting from start_port to avoid port conflicts."""
@@ -62,61 +71,67 @@ def find_available_port(start_port: int = 8500) -> int:
     return start_port
 
 def load_db() -> Dict[str, Any]:
-    if not DATA_FILE.exists():
-        default_state = {
-            "filesConverted": 0,
-            "bytesProcessed": 0,
-            "timeSavedSeconds": 0,
-            "xp": 0,
-            "level": 1,
-            "streak": 1,
-            "username": "Explorer_Pro",
-            "history": [],
-            "watchFolder": {
-                "enabled": False,
-                "path": str(BASE_DIR / "watch_input"),
-                "output_path": str(BASE_DIR / "watch_output"),
-                "target_format": "pdf"
+    with DB_LOCK:
+        if not DATA_FILE.exists():
+            default_state = {
+                "filesConverted": 0,
+                "bytesProcessed": 0,
+                "timeSavedSeconds": 0,
+                "xp": 0,
+                "level": 1,
+                "streak": 1,
+                "username": "Explorer_Pro",
+                "history": [],
+                "watchFolder": {
+                    "enabled": False,
+                    "path": str(BASE_DIR / "watch_input"),
+                    "output_path": str(BASE_DIR / "watch_output"),
+                    "target_format": "pdf"
+                }
             }
-        }
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(default_state, f, indent=2)
-        return default_state
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(default_state, f, indent=2)
+            return default_state
 
-    try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {"filesConverted": 0, "bytesProcessed": 0, "xp": 0, "level": 1, "history": []}
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {"filesConverted": 0, "bytesProcessed": 0, "xp": 0, "level": 1, "history": []}
 
 def save_db(data: Dict[str, Any]):
-    try:
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        print(f"[DB Save Error]: {e}")
+    with DB_LOCK:
+        try:
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"[DB Save Error]: {e}")
 
 def cleanup_temp_file(file_path: str):
     """Background task to remove temp conversion directory after file streaming."""
     try:
         parent_dir = Path(file_path).parent
-        if parent_dir.exists() and ("omni_conv_" in parent_dir.name or "omni_batch_" in parent_dir.name):
+        if parent_dir.exists() and ("omni_conv_" in parent_dir.name or "omni_batch_" in parent_dir.name or "omni_pdf_" in parent_dir.name):
             shutil.rmtree(parent_dir, ignore_errors=True)
     except Exception as e:
         print(f"[Cleanup Warning]: {e}")
 
-# Serve main application HTML page
+# Serve main application HTML page (React frontend prioritized, fallback to templates/index.html)
 @app.get("/")
+@app.get("/app/{path:path}")
 async def get_index():
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
         "Expires": "0"
     }
+    react_index = FRONTEND_DIST / "index.html"
     index_path = TEMPLATES_DIR / "index.html"
     template_path = TEMPLATES_DIR / "omni.html"
     root_path = BASE_DIR / "omni.html"
-    if index_path.exists():
+    if react_index.exists():
+        return FileResponse(react_index, media_type="text/html", headers=headers)
+    elif index_path.exists():
         return FileResponse(index_path, media_type="text/html", headers=headers)
     elif template_path.exists():
         return FileResponse(template_path, media_type="text/html", headers=headers)
@@ -129,11 +144,16 @@ async def favicon():
     """Silences browser favicon 404 console warnings."""
     return Response(status_code=204)
 
+@app.get("/api/formats")
+async def get_formats():
+    """Returns dynamic format metadata, categories, and allowed target formats."""
+    return converter_engine.get_supported_formats()
+
 @app.get("/api/health")
 async def health_check():
     return {
         "status": "online",
-        "version": "4.0.0",
+        "version": "4.1.0",
         "engine": "OmniConverter Python Engine",
         "has_ffmpeg": check_ffmpeg(),
         "has_fcp": getattr(sys.modules["converter_engine"], "HAS_FCP", False),
@@ -242,6 +262,37 @@ async def convert_batch_files(
 @app.get("/api/stats")
 async def get_stats():
     return load_db()
+
+@app.delete("/api/history")
+async def clear_history():
+    db = load_db()
+    db["history"] = []
+    save_db(db)
+    return {"status": "success", "message": "History cleared."}
+
+@app.delete("/api/history/{index}")
+async def delete_history_item(index: int):
+    db = load_db()
+    hist = db.get("history", [])
+    if 0 <= index < len(hist):
+        removed = hist.pop(index)
+        db["history"] = hist
+        save_db(db)
+        return {"status": "success", "removed": removed}
+    raise HTTPException(status_code=404, detail="History index out of range.")
+
+@app.post("/api/stats/reset")
+async def reset_stats():
+    db = load_db()
+    db["filesConverted"] = 0
+    db["bytesProcessed"] = 0
+    db["timeSavedSeconds"] = 0
+    db["xp"] = 0
+    db["level"] = 1
+    db["streak"] = 1
+    db["history"] = []
+    save_db(db)
+    return {"status": "success", "stats": db}
 
 @app.post("/api/watch-folder/config")
 async def configure_watch_folder(
@@ -448,6 +499,62 @@ async def api_pdf_rotate(
 
     background_tasks.add_task(cleanup_temp_file, out_path)
     return FileResponse(path=out_path, filename=Path(out_path).name, media_type="application/pdf")
+
+
+@app.post("/api/pdf/ocr")
+@app.post("/api/ocr")
+async def api_pdf_ocr(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    page_range: str = Form("all"),
+    force_ocr: bool = Form(False),
+    format: str = Form("json"),
+    password: str = Form("")
+):
+    import tempfile
+    temp_dir = tempfile.mkdtemp(prefix="omni_ocr_")
+    src_path = os.path.join(temp_dir, Path(file.filename).name)
+    content = await file.read()
+    with open(src_path, "wb") as wf:
+        wf.write(content)
+
+    try:
+        res = converter_engine.ocr_document(
+            file_path_or_bytes=src_path,
+            filename=file.filename,
+            page_range=page_range,
+            force_ocr=force_ocr,
+            password=password
+        )
+    except Exception as e:
+        cleanup_temp_file(src_path)
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Update gamification stats
+    db = load_db()
+    db["filesConverted"] = db.get("filesConverted", 0) + 1
+    db["bytesProcessed"] = db.get("bytesProcessed", 0) + len(content)
+    db["xp"] = db.get("xp", 0) + 40
+    save_db(db)
+
+    if format in ["txt_download", "download"]:
+        out_txt = os.path.join(temp_dir, f"{Path(file.filename).stem}_OCR.txt")
+        with open(out_txt, "w", encoding="utf-8") as tf:
+            tf.write(res.get("text", ""))
+        background_tasks.add_task(cleanup_temp_file, out_txt)
+        return FileResponse(path=out_txt, filename=Path(out_txt).name, media_type="text/plain; charset=utf-8")
+
+    background_tasks.add_task(cleanup_temp_file, src_path)
+    return JSONResponse(content={
+        "success": True,
+        "filename": file.filename,
+        "text": res.get("text", ""),
+        "confidence": res.get("confidence", 1.0),
+        "total_pages": res.get("total_pages", 1),
+        "processed_pages": res.get("processed_pages", 1),
+        "pages": res.get("pages", []),
+        "elapsed": res.get("elapsed", 0.0)
+    })
 
 
 class AIChatRequest(BaseModel):

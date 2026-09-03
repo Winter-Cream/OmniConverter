@@ -221,3 +221,73 @@ def test_ai_chat_endpoint():
     assert "Merge" in data["reply"]
     assert data["provider"] == "builtin"
 
+
+def test_formats_endpoint():
+    """Verify GET /api/formats returns structured categories and target format lists."""
+    response = client.get("/api/formats")
+    assert response.status_code == 200
+    data = response.json()
+    assert "categories" in data
+    assert "extensions" in data
+    assert "image" in data["categories"]
+    assert "png" in data["extensions"]
+
+
+def test_native_image_to_pdf_conversion():
+    """Verify converting an image (PNG) to PDF produces a valid PDF."""
+    from PIL import Image
+    img = Image.new("RGB", (60, 60), color=(255, 0, 0))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    response = client.post(
+        "/api/convert",
+        files={"file": ("red_square.png", png_bytes, "image/png")},
+        data={"target_format": "pdf"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    reader = PdfReader(io.BytesIO(response.content))
+    assert len(reader.pages) >= 1
+
+
+def test_native_txt_to_pdf_conversion():
+    """Verify converting plain text to PDF produces a valid vector PDF."""
+    txt_content = b"OmniConverter Native Text to PDF Test Document\nLine 1\nLine 2\nLine 3"
+    response = client.post(
+        "/api/convert",
+        files={"file": ("notes.txt", txt_content, "text/plain")},
+        data={"target_format": "pdf"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    reader = PdfReader(io.BytesIO(response.content))
+    assert len(reader.pages) >= 1
+
+
+def test_native_csv_to_xlsx_conversion():
+    """Verify converting CSV to XLSX generates a spreadsheet."""
+    csv_content = b"Name,Role,XP\nAlice,Admin,500\nBob,User,250"
+    response = client.post(
+        "/api/convert",
+        files={"file": ("users.csv", csv_content, "text/csv")},
+        data={"target_format": "xlsx"}
+    )
+    assert response.status_code == 200
+    assert "openxmlformats-officedocument.spreadsheetml.sheet" in response.headers["content-type"] or len(response.content) > 100
+
+
+def test_history_and_stats_management():
+    """Verify DELETE /api/history and POST /api/stats/reset."""
+    # Reset stats
+    resp_reset = client.post("/api/stats/reset")
+    assert resp_reset.status_code == 200
+    assert resp_reset.json()["stats"]["filesConverted"] == 0
+
+    # Clear history
+    resp_del = client.delete("/api/history")
+    assert resp_del.status_code == 200
+    assert resp_del.json()["status"] == "success"
+
+

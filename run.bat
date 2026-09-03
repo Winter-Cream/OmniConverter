@@ -1,8 +1,8 @@
 @echo off
-title OmniConverter PRO 4.0 Ultra Launcher
+title OmniConverter PRO 4.1.0 Launcher
 cls
 echo ===================================================================
-echo               OmniConverter PRO 4.0 Ultra Launcher               
+echo               OmniConverter PRO 4.1.0 Launcher               
 echo ===================================================================
 echo.
 
@@ -14,10 +14,19 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [1/2] Checking and installing Python dependencies...
+echo [1/3] Checking and installing Python dependencies...
 python -m pip install -q -r requirements.txt
 
-echo [2/2] Launching OmniConverter Python Server on http://localhost:8500...
+echo [2/3] Verifying React frontend distribution...
+if not exist "frontend\dist\index.html" (
+    echo Building React production bundle...
+    cd frontend
+    call npm install --silent
+    call npm run build
+    cd ..
+)
+
+echo [3/3] Launching OmniConverter on http://localhost:8500...
 echo.
 python server.py
 pause
