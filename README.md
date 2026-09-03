@@ -3,12 +3,11 @@
 # 🚀 OmniConverter
 ### High-Performance Universal Media Engine • Pro PDF Suite • On-Device AI OCR
 
-[![Release: v4.1.0](https://img.shields.io/badge/Release-v4.1.0_PRO-6366f1?style=for-the-badge&logo=rocket&logoColor=white)](https://github.com/Winter-Cream/OmniConverter/releases)
+[![CI Build](https://img.shields.io/github/actions/workflow/status/Winter-Cream/OmniConverter/ci.yml?branch=main&label=CI%20Build&style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/Winter-Cream/OmniConverter/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25_Local-8b5cf6?style=for-the-badge&logo=shield&logoColor=white)](https://github.com/Winter-Cream/OmniConverter)
-[![Test Suite: 26 Passed](https://img.shields.io/badge/Tests-26_Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Winter-Cream/OmniConverter)
 
 <p align="center">
   <b>The open-source, local-first alternative to CloudConvert, Smallpdf, and Adobe Acrobat.</b><br>
@@ -77,7 +76,7 @@ Commercial cloud converters subject users to **paywalls, strict 15–25 MB uploa
 
 | Mode | Best For | Prerequisites | How to Launch |
 | :--- | :--- | :--- | :--- |
-| **Zero-Install Offline Mode** | Quick, single-file conversions & client-side PDF tasks without installing Python. | Any Modern Web Browser | Double-click [`omni.html`](omni.html) |
+| **Zero-Install Offline Mode** | Quick, single-file conversions & client-side PDF tasks without installing Python. | Any Modern Web Browser | Open [`templates/index.html`](templates/index.html) |
 | **1-Click Desktop Launcher** | Full workstation experience with complete audio/video, OCR, and PDF support. | Python 3.9+ | Run `run.bat` (Windows) or `./run.sh` (Linux/macOS) |
 | **Docker Container Mode** | Headless servers, homelabs, or self-hosted team setups with zero host pollution. | Docker Engine | `docker run -d -p 8500:8500 omniconverter` |
 
@@ -205,7 +204,7 @@ Access the application at `http://localhost:8500`.
 
 ### Method D: Zero-Install Offline Browser Mode
 
-No Python or terminal required! Double-click [`omni.html`](omni.html) in your file explorer to open it directly in Google Chrome, Microsoft Edge, Mozilla Firefox, or Apple Safari. Client-side PDF manipulation (powered by `pdf-lib`), unit conversions, and lightweight features run 100% offline in your browser sandbox.
+No Python or terminal required! Open [`templates/index.html`](templates/index.html) directly in any browser (Google Chrome, Microsoft Edge, Mozilla Firefox, or Apple Safari). Client-side tools, unit conversions, and client-side PDF utilities run completely offline in your browser sandbox.
 
 ---
 
@@ -304,27 +303,22 @@ curl -X GET "http://localhost:8500/api/health"
 The codebase includes an automated test suite verifying endpoint responses, format validation, PDF transformations, and database mutex synchronization:
 
 ```bash
-# Run complete test suite with verbose output
+# Run the complete test suite with verbose output
 pytest tests/ -v
 ```
 
-```
-============================= test session starts =============================
-platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0
-rootdir: A:\omniconverter
-configfile: pytest.ini
-testpaths: tests
-collected 26 items
-
-tests/test_api.py ...................                                    [ 73%]
-tests/test_ocr.py .......                                                [100%]
-======================== 26 passed in 5.76s ========================
-```
+All 26 integration and OCR tests are automatically verified on every push and pull request via the [GitHub Actions CI/CD Pipeline](https://github.com/Winter-Cream/OmniConverter/actions).
 
 ---
 
 <a id="troubleshooting"></a>
 ## 🛠️ Troubleshooting
+
+### `Port 8500 Already in Use`
+* **Behavior**: `server.py` features automatic port fallback (`find_available_port`). If port `8500` is currently bound by another service, the server automatically discovers and binds to the next sequential free port (e.g., `8501`, `8502`).
+* **Manual Override**: To free port 8500, terminate the conflicting process:
+  * **Windows**: `netstat -ano | findstr :8500` followed by `taskkill /PID <PID> /F`
+  * **Linux / macOS**: `lsof -i :8500` followed by `kill -9 <PID>`
 
 ### `FileNotFoundError: 'ffmpeg' or 'ffmpeg.exe' not found`
 * **Root Cause**: The FFmpeg multimedia binary is not installed or its directory has not been added to your system `PATH` environment variable.
@@ -350,12 +344,15 @@ tests/test_ocr.py .......                                                [100%]
 
 ```
 OmniConverter/
+├── frontend/                   # Modern React 19 + Vite Web Application
+│   ├── src/                    # Modular UI components (Hub, PDF, Units, OCR, AI)
+│   ├── vite.config.js          # Vite build & proxy configuration
+│   └── package.json            # Node.js dependencies
 ├── converter_engine.py         # Multi-format conversion & PDF processing engine
 ├── server.py                   # FastAPI asynchronous backend & routing
 ├── watch_daemon.py             # Headless Watchdog folder automation service
 ├── templates/
-│   ├── index.html              # Primary Jinja2 / SPA interface entrypoint
-│   └── omni.html               # Synced template file
+│   └── index.html              # Primary Jinja2 / SPA interface entrypoint
 ├── static/
 │   ├── css/
 │   │   └── style.css           # Vanilla CSS stylesheet & design tokens
@@ -364,7 +361,6 @@ OmniConverter/
 ├── tests/
 │   ├── test_api.py             # FastAPI REST endpoint integration suites
 │   └── test_ocr.py             # RapidOCR vision verification tests
-├── omni.html                   # Zero-install standalone offline browser file
 ├── requirements.txt            # Python package dependencies
 ├── run.bat                     # 1-Click Windows desktop launcher
 ├── run.sh                      # 1-Click Linux / macOS launcher
