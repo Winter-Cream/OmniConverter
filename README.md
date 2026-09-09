@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🚀 OmniConverter
+<img src="assets/logo.png" alt="OmniConverter Logo" width="130" />
+
+# OmniConverter
 ### High-Performance Universal Media Engine • Pro PDF Suite • On-Device AI OCR
 
 [![CI Build](https://img.shields.io/github/actions/workflow/status/Winter-Cream/OmniConverter/ci.yml?branch=main&label=CI%20Build&style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/Winter-Cream/OmniConverter/actions)

@@ -13,6 +13,7 @@ import {
   Award
 } from 'lucide-react';
 import { playSound } from '../utils/audio';
+import appLogo from '../assets/logo.png';
 
 const LANGUAGES = [
   { code: 'en', flag: '🇺🇸', name: 'English' },
@@ -77,35 +78,48 @@ export default function Header({
         gap: '1rem'
       }}>
         {/* Brand Logo & Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', cursor: 'pointer' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          title="OmniConverter PRO"
+        >
           <div style={{
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--brand-gradient)',
+            width: '2.65rem',
+            height: '2.65rem',
+            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            boxShadow: '0 8px 16px -4px rgba(99, 102, 241, 0.4)'
+            position: 'relative'
           }}>
-            <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🚀</span>
+            <img 
+              src={appLogo} 
+              alt="OmniConverter Logo" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                borderRadius: '10px',
+                filter: 'drop-shadow(0 4px 12px rgba(99, 102, 241, 0.4))',
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease'
+              }}
+              className="brand-logo-img"
+            />
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{
-                fontSize: '1.15rem',
-                fontWeight: 800,
-                fontFamily: 'var(--font-heading)',
-                letterSpacing: '-0.02em',
-                color: 'var(--text-primary)'
-              }}>
-                OmniConverter
-              </span>
-              <span className="badge badge-brand font-mono" style={{ fontSize: '0.65rem' }}>
-                v4.1 PRO
-              </span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+            <span style={{
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              fontFamily: 'var(--font-heading)',
+              letterSpacing: '-0.025em',
+              color: 'var(--text-primary)',
+              lineHeight: 1
+            }}>
+              OmniConverter
+            </span>
+            <span className="badge badge-brand font-mono" style={{ fontSize: '0.65rem', padding: '0.15rem 0.45rem', lineHeight: 1 }}>
+              v4.1 PRO
+            </span>
           </div>
         </div>
 

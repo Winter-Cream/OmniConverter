@@ -245,3 +245,14 @@ h1, h2, h3, h4, .font-heading {
 .spin-slow {
   animation: spin-slow 12s linear infinite;
 }
+
+/* Brand Logo micro-interactions */
+.brand-logo-img {
+  will-change: transform, filter;
+}
+
+.brand-logo-img:hover {
+  transform: scale(1.08) rotate(3deg);
+  filter: drop-shadow(0 6px 18px rgba(99, 102, 241, 0.6)) !important;
+}
+

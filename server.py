@@ -135,8 +135,25 @@ async def get_index():
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    """Silences browser favicon 404 console warnings."""
+    """Serves official OmniConverter favicon."""
+    fav_dist = FRONTEND_DIST / "favicon.ico"
+    fav_static = STATIC_DIR / "favicon.ico"
+    if fav_dist.exists():
+        return FileResponse(fav_dist, media_type="image/x-icon")
+    elif fav_static.exists():
+        return FileResponse(fav_static, media_type="image/x-icon")
     return Response(status_code=204)
+
+@app.get("/logo.png", include_in_schema=False)
+async def logo_png():
+    """Serves official OmniConverter high-res logo."""
+    logo_dist = FRONTEND_DIST / "logo.png"
+    logo_static = STATIC_DIR / "logo.png"
+    if logo_dist.exists():
+        return FileResponse(logo_dist, media_type="image/png")
+    elif logo_static.exists():
+        return FileResponse(logo_static, media_type="image/png")
+    return Response(status_code=404)
 
 @app.get("/api/formats")
 async def get_formats():
