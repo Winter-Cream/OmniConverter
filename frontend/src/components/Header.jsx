@@ -99,8 +99,8 @@ export default function Header({
                 width: '100%',
                 height: '100%',
                 objectFit: 'contain',
-                borderRadius: '10px',
-                filter: 'drop-shadow(0 4px 12px rgba(99, 102, 241, 0.4))',
+                borderRadius: '50%',
+                filter: 'drop-shadow(0 4px 14px rgba(99, 102, 241, 0.45))',
                 transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease'
               }}
               className="brand-logo-img"
