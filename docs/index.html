@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OmniConverter — Interactive Project Demo</title>
-  <meta name="description" content="Explore the OmniConverter interface in this interactive preview. Run OmniConverter locally for real file processing." />
+  <title>OmniConverter PRO 4.2.0 — Universal File Converter &amp; PDF Suite</title>
+  <meta name="description" content="OmniConverter is a high-performance universal file converter, PDF suite, OCR studio, and unit conversion engine. 100% local execution." />
   <link rel="icon" type="image/png" href="./favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -211,7 +211,7 @@
       <div class="header-center">
         <div id="engine-badge" class="badge badge-amber">
           <span style="width:6px;height:6px;border-radius:50%;background:var(--amber-500);display:inline-block"></span>
-          <span>Demo Preview</span>
+          <span>Checking Engine…</span>
         </div>
         <div class="badge badge-neutral" style="display:flex">
           <span>🔒</span><span>100% Local</span>
@@ -224,11 +224,6 @@
       </div>
     </div>
   </header>
-
-  <div role="note" style="background:linear-gradient(90deg,rgba(99,102,241,.16),rgba(139,92,246,.12));border-bottom:1px solid var(--border-subtle);padding:.65rem 1rem;text-align:center;font-size:.78rem;color:var(--text-secondary)">
-    <strong style="color:var(--text-primary)">Interactive preview</strong> · Explore the real OmniConverter interface. File conversion and PDF processing run locally in the desktop app.
-    <a href="https://github.com/Winter-Cream/OmniConverter" target="_blank" rel="noopener" style="color:var(--brand-500);font-weight:600;margin-left:.35rem">View project on GitHub ↗</a>
-  </div>
 
   <!-- ─── Main ─────────────────────────────────────────────────────────────── -->
   <main>
@@ -506,12 +501,7 @@
    OmniConverter PRO 4.2.0 — Standalone Demo JS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const DEMO_MODE = true;
-let demoHistory = [
-  {name:'Quarterly-report.pdf',target:'DOCX',size:'2.4 MB',timestamp:'Today'},
-  {name:'Product-photo.png',target:'WEBP',size:'840 KB',timestamp:'Yesterday'},
-  {name:'Meeting-notes.docx',target:'PDF',size:'126 KB',timestamp:'Yesterday'}
-];
+const API = '';  // same origin
 
 /* ─── Theme ────────────────────────────────────────────────────────────── */
 let theme = localStorage.getItem('omni_theme') || 'dark';
@@ -547,11 +537,6 @@ function switchTab(id, btn) {
 /* ─── Health Check ─────────────────────────────────────────────────────── */
 async function checkHealth() {
   const badge = document.getElementById('engine-badge');
-  if (DEMO_MODE) {
-    badge.className = 'badge badge-emerald';
-    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--emerald-500);display:inline-block"></span><span>Demo Preview</span>';
-    return null;
-  }
   try {
     const r = await fetch(API + '/api/health');
     if (r.ok) {
@@ -568,15 +553,6 @@ async function checkHealth() {
 
 /* ─── Stats ────────────────────────────────────────────────────────────── */
 async function loadStats() {
-  if (DEMO_MODE) {
-    const demoStats = {filesConverted:128,bytesProcessed:1879048192,xp:2460,level:5};
-    document.getElementById('stat-files').textContent = demoStats.filesConverted.toLocaleString();
-    document.getElementById('stat-bytes').textContent = '1,792.0 MB';
-    document.getElementById('stat-xp').textContent = demoStats.xp.toLocaleString();
-    document.getElementById('stat-level').textContent = demoStats.level;
-    window._statsCache = demoStats;
-    return;
-  }
   try {
     const r = await fetch(API + '/api/stats');
     if (!r.ok) return;
@@ -624,17 +600,6 @@ async function convertFiles() {
   btn.disabled = true; btn.innerHTML = '<span class="spin">⏳</span> Converting…';
   showProgress(20);
   document.getElementById('convert-status').textContent = 'Uploading and converting…';
-
-  if (DEMO_MODE) {
-    await new Promise(resolve=>setTimeout(resolve,700));
-    showProgress(100);
-    document.getElementById('convert-status').textContent = 'Preview only — run OmniConverter locally to process files and download results.';
-    toast('This public preview does not process or upload files.','info',4500);
-    btn.disabled=false;
-    btn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Convert File';
-    setTimeout(hideProgress,1200);
-    return;
-  }
 
   try {
     if (selectedFiles.length === 1) {
@@ -738,15 +703,6 @@ function handlePdfFile(inp) { pdfFiles = Array.from(inp.files); }
 async function runPdfTool() {
   if (!currentPdfTool || !pdfFiles.length) { toast('Upload a file first.','error'); return; }
   const cfg = PDF_TOOLS[currentPdfTool];
-  if (DEMO_MODE) {
-    const btn = document.getElementById('pdf-action-btn');
-    btn.disabled=true; btn.textContent='Previewing…';
-    document.getElementById('pdf-status').textContent='Preview only — run OmniConverter locally to process PDFs and download results.';
-    await new Promise(resolve=>setTimeout(resolve,600));
-    toast('PDF tools are available when you run the app locally.','info',4000);
-    btn.disabled=false; btn.textContent=cfg.title.split(' ').slice(1).join(' ');
-    return;
-  }
   const fd = new FormData();
   if (cfg.multi) pdfFiles.forEach(f=>fd.append('files',f));
   else fd.append('file', pdfFiles[0]);
@@ -865,11 +821,6 @@ function convertUnit(fromUnit, val) {
 
 /* ─── History ──────────────────────────────────────────────────────────── */
 async function loadHistory() {
-  if (DEMO_MODE) {
-    const el = document.getElementById('history-list');
-    el.innerHTML = demoHistory.length ? demoHistory.map((h,i)=>`<div class="history-row fade-in"><div style="display:flex;align-items:center;gap:.5rem;min-width:0"><span style="font-size:1rem">📄</span><span class="history-row-name">${escHtml(h.name)}</span><span class="badge badge-brand" style="flex-shrink:0">${escHtml(h.target)}</span></div><div style="display:flex;align-items:center;gap:.75rem"><span class="history-row-meta">${escHtml(h.size)} &bull; ${escHtml(h.timestamp)}</span><button onclick="deleteHistoryItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem" aria-label="Delete entry">✕</button></div></div>`).join('') : '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.85rem">No demo activity yet.</div>';
-    return;
-  }
   try {
     const r = await fetch(API+'/api/stats');
     if (!r.ok) return;
@@ -896,7 +847,6 @@ async function loadHistory() {
 }
 
 async function deleteHistoryItem(i) {
-  if (DEMO_MODE) { demoHistory.splice(i,1); await loadHistory(); return; }
   try {
     await fetch(API+`/api/history/${i}`,{method:'DELETE'});
     await loadHistory();
@@ -905,7 +855,6 @@ async function deleteHistoryItem(i) {
 }
 
 async function clearHistory() {
-  if (DEMO_MODE) { demoHistory=[]; await loadHistory(); toast('Demo history cleared','info'); return; }
   try {
     await fetch(API+'/api/history',{method:'DELETE'});
     await loadHistory();
@@ -960,11 +909,6 @@ async function sendChat() {
   inp.value = '';
   appendChatMsg(msg,'user');
   const thinking = appendChatMsg('⏳ Thinking…','bot');
-  if (DEMO_MODE) {
-    await new Promise(resolve=>setTimeout(resolve,350));
-    thinking.textContent = 'This public preview shows the interface. OmniAI answers questions in the full local app. Try the Unit Converter tab or explore the PDF tools above.';
-    return;
-  }
   try {
     const r = await fetch(API+'/api/ai/chat',{
       method:'POST', headers:{'Content-Type':'application/json'},
