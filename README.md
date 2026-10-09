@@ -16,6 +16,8 @@
   <i>100% private. 100% offline-capable. Zero file caps. Hardware-accelerated directly on your machine.</i>
 </p>
 
+<p align="center"><a href="https://winter-cream.github.io/OmniConverter/"><b>🌐 Open the interactive demo</b></a> · <a href="https://github.com/Winter-Cream/OmniConverter"><b>Browse the source on GitHub</b></a></p>
+
 <p align="center">
   <a href="#quick-start"><b>🚀 Quick Start</b></a> •
   <a href="#why-omniconverter"><b>💡 Why Us?</b></a> •

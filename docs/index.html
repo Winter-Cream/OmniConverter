@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniConverter — Interactive Project Demo</title>
+  <meta name="description" content="Explore the OmniConverter interface in this interactive preview. Run OmniConverter locally for real file processing." />
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Design Tokens ───────────────────────────────────────────────────────── */
+    :root {
+      --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body:    'Inter',  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --bg-base:#0b0f17;--bg-surface:#111827;--bg-card:#151e2e;--bg-card-hover:#1b263b;
+      --bg-input:#0e1524;--bg-glass:rgba(17,24,39,.95);--bg-subtle:#1e293b;
+      --border-subtle:rgba(148,163,184,.14);--border-card:#1f2b3e;--border-hover:#334155;--border-focus:#6366f1;
+      --text-primary:#f8fafc;--text-secondary:#94a3b8;--text-muted:#64748b;
+      --brand-500:#6366f1;--brand-600:#4f46e5;--brand-700:#4338ca;--brand-glow:rgba(99,102,241,.15);
+      --rose-500:#ef4444;--amber-500:#f59e0b;--emerald-500:#10b981;--violet-500:#8b5cf6;
+      --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:18px;
+      --shadow-sm:0 1px 2px 0 rgba(0,0,0,.15);
+      --shadow-card:0 2px 8px -2px rgba(0,0,0,.35),0 0 0 1px var(--border-card);
+      --shadow-drop:0 12px 28px -6px rgba(0,0,0,.5),0 0 0 1px var(--border-card);
+    }
+    html.light {
+      --bg-base:#f8fafc;--bg-surface:#fff;--bg-card:#fff;--bg-card-hover:#f1f5f9;
+      --bg-input:#fff;--bg-glass:rgba(255,255,255,.96);--bg-subtle:#f1f5f9;
+      --border-subtle:rgba(148,163,184,.22);--border-card:#e2e8f0;--border-hover:#cbd5e1;--border-focus:#4f46e5;
+      --text-primary:#0f172a;--text-secondary:#475569;--text-muted:#64748b;
+      --brand-500:#4f46e5;--brand-600:#4338ca;--brand-700:#3730a3;--brand-glow:rgba(79,70,229,.12);
+      --shadow-sm:0 1px 2px 0 rgba(0,0,0,.05);
+      --shadow-card:0 1px 3px 0 rgba(0,0,0,.06),0 0 0 1px var(--border-card);
+      --shadow-drop:0 10px 25px -5px rgba(0,0,0,.1),0 0 0 1px var(--border-card);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--bg-base);color:var(--text-primary);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden;display:flex;flex-direction:column;}
+    h1,h2,h3,h4{font-family:var(--font-heading);letter-spacing:-.015em;color:var(--text-primary)}
+    .font-mono{font-family:var(--font-mono)}
+    :focus-visible{outline:2px solid var(--border-focus);outline-offset:2px}
+    ::-webkit-scrollbar{width:7px;height:7px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(148,163,184,.25);border-radius:9999px}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(148,163,184,.45)}
+
+    /* Buttons */
+    .btn-primary{background:var(--brand-600);color:#fff;font-weight:600;border:1px solid rgba(255,255,255,.08);border-radius:var(--radius-md);padding:.6rem 1.25rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;box-shadow:var(--shadow-sm);transition:background-color .15s,border-color .15s;font-family:var(--font-body);font-size:.82rem;line-height:1.2}
+    .btn-primary:hover:not(:disabled){background:var(--brand-700)}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn-secondary{background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-card);font-weight:500;border-radius:var(--radius-md);padding:.55rem 1rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;transition:background-color .15s,border-color .15s;font-family:var(--font-body);font-size:.8rem;line-height:1.2}
+    .btn-secondary:hover{background:var(--bg-card-hover);border-color:var(--border-hover)}
+    .btn-danger{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-weight:500;border-radius:var(--radius-md);padding:.55rem 1rem;cursor:pointer;display:inline-flex;align-items:center;gap:.45rem;transition:background-color .15s;font-family:var(--font-body);font-size:.8rem}
+    .btn-danger:hover{background:rgba(239,68,68,.18)}
+
+    /* Badges */
+    .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .55rem;border-radius:var(--radius-sm);font-size:.72rem;font-weight:600;line-height:1}
+    .badge-neutral{background:var(--bg-subtle);color:var(--text-secondary);border:1px solid var(--border-card)}
+    .badge-brand{background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25)}
+    html.light .badge-brand{background:rgba(79,70,229,.08);color:#4338ca;border:1px solid rgba(79,70,229,.2)}
+    .badge-emerald{background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25)}
+    html.light .badge-emerald{color:#059669}
+    .badge-amber{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
+    html.light .badge-amber{color:#d97706}
+    .badge-rose{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
+
+    /* Cards */
+    .glass-panel{background:var(--bg-card);border:1px solid var(--border-card);box-shadow:var(--shadow-card);border-radius:var(--radius-lg)}
+    .glass-panel-hover:hover{border-color:var(--border-hover)}
+
+    /* Dropzone */
+    .dropzone{border:2px dashed var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-card);padding:2.75rem 2rem;text-align:center;cursor:pointer;transition:border-color .2s,background-color .2s;position:relative;outline:none}
+    .dropzone:hover,.dropzone.active{border-color:var(--brand-500);background:var(--bg-card-hover)}
+
+    /* Form inputs */
+    input,select,textarea{font-family:var(--font-body);font-size:.82rem;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-card);border-radius:var(--radius-md);padding:.5rem .75rem;outline:none;transition:border-color .15s}
+    input:focus,select:focus,textarea:focus{border-color:var(--border-focus)}
+    select option{background:var(--bg-surface)}
+    label{font-size:.78rem;font-weight:500;color:var(--text-secondary);margin-bottom:.25rem;display:block}
+
+    /* Spinner */
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .spin{animation:spin .8s linear infinite;display:inline-block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeIn .25s ease}
+
+    /* ─── Layout ──────────────────────────────────────────────────────────────── */
+    #app{display:flex;flex-direction:column;min-height:100vh}
+    main{flex:1;max-width:1280px;margin:0 auto;padding:1.5rem 1.25rem;width:100%}
+
+    /* ─── Header ──────────────────────────────────────────────────────────────── */
+    #site-header{position:sticky;top:0;z-index:40;background:var(--bg-surface);border-bottom:1px solid var(--border-card);box-shadow:var(--shadow-sm)}
+    #site-header .inner{max-width:1280px;margin:0 auto;padding:0 1.25rem;height:4rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .brand{display:flex;align-items:center;gap:.75rem;cursor:pointer;user-select:none}
+    .brand img{width:2.25rem;height:2.25rem;object-fit:contain;border-radius:6px}
+    .brand-name{font-size:1.15rem;font-weight:800;font-family:var(--font-heading);letter-spacing:-.02em;line-height:1}
+    .header-center{display:flex;align-items:center;gap:.85rem}
+    .search-btn{background:var(--bg-input) !important;font-size:.78rem;color:var(--text-secondary);padding:.4rem .85rem !important}
+    .header-controls{display:flex;align-items:center;gap:.4rem}
+    .icon-btn{background:var(--bg-card);border:1px solid var(--border-card);border-radius:var(--radius-md);padding:.45rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s,border-color .15s}
+    .icon-btn:hover{background:var(--bg-card-hover);border-color:var(--border-hover)}
+    kbd{padding:.12rem .35rem;background:var(--bg-card);border:1px solid var(--border-card);border-radius:4px;font-size:.65rem;font-family:var(--font-mono);font-weight:600;color:var(--text-muted)}
+
+    /* ─── Tab Nav ─────────────────────────────────────────────────────────────── */
+    #tab-nav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;padding:.35rem .5rem;border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-card);box-shadow:var(--shadow-sm);margin-bottom:1.5rem}
+    .tabs-list{display:flex;align-items:center;flex-wrap:wrap;gap:.25rem}
+    .tab-btn{display:flex;align-items:center;gap:.45rem;padding:.55rem .95rem;border-radius:var(--radius-sm);font-size:.82rem;font-weight:500;font-family:var(--font-body);cursor:pointer;border:none;transition:background-color .15s,color .15s;background:transparent;color:var(--text-secondary)}
+    .tab-btn.active{background:var(--brand-600);color:#fff;font-weight:600}
+    .tab-btn svg{width:15px;height:15px;color:var(--text-muted)}
+    .tab-btn.active svg{color:#fff}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+
+    /* ─── Stat Cards ──────────────────────────────────────────────────────────── */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.85rem;margin-bottom:1.5rem}
+    .stat-card{padding:1rem 1.1rem;border-radius:var(--radius-lg);background:var(--bg-card);border:1px solid var(--border-card)}
+    .stat-label{font-size:.72rem;color:var(--text-muted);font-weight:500;margin-bottom:.3rem}
+    .stat-val{font-size:1.4rem;font-weight:700;font-family:var(--font-heading);line-height:1}
+
+    /* ─── Upload area panel ───────────────────────────────────────────────────── */
+    .upload-panel{padding:1.5rem;margin-bottom:1.25rem}
+    .dropzone-icon{font-size:2.5rem;margin-bottom:.75rem;display:block}
+    .format-select-row{display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;margin-top:1rem}
+    .format-select-row select{flex:1;min-width:140px}
+    .file-list{margin-top:.85rem;display:flex;flex-direction:column;gap:.4rem}
+    .file-chip{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--bg-subtle);border-radius:var(--radius-sm);font-size:.78rem}
+    .file-chip-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+    .file-chip-size{color:var(--text-muted);font-size:.7rem;flex-shrink:0}
+    .progress-bar-wrap{height:4px;background:var(--bg-subtle);border-radius:9999px;overflow:hidden;margin-top:.5rem}
+    .progress-bar{height:100%;background:var(--brand-600);border-radius:9999px;transition:width .3s}
+
+    /* ─── Toast ───────────────────────────────────────────────────────────────── */
+    #toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--bg-surface);border:1px solid var(--border-card);border-radius:var(--radius-md);padding:.7rem 1.25rem;font-size:.82rem;box-shadow:var(--shadow-drop);z-index:9999;display:none;align-items:center;gap:.65rem;max-width:360px}
+    #toast.show{display:flex}
+    #toast.success{border-color:rgba(16,185,129,.4);color:#10b981}
+    #toast.error{border-color:rgba(239,68,68,.4);color:#ef4444}
+    #toast.info{border-color:rgba(99,102,241,.4);color:#818cf8}
+
+    /* ─── PDF suite tiles ─────────────────────────────────────────────────────── */
+    .pdf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.85rem}
+    .pdf-tile{padding:1.25rem 1.1rem;border-radius:var(--radius-lg);background:var(--bg-card);border:1px solid var(--border-card);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+    .pdf-tile:hover{border-color:var(--border-hover);box-shadow:var(--shadow-card)}
+    .pdf-tile.selected{border-color:var(--brand-500);box-shadow:0 0 0 1px var(--brand-500)}
+    .pdf-tile-icon{font-size:1.8rem;margin-bottom:.55rem}
+    .pdf-tile-title{font-size:.9rem;font-weight:600;margin-bottom:.25rem}
+    .pdf-tile-desc{font-size:.75rem;color:var(--text-muted)}
+
+    /* ─── Unit Converter ──────────────────────────────────────────────────────── */
+    .unit-layout{display:grid;grid-template-columns:220px 1fr;gap:1.25rem}
+    .unit-cats{display:flex;flex-direction:column;gap:.3rem}
+    .unit-cat-btn{padding:.55rem .85rem;border-radius:var(--radius-sm);font-size:.82rem;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text-secondary);text-align:left;transition:background .15s,color .15s;font-family:var(--font-body)}
+    .unit-cat-btn.active{background:rgba(99,102,241,.12);color:var(--brand-500);font-weight:600}
+    .unit-cat-btn:hover{background:var(--bg-subtle)}
+    .unit-fields{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .unit-field input{width:100%;margin-top:.25rem}
+    @media(max-width:640px){.unit-layout{grid-template-columns:1fr}.unit-fields{grid-template-columns:1fr}}
+
+    /* ─── Chatbot FAB ─────────────────────────────────────────────────────────── */
+    #chat-fab{position:fixed;bottom:1.75rem;right:1.75rem;z-index:50;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--brand-600),var(--violet-500));border:none;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.45);display:flex;align-items:center;justify-content:center;font-size:1.35rem;transition:transform .2s,box-shadow .2s}
+    #chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(99,102,241,.6)}
+    #chat-panel{position:fixed;bottom:5.5rem;right:1.75rem;z-index:50;width:340px;max-height:480px;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:var(--radius-xl);box-shadow:var(--shadow-drop);display:none;flex-direction:column;overflow:hidden}
+    #chat-panel.open{display:flex}
+    .chat-header{padding:.75rem 1rem;border-bottom:1px solid var(--border-card);display:flex;align-items:center;justify-content:space-between;background:var(--bg-card)}
+    .chat-messages{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.6rem}
+    .chat-msg{padding:.6rem .85rem;border-radius:var(--radius-md);font-size:.8rem;line-height:1.5;max-width:90%;animation:fadeIn .2s ease}
+    .chat-msg.bot{background:var(--bg-card);align-self:flex-start;border:1px solid var(--border-card)}
+    .chat-msg.user{background:rgba(99,102,241,.15);align-self:flex-end;border:1px solid rgba(99,102,241,.25);color:var(--text-primary)}
+    .chat-input-row{padding:.6rem;border-top:1px solid var(--border-card);display:flex;gap:.4rem}
+    .chat-input-row input{flex:1;padding:.5rem .75rem;border-radius:var(--radius-md)}
+    .chat-input-row button{padding:.5rem .75rem;border-radius:var(--radius-md)}
+
+    /* ─── History rows ────────────────────────────────────────────────────────── */
+    .history-row{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-radius:var(--radius-md);background:var(--bg-card);border:1px solid var(--border-card);font-size:.8rem;gap:.5rem}
+    .history-row-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+    .history-row-meta{color:var(--text-muted);font-size:.72rem;flex-shrink:0}
+
+    /* ─── Footer ──────────────────────────────────────────────────────────────── */
+    footer{border-top:1px solid var(--border-card);background:var(--bg-surface);padding:1.25rem;margin-top:3rem;font-size:.75rem;color:var(--text-muted)}
+    footer .inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+    footer .sep{padding:0 .4rem}
+
+    /* ─── Achievements ────────────────────────────────────────────────────────── */
+    .ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.85rem}
+    .ach-card{padding:1.1rem 1rem;border-radius:var(--radius-lg);background:var(--bg-card);border:1px solid var(--border-card);text-align:center}
+    .ach-icon{font-size:2rem;margin-bottom:.5rem}
+    .ach-name{font-size:.85rem;font-weight:600;margin-bottom:.25rem}
+    .ach-desc{font-size:.72rem;color:var(--text-muted)}
+    .xp-bar-wrap{height:6px;background:var(--bg-subtle);border-radius:9999px;overflow:hidden;margin:.5rem 0}
+    .xp-bar{height:100%;background:linear-gradient(90deg,var(--brand-600),var(--violet-500));border-radius:9999px;transition:width .4s}
+
+    @media(max-width:768px){.header-center{display:none}.brand-name{font-size:1rem}}
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ─── Header ───────────────────────────────────────────────────────────── -->
+  <header id="site-header">
+    <div class="inner">
+      <!-- Brand -->
+      <div class="brand" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <img src="./logo.png" alt="OmniConverter Logo" onerror="this.style.display='none'" />
+        <div style="display:flex;align-items:baseline;gap:.45rem">
+          <span class="brand-name">OmniConverter</span>
+          <span class="badge badge-brand font-mono" style="font-size:.65rem;padding:.15rem .4rem">v4.2 PRO</span>
+        </div>
+      </div>
+
+      <!-- Center -->
+      <div class="header-center">
+        <div id="engine-badge" class="badge badge-amber">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--amber-500);display:inline-block"></span>
+          <span>Demo Preview</span>
+        </div>
+        <div class="badge badge-neutral" style="display:flex">
+          <span>🔒</span><span>100% Local</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="header-controls">
+        <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+      </div>
+    </div>
+  </header>
+
+  <div role="note" style="background:linear-gradient(90deg,rgba(99,102,241,.16),rgba(139,92,246,.12));border-bottom:1px solid var(--border-subtle);padding:.65rem 1rem;text-align:center;font-size:.78rem;color:var(--text-secondary)">
+    <strong style="color:var(--text-primary)">Interactive preview</strong> · Explore the real OmniConverter interface. File conversion and PDF processing run locally in the desktop app.
+    <a href="https://github.com/Winter-Cream/OmniConverter" target="_blank" rel="noopener" style="color:var(--brand-500);font-weight:600;margin-left:.35rem">View project on GitHub ↗</a>
+  </div>
+
+  <!-- ─── Main ─────────────────────────────────────────────────────────────── -->
+  <main>
+    <!-- Stats Bar -->
+    <div class="stat-grid" id="stat-grid">
+      <div class="stat-card"><div class="stat-label">Files Converted</div><div class="stat-val" id="stat-files">—</div></div>
+      <div class="stat-card"><div class="stat-label">Data Processed</div><div class="stat-val" id="stat-bytes">—</div></div>
+      <div class="stat-card"><div class="stat-label">XP Points</div><div class="stat-val" id="stat-xp">—</div></div>
+      <div class="stat-card"><div class="stat-label">Level</div><div class="stat-val" id="stat-level">—</div></div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <nav id="tab-nav" aria-label="Workspace tabs">
+      <div class="tabs-list">
+        <button class="tab-btn active" onclick="switchTab('converter',this)" id="tab-btn-converter">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          File Converter
+        </button>
+        <button class="tab-btn" onclick="switchTab('pdf',this)" id="tab-btn-pdf">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          PDF Suite
+        </button>
+        <button class="tab-btn" onclick="switchTab('units',this)" id="tab-btn-units">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H18v-.008zm0 2.25h.008v.008H18v-.008zM9 3.75h6M6.75 6h10.5M6 9.75h12M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32"/></svg>
+          Unit Converter
+        </button>
+        <button class="tab-btn" onclick="switchTab('logs',this)" id="tab-btn-logs">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Activity Logs
+        </button>
+        <button class="tab-btn" onclick="switchTab('achievements',this)" id="tab-btn-achievements">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
+          Stats &amp; Badges
+        </button>
+      </div>
+      <span style="font-size:.72rem;font-weight:500;color:var(--text-muted);display:flex;align-items:center;gap:.35rem;padding-right:.4rem">
+        <svg style="color:var(--brand-500)" xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3"/></svg>
+        Local-First Workspace
+      </span>
+    </nav>
+
+    <!-- ═══ TAB: File Converter ═══════════════════════════════════════════════ -->
+    <div id="panel-converter" class="tab-panel active fade-in">
+      <div class="glass-panel upload-panel glass-panel-hover">
+        <h2 style="font-size:1rem;font-weight:600;margin-bottom:.15rem">Universal File Converter</h2>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem">Drag &amp; drop or click to select files. Supports 50+ formats.</p>
+
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload files"
+             onclick="document.getElementById('file-input').click()"
+             ondragover="event.preventDefault();this.classList.add('active')"
+             ondragleave="this.classList.remove('active')"
+             ondrop="handleDrop(event)">
+          <span class="dropzone-icon">📁</span>
+          <p style="font-size:.9rem;font-weight:600;margin-bottom:.35rem">Drop files here or click to browse</p>
+          <p style="font-size:.78rem;color:var(--text-muted)">PDF, DOCX, XLSX, PNG, JPG, MP3, MP4, CSV and 40+ more</p>
+          <input type="file" id="file-input" style="display:none" multiple onchange="handleFileSelect(this.files)" />
+        </div>
+
+        <div id="file-list" class="file-list"></div>
+
+        <div class="format-select-row">
+          <div style="flex:1;min-width:160px">
+            <label for="target-format">Convert to</label>
+            <select id="target-format">
+              <optgroup label="Documents">
+                <option value="pdf">PDF</option><option value="docx">DOCX</option>
+                <option value="txt">TXT</option><option value="html">HTML</option>
+                <option value="xlsx">XLSX</option><option value="csv">CSV</option>
+              </optgroup>
+              <optgroup label="Images">
+                <option value="png">PNG</option><option value="jpg">JPG</option>
+                <option value="webp">WEBP</option><option value="gif">GIF</option>
+                <option value="bmp">BMP</option><option value="tiff">TIFF</option>
+              </optgroup>
+              <optgroup label="Audio">
+                <option value="mp3">MP3</option><option value="wav">WAV</option>
+                <option value="ogg">OGG</option><option value="flac">FLAC</option>
+                <option value="aac">AAC</option>
+              </optgroup>
+              <optgroup label="Video">
+                <option value="mp4">MP4</option><option value="avi">AVI</option>
+                <option value="mkv">MKV</option><option value="webm">WEBM</option>
+              </optgroup>
+              <optgroup label="Data">
+                <option value="json">JSON</option><option value="xml">XML</option>
+                <option value="yaml">YAML</option>
+              </optgroup>
+            </select>
+          </div>
+          <button class="btn-primary" id="convert-btn" onclick="convertFiles()" style="margin-top:1.15rem">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Convert File
+          </button>
+          <button class="btn-secondary" onclick="clearFiles()" style="margin-top:1.15rem">Clear</button>
+        </div>
+
+        <div id="progress-wrap" class="progress-bar-wrap" style="display:none;margin-top:1rem">
+          <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+        </div>
+        <div id="convert-status" style="margin-top:.65rem;font-size:.78rem;color:var(--text-muted)"></div>
+      </div>
+
+      <!-- Supported formats pills -->
+      <div class="glass-panel" style="padding:1.25rem">
+        <h3 style="font-size:.9rem;font-weight:600;margin-bottom:.75rem;color:var(--text-secondary)">Supported Categories</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem" id="format-pills">
+          <span class="badge badge-brand">📄 Documents</span>
+          <span class="badge badge-brand">🖼️ Images</span>
+          <span class="badge badge-brand">🎵 Audio</span>
+          <span class="badge badge-brand">🎥 Video</span>
+          <span class="badge badge-brand">📊 Data &amp; Code</span>
+          <span class="badge badge-neutral">50+ Formats</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: PDF Suite ════════════════════════════════════════════════════ -->
+    <div id="panel-pdf" class="tab-panel fade-in">
+      <div class="glass-panel" style="padding:1.5rem;margin-bottom:1.25rem">
+        <h2 style="font-size:1rem;font-weight:600;margin-bottom:.15rem">PDF Suite</h2>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem">Professional PDF tools. All processing happens locally.</p>
+        <div class="pdf-grid">
+          <div class="pdf-tile" onclick="selectPdfTool('merge',this)">
+            <div class="pdf-tile-icon">🔗</div>
+            <div class="pdf-tile-title">Merge PDFs</div>
+            <div class="pdf-tile-desc">Combine multiple PDFs into one document</div>
+          </div>
+          <div class="pdf-tile" onclick="selectPdfTool('split',this)">
+            <div class="pdf-tile-icon">✂️</div>
+            <div class="pdf-tile-title">Split &amp; Extract</div>
+            <div class="pdf-tile-desc">Extract pages or split by range</div>
+          </div>
+          <div class="pdf-tile" onclick="selectPdfTool('compress',this)">
+            <div class="pdf-tile-icon">🗜️</div>
+            <div class="pdf-tile-title">Compress PDF</div>
+            <div class="pdf-tile-desc">Reduce file size by up to 90%</div>
+          </div>
+          <div class="pdf-tile" onclick="selectPdfTool('protect',this)">
+            <div class="pdf-tile-icon">🔒</div>
+            <div class="pdf-tile-title">Protect PDF</div>
+            <div class="pdf-tile-desc">Encrypt with AES password protection</div>
+          </div>
+          <div class="pdf-tile" onclick="selectPdfTool('unlock',this)">
+            <div class="pdf-tile-icon">🔓</div>
+            <div class="pdf-tile-title">Unlock PDF</div>
+            <div class="pdf-tile-desc">Remove password restrictions</div>
+          </div>
+          <div class="pdf-tile" onclick="selectPdfTool('rotate',this)">
+            <div class="pdf-tile-icon">🔄</div>
+            <div class="pdf-tile-title">Rotate Pages</div>
+            <div class="pdf-tile-desc">Rotate all or specific pages</div>
+          </div>
+          <div class="pdf-tile" onclick="selectPdfTool('ocr',this)">
+            <div class="pdf-tile-icon">👁️</div>
+            <div class="pdf-tile-title">OCR Studio</div>
+            <div class="pdf-tile-desc">Extract text from scanned documents</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active PDF Tool Panel -->
+      <div id="pdf-tool-panel" class="glass-panel" style="padding:1.5rem;display:none">
+        <h3 id="pdf-tool-title" style="font-size:.95rem;font-weight:600;margin-bottom:1rem"></h3>
+        <div class="dropzone" onclick="document.getElementById('pdf-input').click()" style="padding:2rem">
+          <span style="font-size:1.8rem;display:block;margin-bottom:.5rem">📄</span>
+          <p style="font-size:.85rem;font-weight:500">Click to upload PDF file(s)</p>
+          <p style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">Only PDF files accepted</p>
+          <input type="file" id="pdf-input" accept=".pdf" style="display:none" multiple onchange="handlePdfFile(this)" />
+        </div>
+        <div id="pdf-options" style="margin-top:1rem"></div>
+        <div style="margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap">
+          <button class="btn-primary" id="pdf-action-btn" onclick="runPdfTool()">
+            Run Tool
+          </button>
+        </div>
+        <div id="pdf-status" style="margin-top:.65rem;font-size:.78rem;color:var(--text-muted)"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Unit Converter ═══════════════════════════════════════════════ -->
+    <div id="panel-units" class="tab-panel fade-in">
+      <div class="glass-panel" style="padding:1.5rem">
+        <h2 style="font-size:1rem;font-weight:600;margin-bottom:.15rem">Scientific Unit Converter</h2>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem">100+ units across 10 categories. Bidirectional real-time conversion.</p>
+        <div class="unit-layout">
+          <!-- Categories -->
+          <div>
+            <div class="glass-panel" style="padding:.5rem">
+              <div class="unit-cats" id="unit-cats"></div>
+            </div>
+          </div>
+          <!-- Conversion Fields -->
+          <div>
+            <div class="glass-panel" style="padding:1.25rem">
+              <h3 id="unit-cat-title" style="font-size:.9rem;font-weight:600;margin-bottom:1rem;color:var(--text-secondary)"></h3>
+              <div class="unit-fields" id="unit-fields"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Activity Logs ════════════════════════════════════════════════ -->
+    <div id="panel-logs" class="tab-panel fade-in">
+      <div class="glass-panel" style="padding:1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+          <div>
+            <h2 style="font-size:1rem;font-weight:600">Activity Logs</h2>
+            <p style="font-size:.78rem;color:var(--text-muted);margin-top:.15rem">Your recent conversion history</p>
+          </div>
+          <button class="btn-danger" onclick="clearHistory()">🗑 Clear History</button>
+        </div>
+        <div id="history-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Achievements ═════════════════════════════════════════════════ -->
+    <div id="panel-achievements" class="tab-panel fade-in">
+      <div class="glass-panel" style="padding:1.5rem;margin-bottom:1.25rem">
+        <h2 style="font-size:1rem;font-weight:600;margin-bottom:.15rem">Stats &amp; Badges</h2>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem">Your OmniConverter journey</p>
+        <!-- XP Progress -->
+        <div style="max-width:400px;margin-bottom:1.25rem">
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.4rem">
+            <span id="ach-level-label" style="font-weight:600;color:var(--brand-500)">Level 1</span>
+            <span id="ach-xp-label" style="color:var(--text-muted)">0 / 200 XP</span>
+          </div>
+          <div class="xp-bar-wrap"><div class="xp-bar" id="xp-bar" style="width:0%"></div></div>
+        </div>
+        <div class="ach-grid" id="ach-grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ─── Footer ───────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="inner">
+      <div>OmniConverter PRO 4.2.0 &bull; Desktop File Engine &amp; PDF Suite</div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span>100% Local Execution</span><span class="sep">&bull;</span>
+        <span>Zero Network Uploads</span><span class="sep">&bull;</span>
+        <span>Privacy-First</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ─── AI Chatbot FAB ──────────────────────────────────────────────────────── -->
+<button id="chat-fab" onclick="toggleChat()" title="OmniAI Assistant" aria-label="Open AI Assistant">🤖</button>
+<div id="chat-panel">
+  <div class="chat-header">
+    <div style="display:flex;align-items:center;gap:.6rem">
+      <span style="font-size:1.1rem">🤖</span>
+      <div>
+        <div style="font-size:.85rem;font-weight:600">OmniAI Assistant</div>
+        <div style="font-size:.7rem;color:var(--text-muted)">Ask me anything about OmniConverter</div>
+      </div>
+    </div>
+    <button class="icon-btn" onclick="toggleChat()" aria-label="Close chat">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg bot">👋 Hi! I'm OmniAI. Ask me how to merge PDFs, convert files, use the watch folder, and more!</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="Ask anything…" onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="btn-primary" onclick="sendChat()" style="padding:.5rem .85rem">➤</button>
+  </div>
+</div>
+
+<!-- ─── Toast ──────────────────────────────────────────────────────────────── -->
+<div id="toast" role="alert" aria-live="polite"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   OmniConverter PRO 4.2.0 — Standalone Demo JS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const DEMO_MODE = true;
+let demoHistory = [
+  {name:'Quarterly-report.pdf',target:'DOCX',size:'2.4 MB',timestamp:'Today'},
+  {name:'Product-photo.png',target:'WEBP',size:'840 KB',timestamp:'Yesterday'},
+  {name:'Meeting-notes.docx',target:'PDF',size:'126 KB',timestamp:'Yesterday'}
+];
+
+/* ─── Theme ────────────────────────────────────────────────────────────── */
+let theme = localStorage.getItem('omni_theme') || 'dark';
+applyTheme(theme);
+function applyTheme(t) {
+  theme = t;
+  document.documentElement.className = t;
+  document.getElementById('theme-btn').textContent = t === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('omni_theme', t);
+}
+function toggleTheme() { applyTheme(theme === 'dark' ? 'light' : 'dark'); }
+
+/* ─── Toast ────────────────────────────────────────────────────────────── */
+let toastTimer;
+function toast(msg, type='info', duration=3200) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+/* ─── Tab switching ────────────────────────────────────────────────────── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'logs') loadHistory();
+  if (id === 'achievements') loadAchievements();
+}
+
+/* ─── Health Check ─────────────────────────────────────────────────────── */
+async function checkHealth() {
+  const badge = document.getElementById('engine-badge');
+  if (DEMO_MODE) {
+    badge.className = 'badge badge-emerald';
+    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--emerald-500);display:inline-block"></span><span>Demo Preview</span>';
+    return null;
+  }
+  try {
+    const r = await fetch(API + '/api/health');
+    if (r.ok) {
+      const d = await r.json();
+      badge.className = 'badge badge-emerald';
+      badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--emerald-500);display:inline-block"></span><span>Engine Online</span>';
+      return d;
+    }
+  } catch {}
+  badge.className = 'badge badge-amber';
+  badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--amber-500);display:inline-block"></span><span>Engine Offline</span>';
+  return null;
+}
+
+/* ─── Stats ────────────────────────────────────────────────────────────── */
+async function loadStats() {
+  if (DEMO_MODE) {
+    const demoStats = {filesConverted:128,bytesProcessed:1879048192,xp:2460,level:5};
+    document.getElementById('stat-files').textContent = demoStats.filesConverted.toLocaleString();
+    document.getElementById('stat-bytes').textContent = '1,792.0 MB';
+    document.getElementById('stat-xp').textContent = demoStats.xp.toLocaleString();
+    document.getElementById('stat-level').textContent = demoStats.level;
+    window._statsCache = demoStats;
+    return;
+  }
+  try {
+    const r = await fetch(API + '/api/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('stat-files').textContent = (d.filesConverted || 0).toLocaleString();
+    const mb = ((d.bytesProcessed || 0) / 1048576).toFixed(1);
+    document.getElementById('stat-bytes').textContent = mb + ' MB';
+    document.getElementById('stat-xp').textContent = (d.xp || 0).toLocaleString();
+    document.getElementById('stat-level').textContent = d.level || 1;
+    window._statsCache = d;
+  } catch {}
+}
+
+/* ─── File Converter ───────────────────────────────────────────────────── */
+let selectedFiles = [];
+function handleFileSelect(files) { addFiles(Array.from(files)); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('active');
+  addFiles(Array.from(e.dataTransfer.files));
+}
+function addFiles(files) {
+  selectedFiles = [...selectedFiles, ...files];
+  renderFileList();
+}
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  if (!selectedFiles.length) { el.innerHTML=''; return; }
+  el.innerHTML = selectedFiles.map((f,i) => `
+    <div class="file-chip">
+      <span class="file-chip-name">📄 ${escHtml(f.name)}</span>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span class="file-chip-size">${formatBytes(f.size)}</span>
+        <button onclick="removeFile(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.9rem" aria-label="Remove file">✕</button>
+      </div>
+    </div>`).join('');
+}
+function removeFile(i) { selectedFiles.splice(i,1); renderFileList(); }
+function clearFiles() { selectedFiles=[]; renderFileList(); document.getElementById('file-input').value=''; document.getElementById('convert-status').textContent=''; hideProgress(); }
+
+async function convertFiles() {
+  if (!selectedFiles.length) { toast('Select at least one file first.','error'); return; }
+  const fmt = document.getElementById('target-format').value;
+  const btn = document.getElementById('convert-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin">⏳</span> Converting…';
+  showProgress(20);
+  document.getElementById('convert-status').textContent = 'Uploading and converting…';
+
+  if (DEMO_MODE) {
+    await new Promise(resolve=>setTimeout(resolve,700));
+    showProgress(100);
+    document.getElementById('convert-status').textContent = 'Preview only — run OmniConverter locally to process files and download results.';
+    toast('This public preview does not process or upload files.','info',4500);
+    btn.disabled=false;
+    btn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Convert File';
+    setTimeout(hideProgress,1200);
+    return;
+  }
+
+  try {
+    if (selectedFiles.length === 1) {
+      const fd = new FormData();
+      fd.append('file', selectedFiles[0]);
+      fd.append('target_format', fmt);
+      showProgress(50);
+      const r = await fetch(API + '/api/convert', {method:'POST', body:fd});
+      showProgress(85);
+      if (!r.ok) {
+        const err = await r.json().catch(()=>({detail:'Unknown error'}));
+        throw new Error(err.detail || r.statusText);
+      }
+      const blob = await r.blob();
+      const cd = r.headers.get('content-disposition') || '';
+      const fname = cd.match(/filename="?([^"]+)"?/)?.[1] || `converted.${fmt}`;
+      downloadBlob(blob, fname);
+      showProgress(100);
+      toast(`✅ Converted to ${fmt.toUpperCase()} — downloading!`, 'success');
+      document.getElementById('convert-status').textContent = `Done! Downloaded ${fname}`;
+    } else {
+      const fd = new FormData();
+      selectedFiles.forEach(f => fd.append('files', f));
+      fd.append('target_format', fmt);
+      showProgress(50);
+      const r = await fetch(API + '/api/batch-convert', {method:'POST', body:fd});
+      showProgress(85);
+      if (!r.ok) {
+        const err = await r.json().catch(()=>({detail:'Unknown error'}));
+        throw new Error(err.detail || r.statusText);
+      }
+      const blob = await r.blob();
+      downloadBlob(blob, `OmniConverter_Batch_${fmt.toUpperCase()}.zip`);
+      showProgress(100);
+      toast(`✅ Batch converted ${selectedFiles.length} files — downloading ZIP!`, 'success');
+      document.getElementById('convert-status').textContent = `Done! Downloaded batch ZIP.`;
+    }
+    await loadStats();
+    setTimeout(()=>{ clearFiles(); hideProgress(); }, 1800);
+  } catch(err) {
+    toast('❌ ' + err.message, 'error', 5000);
+    document.getElementById('convert-status').textContent = '⚠️ Error: ' + err.message;
+    hideProgress();
+  } finally {
+    btn.disabled=false; btn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Convert File';
+  }
+}
+
+function showProgress(pct) {
+  document.getElementById('progress-wrap').style.display='block';
+  document.getElementById('progress-bar').style.width=pct+'%';
+}
+function hideProgress() {
+  document.getElementById('progress-wrap').style.display='none';
+  document.getElementById('progress-bar').style.width='0%';
+}
+
+/* ─── PDF Suite ────────────────────────────────────────────────────────── */
+let currentPdfTool = null;
+let pdfFiles = [];
+const PDF_TOOLS = {
+  merge:    { title:'🔗 Merge PDFs', endpoint:'/api/pdf/merge',    accept:'application/pdf', multi:true,  mime:'application/pdf',  ext:'pdf' },
+  split:    { title:'✂️ Split PDF',   endpoint:'/api/pdf/split',    accept:'application/pdf', multi:false, mime:'application/zip',   ext:'zip' },
+  compress: { title:'🗜️ Compress PDF',endpoint:'/api/pdf/compress',accept:'application/pdf', multi:false, mime:'application/pdf',   ext:'pdf' },
+  protect:  { title:'🔒 Protect PDF', endpoint:'/api/pdf/protect', accept:'application/pdf', multi:false, mime:'application/pdf',   ext:'pdf' },
+  unlock:   { title:'🔓 Unlock PDF',  endpoint:'/api/pdf/unlock',  accept:'application/pdf', multi:false, mime:'application/pdf',   ext:'pdf' },
+  rotate:   { title:'🔄 Rotate PDF',  endpoint:'/api/pdf/rotate',  accept:'application/pdf', multi:false, mime:'application/pdf',   ext:'pdf' },
+  ocr:      { title:'👁️ OCR Studio',  endpoint:'/api/pdf/ocr',     accept:'application/pdf,.png,.jpg,.jpeg', multi:false, mime:'application/json', ext:'json' },
+};
+
+function selectPdfTool(tool, el) {
+  document.querySelectorAll('.pdf-tile').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected');
+  currentPdfTool = tool;
+  pdfFiles = [];
+  const cfg = PDF_TOOLS[tool];
+  document.getElementById('pdf-tool-title').textContent = cfg.title;
+  document.getElementById('pdf-input').multiple = cfg.multi;
+  document.getElementById('pdf-input').accept = cfg.accept;
+  document.getElementById('pdf-input').value = '';
+  document.getElementById('pdf-status').textContent = '';
+  const opts = document.getElementById('pdf-options');
+  if (tool==='protect'||tool==='unlock') {
+    opts.innerHTML=`<label>Password</label><input type="password" id="pdf-password" placeholder="${tool==='protect'?'Set password':'Enter current password'}" style="width:100%;max-width:300px"/>`;
+  } else if (tool==='split') {
+    opts.innerHTML=`<label>Page Range (e.g. 1-3,5,8 or "all")</label><input type="text" id="pdf-range" value="all" style="width:100%;max-width:300px"/>`;
+  } else if (tool==='compress') {
+    opts.innerHTML=`<label>Compression Level</label><select id="pdf-level" style="width:100%;max-width:300px"><option value="low">Low — Minimal quality loss</option><option value="medium" selected>Medium — Recommended</option><option value="high">High — Maximum compression</option></select>`;
+  } else if (tool==='rotate') {
+    opts.innerHTML=`<label>Rotation Angle</label><select id="pdf-angle" style="width:100%;max-width:300px"><option value="90">90° Clockwise</option><option value="180">180°</option><option value="270">270° (90° Counter-clockwise)</option></select>`;
+  } else {
+    opts.innerHTML='';
+  }
+  document.getElementById('pdf-action-btn').textContent = cfg.title.split(' ').slice(1).join(' ');
+  document.getElementById('pdf-tool-panel').style.display='block';
+  document.getElementById('pdf-tool-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function handlePdfFile(inp) { pdfFiles = Array.from(inp.files); }
+
+async function runPdfTool() {
+  if (!currentPdfTool || !pdfFiles.length) { toast('Upload a file first.','error'); return; }
+  const cfg = PDF_TOOLS[currentPdfTool];
+  if (DEMO_MODE) {
+    const btn = document.getElementById('pdf-action-btn');
+    btn.disabled=true; btn.textContent='Previewing…';
+    document.getElementById('pdf-status').textContent='Preview only — run OmniConverter locally to process PDFs and download results.';
+    await new Promise(resolve=>setTimeout(resolve,600));
+    toast('PDF tools are available when you run the app locally.','info',4000);
+    btn.disabled=false; btn.textContent=cfg.title.split(' ').slice(1).join(' ');
+    return;
+  }
+  const fd = new FormData();
+  if (cfg.multi) pdfFiles.forEach(f=>fd.append('files',f));
+  else fd.append('file', pdfFiles[0]);
+
+  if (currentPdfTool==='protect'||currentPdfTool==='unlock')
+    fd.append('password', document.getElementById('pdf-password')?.value||'');
+  if (currentPdfTool==='split')
+    fd.append('page_range', document.getElementById('pdf-range')?.value||'all');
+  if (currentPdfTool==='compress')
+    fd.append('level', document.getElementById('pdf-level')?.value||'medium');
+  if (currentPdfTool==='rotate') {
+    fd.append('angle', document.getElementById('pdf-angle')?.value||'90');
+    fd.append('page_range','all');
+  }
+
+  const btn = document.getElementById('pdf-action-btn');
+  btn.disabled=true; btn.textContent='⏳ Processing…';
+  document.getElementById('pdf-status').textContent = 'Processing…';
+
+  try {
+    const r = await fetch(API + cfg.endpoint, {method:'POST', body:fd});
+    if (!r.ok) { const e=await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail); }
+    if (currentPdfTool==='ocr') {
+      const d = await r.json();
+      document.getElementById('pdf-status').innerHTML=`<strong>OCR Complete!</strong> Extracted ${d.text?.length||0} chars across ${d.total_pages||1} pages.<br><textarea style="width:100%;margin-top:.5rem;height:120px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:var(--radius-md);padding:.5rem;color:var(--text-primary);font-size:.75rem" readonly>${escHtml(d.text||'')}</textarea>`;
+      toast('✅ OCR complete!','success');
+    } else {
+      const blob = await r.blob();
+      const cd = r.headers.get('content-disposition')||'';
+      const fname = cd.match(/filename="?([^"]+)"?/)?.[1] || `omni_${currentPdfTool}.${cfg.ext}`;
+      downloadBlob(blob,fname);
+      toast(`✅ ${cfg.title.replace(/^[^ ]+ /,'')} complete — downloading!`,'success');
+      document.getElementById('pdf-status').textContent = `Done! Downloaded ${fname}`;
+    }
+    await loadStats();
+  } catch(err) {
+    toast('❌ '+err.message,'error',5000);
+    document.getElementById('pdf-status').textContent='⚠️ Error: '+err.message;
+  } finally {
+    btn.disabled=false; btn.textContent=cfg.title.split(' ').slice(1).join(' ');
+  }
+}
+
+/* ─── Unit Converter ───────────────────────────────────────────────────── */
+const UNIT_DEFS = {
+  Length:      { units:['Meter','Kilometer','Centimeter','Millimeter','Mile','Yard','Foot','Inch','Nautical Mile'], base:'Meter', factors:{Meter:1,Kilometer:1e3,Centimeter:.01,Millimeter:.001,Mile:1609.344,Yard:.9144,Foot:.3048,Inch:.0254,'Nautical Mile':1852} },
+  Weight:      { units:['Kilogram','Gram','Milligram','Pound','Ounce','Tonne','Stone'], base:'Kilogram', factors:{Kilogram:1,Gram:.001,Milligram:1e-6,Pound:.453592,Ounce:.0283495,Tonne:1000,Stone:6.35029} },
+  Temperature: { units:['Celsius','Fahrenheit','Kelvin'], base:'Celsius', custom:true },
+  Area:        { units:['Square Meter','Square Kilometer','Square Mile','Square Yard','Square Foot','Hectare','Acre'], base:'Square Meter', factors:{'Square Meter':1,'Square Kilometer':1e6,'Square Mile':2.59e6,'Square Yard':.836127,'Square Foot':.092903,Hectare:10000,Acre:4046.86} },
+  Volume:      { units:['Liter','Milliliter','Cubic Meter','Gallon (US)','Quart','Pint','Fluid Ounce','Cup'], base:'Liter', factors:{Liter:1,Milliliter:.001,'Cubic Meter':1000,'Gallon (US)':3.78541,Quart:.946353,Pint:.473176,'Fluid Ounce':.0295735,Cup:.236588} },
+  Speed:       { units:['m/s','km/h','mph','ft/s','Knot'], base:'m/s', factors:{'m/s':1,'km/h':1/3.6,mph:.44704,'ft/s':.3048,Knot:.514444} },
+  Data:        { units:['Byte','Kilobyte','Megabyte','Gigabyte','Terabyte','Bit','Kilobit','Megabit','Gigabit'], base:'Byte', factors:{Byte:1,Kilobyte:1024,Megabyte:1048576,Gigabyte:1073741824,Terabyte:1.099512e12,Bit:.125,Kilobit:128,Megabit:131072,Gigabit:134217728} },
+  Time:        { units:['Second','Minute','Hour','Day','Week','Month','Year'], base:'Second', factors:{Second:1,Minute:60,Hour:3600,Day:86400,Week:604800,Month:2592000,Year:31536000} },
+  Energy:      { units:['Joule','Kilojoule','Calorie','Kilocalorie','Watt-hour','Kilowatt-hour','BTU'], base:'Joule', factors:{Joule:1,Kilojoule:1000,Calorie:4.184,Kilocalorie:4184,'Watt-hour':3600,'Kilowatt-hour':3600000,BTU:1055.06} },
+  Pressure:    { units:['Pascal','Bar','PSI','Atmosphere','mmHg','Torr'], base:'Pascal', factors:{Pascal:1,Bar:100000,PSI:6894.76,Atmosphere:101325,mmHg:133.322,Torr:133.322} },
+};
+
+let activeUnitCat = 'Length';
+let unitValues = {};
+
+function buildUnitConverter() {
+  const cats = document.getElementById('unit-cats');
+  cats.innerHTML = Object.keys(UNIT_DEFS).map(c=>`
+    <button class="unit-cat-btn ${c===activeUnitCat?'active':''}" onclick="switchUnitCat('${c}',this)">${c}</button>
+  `).join('');
+  renderUnitFields();
+}
+
+function switchUnitCat(cat,btn) {
+  activeUnitCat=cat; unitValues={};
+  document.querySelectorAll('.unit-cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUnitFields();
+}
+
+function renderUnitFields() {
+  const def = UNIT_DEFS[activeUnitCat];
+  document.getElementById('unit-cat-title').textContent = activeUnitCat + ' Converter';
+  const el = document.getElementById('unit-fields');
+  el.innerHTML = def.units.map(u=>`
+    <div class="unit-field">
+      <label>${u}</label>
+      <input type="number" placeholder="0" data-unit="${escHtml(u)}" oninput="convertUnit('${escHtml(u)}',this.value)" step="any" />
+    </div>
+  `).join('');
+}
+
+function convertUnit(fromUnit, val) {
+  const def = UNIT_DEFS[activeUnitCat];
+  const num = parseFloat(val);
+  if (isNaN(num)) { document.querySelectorAll('.unit-field input').forEach(i=>{ if(i.dataset.unit!==fromUnit) i.value=''; }); return; }
+
+  let baseVal;
+  if (def.custom && activeUnitCat==='Temperature') {
+    if (fromUnit==='Celsius') baseVal=num;
+    else if (fromUnit==='Fahrenheit') baseVal=(num-32)*5/9;
+    else baseVal=num-273.15;
+  } else {
+    baseVal = num * def.factors[fromUnit];
+  }
+
+  document.querySelectorAll('.unit-field input').forEach(inp=>{
+    if (inp.dataset.unit===fromUnit) return;
+    const u = inp.dataset.unit;
+    let result;
+    if (def.custom && activeUnitCat==='Temperature') {
+      if (u==='Celsius') result=baseVal;
+      else if (u==='Fahrenheit') result=baseVal*9/5+32;
+      else result=baseVal+273.15;
+    } else {
+      result=baseVal/def.factors[u];
+    }
+    inp.value = parseFloat(result.toPrecision(8));
+  });
+}
+
+/* ─── History ──────────────────────────────────────────────────────────── */
+async function loadHistory() {
+  if (DEMO_MODE) {
+    const el = document.getElementById('history-list');
+    el.innerHTML = demoHistory.length ? demoHistory.map((h,i)=>`<div class="history-row fade-in"><div style="display:flex;align-items:center;gap:.5rem;min-width:0"><span style="font-size:1rem">📄</span><span class="history-row-name">${escHtml(h.name)}</span><span class="badge badge-brand" style="flex-shrink:0">${escHtml(h.target)}</span></div><div style="display:flex;align-items:center;gap:.75rem"><span class="history-row-meta">${escHtml(h.size)} &bull; ${escHtml(h.timestamp)}</span><button onclick="deleteHistoryItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem" aria-label="Delete entry">✕</button></div></div>`).join('') : '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.85rem">No demo activity yet.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(API+'/api/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+    const hist = d.history || [];
+    const el = document.getElementById('history-list');
+    if (!hist.length) {
+      el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.85rem">No conversions yet. Convert your first file!</div>';
+      return;
+    }
+    el.innerHTML = hist.map((h,i)=>`
+      <div class="history-row fade-in">
+        <div style="display:flex;align-items:center;gap:.5rem;min-width:0">
+          <span style="font-size:1rem">📄</span>
+          <span class="history-row-name">${escHtml(h.name||'Unknown')}</span>
+          <span class="badge badge-brand" style="flex-shrink:0">${escHtml(h.target||'')}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <span class="history-row-meta">${escHtml(h.size||'')} &bull; ${escHtml(h.timestamp||'')}</span>
+          <button onclick="deleteHistoryItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem" aria-label="Delete entry">✕</button>
+        </div>
+      </div>`).join('');
+  } catch {}
+}
+
+async function deleteHistoryItem(i) {
+  if (DEMO_MODE) { demoHistory.splice(i,1); await loadHistory(); return; }
+  try {
+    await fetch(API+`/api/history/${i}`,{method:'DELETE'});
+    await loadHistory();
+    toast('Entry removed','info');
+  } catch {}
+}
+
+async function clearHistory() {
+  if (DEMO_MODE) { demoHistory=[]; await loadHistory(); toast('Demo history cleared','info'); return; }
+  try {
+    await fetch(API+'/api/history',{method:'DELETE'});
+    await loadHistory();
+    toast('History cleared','info');
+  } catch {}
+}
+
+/* ─── Achievements ─────────────────────────────────────────────────────── */
+const ACHIEVEMENTS = [
+  { icon:'🚀', name:'First Convert',   desc:'Convert your first file',       threshold:1,  field:'filesConverted' },
+  { icon:'⚡', name:'Speed Demon',     desc:'Convert 10 files',               threshold:10, field:'filesConverted' },
+  { icon:'🏆', name:'Power User',      desc:'Convert 50 files',               threshold:50, field:'filesConverted' },
+  { icon:'💾', name:'Data Mover',      desc:'Process 10 MB of data',          threshold:10*1048576, field:'bytesProcessed' },
+  { icon:'🌊', name:'Data Flood',      desc:'Process 100 MB of data',         threshold:100*1048576,field:'bytesProcessed' },
+  { icon:'⭐', name:'XP Collector',    desc:'Earn 500 XP',                    threshold:500,field:'xp' },
+  { icon:'🌟', name:'XP Master',       desc:'Reach 2000 XP',                  threshold:2000,field:'xp' },
+  { icon:'🎯', name:'Level 5',         desc:'Reach level 5',                  threshold:5,  field:'level' },
+];
+
+async function loadAchievements() {
+  const stats = window._statsCache || {};
+  const level = stats.level || 1;
+  const xp = stats.xp || 0;
+  const xpNext = level * 200;
+  document.getElementById('ach-level-label').textContent = `Level ${level}`;
+  document.getElementById('ach-xp-label').textContent = `${xp} / ${xpNext} XP`;
+  document.getElementById('xp-bar').style.width = Math.min(100,xp/xpNext*100)+'%';
+
+  const grid = document.getElementById('ach-grid');
+  grid.innerHTML = ACHIEVEMENTS.map(a=>{
+    const val = stats[a.field]||0;
+    const unlocked = val >= a.threshold;
+    return `<div class="ach-card" style="opacity:${unlocked?1:.45}">
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-name">${escHtml(a.name)}</div>
+      <div class="ach-desc">${escHtml(a.desc)}</div>
+      ${unlocked ? '<div class="badge badge-emerald" style="margin:.5rem auto 0">Unlocked ✓</div>' : '<div class="badge badge-neutral" style="margin:.5rem auto 0">Locked</div>'}
+    </div>`;
+  }).join('');
+}
+
+/* ─── AI Chatbot ───────────────────────────────────────────────────────── */
+let chatOpen = false;
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-panel').classList.toggle('open', chatOpen);
+}
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  appendChatMsg(msg,'user');
+  const thinking = appendChatMsg('⏳ Thinking…','bot');
+  if (DEMO_MODE) {
+    await new Promise(resolve=>setTimeout(resolve,350));
+    thinking.textContent = 'This public preview shows the interface. OmniAI answers questions in the full local app. Try the Unit Converter tab or explore the PDF tools above.';
+    return;
+  }
+  try {
+    const r = await fetch(API+'/api/ai/chat',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg,provider:'builtin'})
+    });
+    const d = await r.json();
+    thinking.textContent = d.reply || 'No reply.';
+  } catch {
+    thinking.textContent = '⚠️ Could not reach the AI engine. Make sure the server is running.';
+  }
+}
+function appendChatMsg(text,role) {
+  const box = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+  return div;
+}
+
+/* ─── Utilities ────────────────────────────────────────────────────────── */
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+function formatBytes(b) {
+  if(b<1024) return b+' B';
+  if(b<1048576) return (b/1024).toFixed(1)+' KB';
+  return (b/1048576).toFixed(2)+' MB';
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ─── Init ─────────────────────────────────────────────────────────────── */
+(async () => {
+  buildUnitConverter();
+  await checkHealth();
+  await loadStats();
+  setInterval(async()=>{ await checkHealth(); await loadStats(); }, 15000);
+})();
+</script>
+</body>
+</html>
