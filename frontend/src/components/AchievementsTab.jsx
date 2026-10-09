@@ -2,18 +2,15 @@ import React from 'react';
 import { 
   Trophy, 
   Award, 
-  Star, 
-  Target, 
-  Sparkles, 
-  ShieldCheck, 
-  CheckCircle, 
-  Lock 
+  Target 
 } from 'lucide-react';
 
 export default function AchievementsTab({ stats }) {
   const filesConverted = stats?.filesConverted || 0;
   const level = stats?.level || 1;
   const xp = stats?.xp || 0;
+  const nextLevelXp = level * 200;
+  const progressPercent = Math.min(100, Math.round((xp / nextLevelXp) * 100));
 
   const quests = [
     {
@@ -103,110 +100,137 @@ export default function AchievementsTab({ stats }) {
   const completedQuestsCount = quests.filter(q => q.completed).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      
       {/* Overview Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: '1rem'
       }}>
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '3rem',
-            height: '3rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(245, 158, 11, 0.15)',
-            color: '#f59e0b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Trophy size={24} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-              Badges Unlocked
+        {/* Explorer Level with XP Progress Bar */}
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '2.5rem',
+              height: '2.5rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(99, 102, 241, 0.12)',
+              color: 'var(--brand-500)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Award size={20} />
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-              {unlockedCount} / {badges.length}
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                Explorer Status
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                Level {level}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }} className="font-mono">
+              <span>XP Progress</span>
+              <span>{xp} / {nextLevelXp} XP</span>
+            </div>
+            <div style={{
+              height: '0.4rem',
+              borderRadius: '9999px',
+              background: 'var(--bg-subtle)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${progressPercent}%`,
+                background: 'var(--brand-500)',
+                borderRadius: '9999px',
+                transition: 'width 0.3s ease'
+              }} />
             </div>
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {/* Quests Summary */}
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
-            width: '3rem',
-            height: '3rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(99, 102, 241, 0.15)',
-            color: 'var(--brand-500)',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(16, 185, 129, 0.12)',
+            color: 'var(--emerald-500)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Target size={24} />
+            <Target size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-              Quests Finished
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              Completed Milestones
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
               {completedQuestsCount} / {quests.length}
             </div>
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {/* Badges Summary */}
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
-            width: '3rem',
-            height: '3rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(16, 185, 129, 0.15)',
-            color: '#10b981',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(245, 158, 11, 0.12)',
+            color: 'var(--amber-500)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Award size={24} />
+            <Trophy size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-              Explorer Level
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              Badges Collected
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#10b981' }}>
-              Level {level}
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+              {unlockedCount} / {badges.length}
             </div>
           </div>
         </div>
       </div>
 
       {/* Quests Panel */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-          <Target size={18} color="var(--brand-500)" />
-          <span>Active Quests & Milestones</span>
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <h3 style={{ fontSize: '0.92rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Target size={16} style={{ color: 'var(--brand-500)' }} />
+          <span>Milestones & Goals</span>
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem' }}>
           {quests.map(quest => (
             <div
               key={quest.id}
               style={{
-                padding: '1.15rem',
-                borderRadius: 'var(--radius-md)',
-                background: quest.completed ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-surface)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-card)',
                 border: '1px solid',
                 borderColor: quest.completed ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-card)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                gap: '0.75rem'
+                gap: '0.65rem'
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <h4 style={{ fontSize: '0.88rem', fontWeight: 800 }}>{quest.title}</h4>
-                  <span className={`badge ${quest.completed ? 'badge-emerald' : 'badge-brand'}`}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700 }}>{quest.title}</h4>
+                  <span className={`badge ${quest.completed ? 'badge-emerald' : 'badge-neutral'}`}>
                     +{quest.xpReward} XP
                   </span>
                 </div>
@@ -214,20 +238,20 @@ export default function AchievementsTab({ stats }) {
               </div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.35rem' }} className="font-mono">
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 600, marginBottom: '0.25rem' }} className="font-mono">
                   <span>Progress</span>
                   <span>{quest.progress} / {quest.total}</span>
                 </div>
                 <div style={{
-                  height: '0.45rem',
+                  height: '0.35rem',
                   borderRadius: '9999px',
-                  background: 'rgba(0, 0, 0, 0.25)',
+                  background: 'var(--bg-subtle)',
                   overflow: 'hidden'
                 }}>
                   <div style={{
                     height: '100%',
                     width: `${Math.min(100, Math.round((quest.progress / quest.total) * 100))}%`,
-                    background: quest.completed ? '#10b981' : 'var(--brand-gradient)',
+                    background: quest.completed ? 'var(--emerald-500)' : 'var(--brand-500)',
                     borderRadius: '9999px',
                     transition: 'width 0.3s ease'
                   }} />
@@ -239,51 +263,49 @@ export default function AchievementsTab({ stats }) {
       </div>
 
       {/* Badges Panel */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-          <Trophy size={18} color="#f59e0b" />
-          <span>Achievements & Badges</span>
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <h3 style={{ fontSize: '0.92rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Trophy size={16} style={{ color: 'var(--amber-500)' }} />
+          <span>Earned Badges</span>
         </h3>
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '1rem'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: '0.75rem'
         }}>
           {badges.map(badge => (
             <div
               key={badge.id}
               style={{
-                padding: '1.25rem',
-                borderRadius: 'var(--radius-md)',
-                background: badge.unlocked ? 'rgba(245, 158, 11, 0.08)' : 'var(--bg-surface)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-card)',
                 border: '1px solid',
-                borderColor: badge.unlocked ? 'rgba(245, 158, 11, 0.35)' : 'var(--border-card)',
+                borderColor: badge.unlocked ? 'rgba(245, 158, 11, 0.3)' : 'var(--border-card)',
                 textAlign: 'center',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '0.5rem',
-                opacity: badge.unlocked ? 1 : 0.45,
-                filter: badge.unlocked ? 'none' : 'grayscale(0.8)'
+                gap: '0.45rem',
+                opacity: badge.unlocked ? 1 : 0.5
               }}
             >
               <div style={{
-                width: '3.5rem',
-                height: '3.5rem',
+                width: '3rem',
+                height: '3rem',
                 borderRadius: '50%',
-                background: badge.unlocked ? 'rgba(245, 158, 11, 0.2)' : 'var(--bg-glass-subtle)',
+                background: badge.unlocked ? 'rgba(245, 158, 11, 0.12)' : 'var(--bg-subtle)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.75rem',
-                boxShadow: badge.unlocked ? '0 0 20px -2px rgba(245, 158, 11, 0.3)' : 'none'
+                fontSize: '1.5rem'
               }}>
                 {badge.icon}
               </div>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 800 }}>{badge.name}</h4>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{badge.desc}</p>
-              <span className={`badge ${badge.unlocked ? 'badge-amber' : 'badge-brand'}`} style={{ fontSize: '0.65rem' }}>
+              <h4 style={{ fontSize: '0.82rem', fontWeight: 700 }}>{badge.name}</h4>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{badge.desc}</p>
+              <span className={`badge ${badge.unlocked ? 'badge-amber' : 'badge-neutral'}`} style={{ fontSize: '0.65rem' }}>
                 {badge.unlocked ? 'Unlocked' : 'Locked'}
               </span>
             </div>

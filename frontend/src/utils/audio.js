@@ -1,4 +1,4 @@
-// Browser Web Audio API Sound Effects Synthesizer (Zero External Dependencies)
+// Browser Web Audio API Sound Effects Synthesizer (Subtle, Restrained Desktop Feedback)
 
 let audioCtx = null;
 
@@ -15,7 +15,7 @@ function getAudioContext() {
   return audioCtx;
 }
 
-export const playSound = (type = 'click', enabled = true) => {
+export const playSound = (type = 'click', enabled = false) => {
   if (!enabled) return;
   try {
     const ctx = getAudioContext();
@@ -31,66 +31,63 @@ export const playSound = (type = 'click', enabled = true) => {
     switch (type) {
       case 'click':
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampToValueAtTime(320, now + 0.03);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
         osc.start(now);
-        osc.stop(now + 0.05);
+        osc.stop(now + 0.03);
         break;
 
       case 'success':
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(440, now);
-        osc.frequency.setValueAtTime(554.37, now + 0.08);
-        osc.frequency.setValueAtTime(659.25, now + 0.16);
-        osc.frequency.setValueAtTime(880, now + 0.24);
-        gain.gain.setValueAtTime(0.18, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.06);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
         osc.start(now);
-        osc.stop(now + 0.4);
+        osc.stop(now + 0.2);
         break;
 
       case 'upload':
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.exponentialRampToValueAtTime(800, now + 0.12);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.frequency.setValueAtTime(380, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
         osc.start(now);
-        osc.stop(now + 0.12);
+        osc.stop(now + 0.08);
         break;
 
       case 'levelup':
-        // Fanfare chord
-        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        [523.25, 659.25, 783.99].forEach((freq, idx) => {
           const o = ctx.createOscillator();
           const g = ctx.createGain();
           o.connect(g);
           g.connect(ctx.destination);
-          o.type = 'triangle';
-          o.frequency.setValueAtTime(freq, now + idx * 0.07);
-          g.gain.setValueAtTime(0.15, now + idx * 0.07);
-          g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.35);
-          o.start(now + idx * 0.07);
-          o.stop(now + idx * 0.07 + 0.35);
+          o.type = 'sine';
+          o.frequency.setValueAtTime(freq, now + idx * 0.06);
+          g.gain.setValueAtTime(0.04, now + idx * 0.06);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.06 + 0.2);
+          o.start(now + idx * 0.06);
+          o.stop(now + idx * 0.06 + 0.2);
         });
         break;
 
       case 'error':
-        osc.type = 'sawtooth';
+        osc.type = 'sine';
         osc.frequency.setValueAtTime(220, now);
-        osc.frequency.setValueAtTime(160, now + 0.1);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.frequency.setValueAtTime(180, now + 0.08);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
         osc.start(now);
-        osc.stop(now + 0.25);
+        osc.stop(now + 0.15);
         break;
 
       default:
         break;
     }
-  } catch (err) {
-    // Audio context may be restricted by browser autoplay policy until user gesture
+  } catch {
+    // Audio context may be restricted by browser autoplay policy
   }
 };

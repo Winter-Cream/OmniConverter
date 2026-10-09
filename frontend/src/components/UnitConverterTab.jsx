@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Calculator, 
   ArrowLeftRight, 
@@ -14,7 +14,6 @@ import {
   Clock, 
   Zap, 
   Wind,
-  Sparkles,
   Equal
 } from 'lucide-react';
 import { UNIT_CATEGORIES, convertUnits } from '../utils/unitsData';
@@ -39,12 +38,16 @@ export default function UnitConverterTab({ sfx }) {
   const [fromValue, setFromValue] = useState('10');
   const [fromUnit, setFromUnit] = useState('GB');
   const [toUnit, setToUnit] = useState('MB');
-  const [result, setResult] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // When active category changes, update default units
-  useEffect(() => {
-    const cat = UNIT_CATEGORIES[activeCategory];
+  // Directly derive calculation in render
+  const result = useMemo(() => {
+    return convertUnits(activeCategory, fromValue, fromUnit, toUnit);
+  }, [activeCategory, fromValue, fromUnit, toUnit]);
+
+  const handleCategoryChange = (catKey) => {
+    setActiveCategory(catKey);
+    const cat = UNIT_CATEGORIES[catKey];
     if (cat) {
       const keys = Object.keys(cat.units);
       if (keys.length >= 2) {
@@ -52,13 +55,8 @@ export default function UnitConverterTab({ sfx }) {
         setToUnit(keys[3] || keys[1]);
       }
     }
-  }, [activeCategory]);
-
-  // Recalculate conversion
-  useEffect(() => {
-    const res = convertUnits(activeCategory, fromValue, fromUnit, toUnit);
-    setResult(res);
-  }, [activeCategory, fromValue, fromUnit, toUnit]);
+    playSound('click', sfx);
+  };
 
   const handleSwap = () => {
     const prevFrom = fromUnit;
@@ -86,83 +84,71 @@ export default function UnitConverterTab({ sfx }) {
 
   // Calculate 1-unit baseline formula
   const singleFormulaResult = convertUnits(activeCategory, '1', fromUnit, toUnit);
-  const fromName = currentCatData.units[fromUnit]?.name || fromUnit;
-  const toName = currentCatData.units[toUnit]?.name || toUnit;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
       {/* Category Pills Card */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.75rem',
           borderBottom: '1px solid var(--border-card)',
-          paddingBottom: '1rem',
-          marginBottom: '1.25rem'
+          paddingBottom: '0.9rem',
+          marginBottom: '1rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div style={{
-              width: '2.5rem',
-              height: '2.5rem',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              width: '2.25rem',
+              height: '2.25rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(245, 158, 11, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'white',
-              boxShadow: '0 8px 16px -4px rgba(245, 158, 11, 0.4)'
+              color: 'var(--amber-500)'
             }}>
-              <Calculator size={22} />
+              <Calculator size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>
-                Scientific Multi-Unit Converter
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+                Scientific Unit Converter
               </h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                100+ precision units across 10 categories with real-time calculations.
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                Precision conversions across 10 categories with real-time recalculation.
               </p>
             </div>
           </div>
 
-          <span className="badge badge-amber font-mono" style={{ padding: '0.35rem 0.75rem', fontSize: '0.72rem' }}>
-            100+ UNITS AVAILABLE
+          <span className="badge badge-neutral font-mono" style={{ fontSize: '0.72rem' }}>
+            100+ UNITS
           </span>
         </div>
 
         {/* Categories Bar */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
           {Object.entries(UNIT_CATEGORIES).map(([catKey, cat]) => {
             const Icon = ICON_MAP[cat.icon] || Calculator;
             const isActive = activeCategory === catKey;
             return (
               <button
                 key={catKey}
-                onClick={() => {
-                  setActiveCategory(catKey);
-                  playSound('click', sfx);
-                }}
+                type="button"
+                onClick={() => handleCategoryChange(catKey)}
+                className="btn-secondary"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.55rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: '1px solid',
-                  borderColor: isActive ? '#f59e0b' : 'var(--border-card)',
-                  background: isActive ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-glass-subtle)',
-                  color: isActive ? '#d97706' : 'var(--text-secondary)',
-                  boxShadow: isActive ? '0 4px 12px -2px rgba(245, 158, 11, 0.25)' : 'none',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.78rem',
+                  background: isActive ? 'var(--bg-subtle)' : 'transparent',
+                  borderColor: isActive ? 'var(--amber-500)' : 'var(--border-card)',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: isActive ? 600 : 500
                 }}
               >
-                <Icon size={15} style={{ color: isActive ? '#f59e0b' : 'inherit' }} />
+                <Icon size={14} style={{ color: isActive ? 'var(--amber-500)' : 'var(--text-muted)' }} />
                 <span>{cat.name}</span>
               </button>
             );
@@ -172,74 +158,66 @@ export default function UnitConverterTab({ sfx }) {
 
       {/* Main Conversion Playground Card */}
       <div className="glass-panel" style={{
-        padding: '2rem',
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-card)',
-        boxShadow: 'var(--shadow-card)'
+        padding: '1.5rem',
+        background: 'var(--bg-surface)'
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '1.25rem',
           alignItems: 'center'
         }}>
 
           {/* Left Block: Source Input */}
           <div style={{
-            padding: '1.5rem',
-            borderRadius: 'var(--radius-lg)',
+            padding: '1.25rem',
+            borderRadius: 'var(--radius-md)',
             background: 'var(--bg-card)',
             border: '1px solid var(--border-card)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1rem',
-            transition: 'border-color 0.2s ease',
-            boxShadow: 'var(--shadow-sm)'
+            gap: '0.85rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{
                 fontSize: '0.72rem',
-                fontWeight: 800,
+                fontWeight: 700,
                 textTransform: 'uppercase',
-                letterSpacing: '0.06em',
+                letterSpacing: '0.05em',
                 color: 'var(--text-secondary)'
               }}>
                 From Value
               </span>
-              <span className="badge badge-brand font-mono" style={{ fontSize: '0.65rem' }}>
+              <span className="badge badge-neutral font-mono" style={{ fontSize: '0.65rem' }}>
                 INPUT
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
               <input
                 type="number"
                 value={fromValue}
                 onChange={(e) => setFromValue(e.target.value)}
                 style={{
-                  flex: '1 1 120px',
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius-md)',
+                  flex: '1 1 110px',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: 'var(--radius-sm)',
                   background: 'var(--bg-input)',
                   border: '1px solid var(--border-card)',
                   color: 'var(--text-primary)',
-                  fontSize: '1.35rem',
-                  fontWeight: 800,
-                  fontFamily: 'var(--font-mono)',
-                  outline: 'none',
-                  transition: 'border-color 0.2s ease'
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border-card)'}
               />
 
               <CustomSelect
                 value={fromUnit}
                 onChange={setFromUnit}
                 options={unitOptions}
-                accentColor="#f59e0b"
+                accentColor="var(--amber-500)"
                 searchable={true}
-                minWidth="180px"
+                minWidth="160px"
                 sfx={sfx}
               />
             </div>
@@ -252,16 +230,15 @@ export default function UnitConverterTab({ sfx }) {
                   key={val}
                   type="button"
                   onClick={() => { setFromValue(val); playSound('click', sfx); }}
+                  className="btn-secondary"
                   style={{
-                    border: '1px solid var(--border-card)',
-                    background: fromValue === val ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-surface)',
-                    color: fromValue === val ? '#d97706' : 'var(--text-secondary)',
-                    borderRadius: '6px',
-                    padding: '0.2rem 0.5rem',
+                    padding: '0.15rem 0.45rem',
                     fontSize: '0.68rem',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     fontFamily: 'var(--font-mono)',
-                    cursor: 'pointer'
+                    background: fromValue === val ? 'var(--bg-subtle)' : 'var(--bg-surface)',
+                    borderColor: fromValue === val ? 'var(--amber-500)' : 'var(--border-card)',
+                    color: fromValue === val ? 'var(--text-primary)' : 'var(--text-secondary)'
                   }}
                 >
                   {val}
@@ -271,56 +248,40 @@ export default function UnitConverterTab({ sfx }) {
           </div>
 
           {/* Center Swap Button */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <button
+              type="button"
               onClick={handleSwap}
-              title="Swap units"
+              title="Swap input and output units"
+              aria-label="Swap units"
+              className="btn-secondary"
               style={{
-                width: '3.25rem',
-                height: '3.25rem',
+                width: '2.75rem',
+                height: '2.75rem',
                 borderRadius: '50%',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-card)',
-                color: 'var(--text-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-card)',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'rotate(180deg) scale(1.08)';
-                e.currentTarget.style.borderColor = '#f59e0b';
-                e.currentTarget.style.color = '#f59e0b';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'rotate(0deg) scale(1)';
-                e.currentTarget.style.borderColor = 'var(--border-card)';
-                e.currentTarget.style.color = 'var(--text-primary)';
+                padding: 0
               }}
             >
-              <ArrowLeftRight size={20} />
+              <ArrowLeftRight size={17} />
             </button>
           </div>
 
           {/* Right Block: Result Output */}
           <div style={{
-            padding: '1.5rem',
-            borderRadius: 'var(--radius-lg)',
+            padding: '1.25rem',
+            borderRadius: 'var(--radius-md)',
             background: 'var(--bg-card)',
             border: '1px solid var(--border-card)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1rem',
-            boxShadow: 'var(--shadow-sm)'
+            gap: '0.85rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{
                 fontSize: '0.72rem',
-                fontWeight: 800,
+                fontWeight: 700,
                 textTransform: 'uppercase',
-                letterSpacing: '0.06em',
+                letterSpacing: '0.05em',
                 color: 'var(--text-secondary)'
               }}>
                 Converted Result
@@ -328,39 +289,32 @@ export default function UnitConverterTab({ sfx }) {
 
               {result && (
                 <button
+                  type="button"
                   onClick={copyResult}
+                  className="btn-secondary"
                   style={{
-                    border: 'none',
-                    background: copied ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                    color: copied ? '#10b981' : 'var(--text-muted)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
+                    fontSize: '0.72rem',
                     padding: '0.2rem 0.5rem',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
+                    color: copied ? 'var(--emerald-500)' : 'var(--text-muted)'
                   }}
                 >
-                  {copied ? <Check size={13} /> : <Copy size={13} />}
-                  <span>{copied ? 'Copied!' : 'Copy'}</span>
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
               <div
                 style={{
-                  flex: '1 1 120px',
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(245, 158, 11, 0.08)',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                  color: '#d97706',
-                  fontSize: '1.35rem',
-                  fontWeight: 800,
+                  flex: '1 1 110px',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
                   fontFamily: 'var(--font-mono)',
                   overflowX: 'auto',
                   whiteSpace: 'nowrap'
@@ -373,9 +327,9 @@ export default function UnitConverterTab({ sfx }) {
                 value={toUnit}
                 onChange={setToUnit}
                 options={unitOptions}
-                accentColor="#f59e0b"
+                accentColor="var(--amber-500)"
                 searchable={true}
-                minWidth="180px"
+                minWidth="160px"
                 sfx={sfx}
               />
             </div>
@@ -389,7 +343,7 @@ export default function UnitConverterTab({ sfx }) {
               color: 'var(--text-secondary)',
               fontFamily: 'var(--font-mono)'
             }}>
-              <Equal size={13} color="#f59e0b" />
+              <Equal size={12} style={{ color: 'var(--amber-500)' }} />
               <span>1 {fromUnit} = {singleFormulaResult} {toUnit}</span>
             </div>
           </div>

@@ -3,13 +3,14 @@ import { ChevronDown, Check, Search } from 'lucide-react';
 import { playSound } from '../utils/audio';
 
 export default function CustomSelect({
+  id,
   value,
   onChange,
   options = [], // [{ value, label, badge, icon }] or array of strings
   placeholder = 'Select...',
   disabled = false,
   accentColor = 'var(--brand-500)',
-  minWidth = '140px',
+  minWidth = '130px',
   searchable = false,
   sfx = true,
   style = {}
@@ -69,33 +70,35 @@ export default function CustomSelect({
     >
       {/* Trigger Button */}
       <button
+        id={id}
         type="button"
         disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         onClick={() => {
           if (!disabled) {
             setIsOpen(!isOpen);
             playSound('click', sfx);
           }
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' && isOpen) {
+            setIsOpen(false);
+          }
+        }}
+        className="btn-secondary"
         style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '0.65rem',
-          padding: '0.65rem 0.95rem',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-card)',
-          border: '1px solid',
-          borderColor: isOpen ? accentColor : 'var(--border-card)',
-          color: 'var(--text-primary)',
-          fontSize: '0.82rem',
-          fontWeight: 700,
-          cursor: disabled ? 'not-allowed' : 'pointer',
+          gap: '0.5rem',
+          padding: '0.45rem 0.75rem',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '0.8rem',
+          fontWeight: 600,
           opacity: disabled ? 0.6 : 1,
-          boxShadow: isOpen ? `0 0 0 2px ${accentColor}33` : 'none',
-          transition: 'all 0.2s ease',
-          outline: 'none',
+          borderColor: isOpen ? accentColor : 'var(--border-card)',
           userSelect: 'none'
         }}
       >
@@ -108,10 +111,10 @@ export default function CustomSelect({
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown 
-          size={14} 
+          size={13} 
           style={{ 
             color: 'var(--text-muted)', 
-            transition: 'transform 0.2s ease',
+            transition: 'transform 0.15s ease',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             flexShrink: 0
           }} 
@@ -120,36 +123,36 @@ export default function CustomSelect({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          left: 0,
-          right: 0,
-          minWidth: '180px',
-          maxHeight: '260px',
-          background: 'var(--bg-surface)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid var(--border-card)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-drop)',
-          zIndex: 100,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'dropdownFadeIn 0.15s ease-out'
-        }}>
+        <div 
+          role="listbox"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            minWidth: '160px',
+            maxHeight: '240px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-card)',
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: 'var(--shadow-drop)',
+            zIndex: 100,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
           {/* Optional Search */}
           {searchable && normalizedOptions.length > 6 && (
             <div style={{
-              padding: '0.5rem',
+              padding: '0.4rem',
               borderBottom: '1px solid var(--border-card)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              background: 'var(--bg-glass-subtle)'
+              background: 'var(--bg-card)'
             }}>
-              <Search size={13} color="var(--text-muted)" />
+              <Search size={12} style={{ color: 'var(--text-muted)' }} />
               <input
                 type="text"
                 autoFocus
@@ -169,10 +172,10 @@ export default function CustomSelect({
           )}
 
           {/* Options List */}
-          <div style={{ overflowY: 'auto', padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div style={{ overflowY: 'auto', padding: '0.25rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {filteredOptions.length === 0 ? (
-              <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                No options found
+              <div style={{ padding: '0.65rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                No options
               </div>
             ) : (
               filteredOptions.map((opt) => {
@@ -180,20 +183,22 @@ export default function CustomSelect({
                 return (
                   <div
                     key={String(opt.value)}
+                    role="option"
+                    aria-selected={isSelected}
                     onClick={() => handleSelect(opt.value)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: '0.5rem',
-                      padding: '0.55rem 0.75rem',
-                      borderRadius: '8px',
-                      fontSize: '0.8rem',
-                      fontWeight: isSelected ? 800 : 600,
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.78rem',
+                      fontWeight: isSelected ? 600 : 500,
                       color: isSelected ? accentColor : 'var(--text-primary)',
-                      background: isSelected ? `${accentColor}18` : 'transparent',
+                      background: isSelected ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
                       cursor: 'pointer',
-                      transition: 'background 0.15s ease'
+                      transition: 'background-color 0.1s ease'
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) e.currentTarget.style.background = 'var(--bg-card-hover)';
@@ -203,7 +208,7 @@ export default function CustomSelect({
                     }}
                   >
                     <span>{opt.label}</span>
-                    {isSelected && <Check size={14} style={{ color: accentColor, flexShrink: 0 }} />}
+                    {isSelected && <Check size={13} style={{ color: accentColor, flexShrink: 0 }} />}
                   </div>
                 );
               })

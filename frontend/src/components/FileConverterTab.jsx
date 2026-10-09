@@ -3,20 +3,57 @@ import {
   UploadCloud, 
   Trash2, 
   Settings2, 
-  Check, 
   AlertCircle, 
   Loader2, 
   Download, 
   FolderSync, 
-  Sliders, 
   FileCode, 
   Play, 
-  FileCheck
+  Check, 
+  RotateCcw,
+  FileText,
+  Image as ImageIcon,
+  Music,
+  Video as VideoIcon,
+  FileSpreadsheet,
+  File as FileIcon,
+  ChevronDown,
+  ChevronUp,
+  Archive
 } from 'lucide-react';
 import { convertSingleFile, convertBatchFiles, updateWatchFolderConfig } from '../services/api';
 import { t } from '../utils/translations';
 import { playSound } from '../utils/audio';
 import CustomSelect from './CustomSelect';
+import FileOptionsModal from './FileOptionsModal';
+
+function getFileCategoryIcon(filename) {
+  const ext = (filename || '').split('.').pop().toLowerCase();
+  if (['pdf', 'docx', 'doc', 'txt', 'rtf', 'odt', 'html', 'md'].includes(ext)) {
+    return <FileText size={18} style={{ color: '#ef4444' }} />;
+  }
+  if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ico', 'svg', 'tiff'].includes(ext)) {
+    return <ImageIcon size={18} style={{ color: '#3b82f6' }} />;
+  }
+  if (['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(ext)) {
+    return <Music size={18} style={{ color: '#a855f7' }} />;
+  }
+  if (['mp4', 'webm', 'mkv', 'avi', 'mov', 'flv'].includes(ext)) {
+    return <VideoIcon size={18} style={{ color: '#f59e0b' }} />;
+  }
+  if (['csv', 'xlsx', 'xls', 'json', 'tsv', 'xml', 'yaml'].includes(ext)) {
+    return <FileSpreadsheet size={18} style={{ color: '#10b981' }} />;
+  }
+  return <FileIcon size={18} style={{ color: 'var(--text-muted)' }} />;
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 export default function FileConverterTab({
   formats,
@@ -29,6 +66,8 @@ export default function FileConverterTab({
 }) {
   const [queue, setQueue] = useState([]);
   const [isConverting, setIsConverting] = useState(false);
+  const [isBatchZipLoading, setIsBatchZipLoading] = useState(false);
+  const [optionsModalItem, setOptionsModalItem] = useState(null);
   const [watchFolderOpen, setWatchFolderOpen] = useState(false);
   const [watchConfig, setWatchConfig] = useState({
     enabled: stats?.watchFolder?.enabled || false,
@@ -38,6 +77,11 @@ export default function FileConverterTab({
   });
   const [watchSaving, setWatchSaving] = useState(false);
   const [watchMessage, setWatchMessage] = useState('');
+
+  const handleSaveOptions = (itemId, updatedOptions) => {
+    setQueue(prev => prev.map(i => i.id === itemId ? { ...i, options: updatedOptions } : i));
+    setOptionsModalItem(null);
+  };
 
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
@@ -49,7 +93,7 @@ export default function FileConverterTab({
       return formats.extensions[ext].targets || ['pdf', 'txt'];
     }
     // Fallback based on common formats
-    if (['png', 'jpg', 'jpeg', 'webp', 'bmp', 'ico', 'gif'].includes(ext)) {
+    if (['png', 'jpg', 'jpeg', 'webp', 'bmp', 'ico', 'gif', 'tiff'].includes(ext)) {
       return ['png', 'jpg', 'webp', 'bmp', 'ico', 'pdf'];
     }
     if (['pdf', 'docx', 'txt', 'html', 'md'].includes(ext)) {
@@ -74,7 +118,8 @@ export default function FileConverterTab({
         id: Math.random().toString(36).substring(2, 9),
         file,
         name: file.name,
-        size: (file.size / 1024).toFixed(1) + ' KB',
+        sizeBytes: file.size,
+        sizeText: formatBytes(file.size),
         targetFormat: allowed[0] || 'pdf',
         allowedTargets: allowed,
         status: 'ready', // ready, converting, done, error
@@ -116,6 +161,11 @@ export default function FileConverterTab({
     playSound('click', sfx);
   };
 
+  const clearCompleted = () => {
+    setQueue(prev => prev.filter(item => item.status !== 'done'));
+    playSound('click', sfx);
+  };
+
   const updateTargetFormat = (id, target) => {
     setQueue(prev => prev.map(item => item.id === id ? { ...item, targetFormat: target } : item));
     playSound('click', sfx);
@@ -133,14 +183,14 @@ export default function FileConverterTab({
         resultFilename: filename 
       } : i));
       playSound('success', sfx);
-      refreshStats();
+      if (refreshStats) refreshStats();
     } catch (err) {
       setQueue(prev => prev.map(i => i.id === item.id ? { ...i, status: 'error', error: err.message } : i));
       playSound('error', sfx);
     }
   };
 
-  // Process Batch Queue
+  // Process All in Queue sequentially
   const processAllQueue = async () => {
     if (queue.length === 0 || isConverting) return;
     setIsConverting(true);
@@ -152,7 +202,7 @@ export default function FileConverterTab({
         completedCount++;
         continue;
       }
-      setQueue(prev => prev.map(i => i.id === item.id ? { ...i, status: 'converting' } : i));
+      setQueue(prev => prev.map(i => i.id === item.id ? { ...i, status: 'converting', error: null } : i));
       try {
         const { blob, filename } = await convertSingleFile(item.file, item.targetFormat, item.options);
         setQueue(prev => prev.map(i => i.id === item.id ? { 
@@ -168,24 +218,66 @@ export default function FileConverterTab({
     }
 
     setIsConverting(false);
-    refreshStats();
+    if (refreshStats) refreshStats();
     if (completedCount > 0) {
-      playSound('levelup', sfx);
+      playSound('success', sfx);
       if (triggerCelebration) triggerCelebration();
     }
   };
 
-  const downloadResult = (item) => {
+  // Download all completed files
+  const downloadAllCompleted = () => {
+    const completedItems = queue.filter(i => i.status === 'done' && i.resultBlob);
+    if (completedItems.length === 0) return;
+
+    completedItems.forEach((item, index) => {
+      setTimeout(() => {
+        downloadResult(item, false);
+      }, index * 200);
+    });
+    playSound('click', sfx);
+  };
+
+  // Download batch converted as ZIP directly from backend
+  const handleBatchZipDownload = async () => {
+    if (queue.length === 0 || isBatchZipLoading) return;
+    const targetFormat = queue[0].targetFormat;
+    // Check if all files support this target
+    const eligibleFiles = queue.map(q => q.file);
+    
+    setIsBatchZipLoading(true);
+    playSound('click', sfx);
+    try {
+      const { blob, filename } = await convertBatchFiles(eligibleFiles, targetFormat, {});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      playSound('success', sfx);
+      if (refreshStats) refreshStats();
+    } catch (err) {
+      alert(`Batch ZIP failed: ${err.message}`);
+      playSound('error', sfx);
+    } finally {
+      setIsBatchZipLoading(false);
+    }
+  };
+
+  const downloadResult = (item, playSfx = true) => {
     if (!item.resultBlob) return;
     const url = URL.createObjectURL(item.resultBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = item.resultFilename || `${item.name}_converted.${item.targetFormat}`;
+    a.download = item.resultFilename || `${item.name.replace(/\.[^/.]+$/, "")}_converted.${item.targetFormat}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    playSound('click', sfx);
+    if (playSfx) playSound('click', sfx);
   };
 
   // Watch Folder Config Save
@@ -193,33 +285,47 @@ export default function FileConverterTab({
     setWatchSaving(true);
     setWatchMessage('');
     try {
-      const res = await updateWatchFolderConfig(
+      await updateWatchFolderConfig(
         watchConfig.enabled,
         watchConfig.path,
         watchConfig.outputPath,
         watchConfig.targetFormat
       );
-      setWatchMessage('✓ Daemon configuration updated successfully!');
+      setWatchMessage('Configuration updated successfully.');
       playSound('success', sfx);
-      refreshStats();
+      if (refreshStats) refreshStats();
     } catch (err) {
-      setWatchMessage(`⚠️ Error: ${err.message}`);
+      setWatchMessage(`Error: ${err.message}`);
       playSound('error', sfx);
     } finally {
       setWatchSaving(false);
     }
   };
 
+  const doneCount = queue.filter(i => i.status === 'done').length;
+  const errorCount = queue.filter(i => i.status === 'error').length;
+  const readyCount = queue.filter(i => i.status === 'ready').length;
+  const totalSizeBytes = queue.reduce((acc, i) => acc + (i.sizeBytes || 0), 0);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* Interactive Dropzone */}
-      <div
+      {/* Primary Conversion Dropzone */}
+      <section 
+        aria-label="File upload dropzone"
         className={`dropzone ${dragActive ? 'active' : ''}`}
+        tabIndex={0}
+        role="button"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        onClick={() => fileInputRef.current && fileInputRef.current.click()}
+        onClick={() => fileInputRef.current?.click()}
       >
         <input 
           type="file" 
@@ -235,55 +341,108 @@ export default function FileConverterTab({
         />
         
         <div style={{
-          width: '4rem',
-          height: '4rem',
-          borderRadius: 'var(--radius-lg)',
-          background: 'rgba(99, 102, 241, 0.12)',
-          border: '1px solid rgba(99, 102, 241, 0.3)',
+          width: '3.5rem',
+          height: '3.5rem',
+          borderRadius: 'var(--radius-md)',
+          background: 'rgba(99, 102, 241, 0.1)',
+          border: '1px solid rgba(99, 102, 241, 0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 1.25rem',
-          color: 'var(--brand-500)',
-          boxShadow: 'var(--shadow-glow)'
+          margin: '0 auto 1rem',
+          color: 'var(--brand-500)'
         }}>
-          <UploadCloud size={30} />
+          <UploadCloud size={28} />
         </div>
 
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
-          {t('dropzoneTitle', lang)}
-        </h3>
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '550px', margin: '0 auto' }}>
-          {t('dropzoneSub', lang)}
+        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
+          {t('dropzoneTitle', lang) || 'Drop files here or click to browse'}
+        </h2>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '580px', margin: '0 auto 1.25rem', lineHeight: 1.5 }}>
+          {t('dropzoneSub', lang) || 'Convert between 50+ formats locally on your device without file size limits or cloud uploads.'}
         </p>
-      </div>
 
-      {/* Queue Panel */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
+        {/* Action Button inside Dropzone */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span className="btn-primary" style={{ pointerEvents: 'none' }}>
+            Select Files to Convert
+          </span>
+        </div>
+
+        {/* Format categories hints */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem'
+        }}>
+          {['PDF & Documents', 'PNG, JPG & Images', 'MP4 & Videos', 'MP3 & Audio', 'CSV & Spreadsheets'].map((fmt) => (
+            <span 
+              key={fmt} 
+              className="badge badge-neutral" 
+              style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem' }}
+            >
+              {fmt}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* Conversion Queue Panel */}
+      <section 
+        aria-label="Conversion queue"
+        className="glass-panel" 
+        style={{ padding: '1.25rem' }}
+      >
+        {/* Queue Header & Actions */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
           borderBottom: '1px solid var(--border-card)',
-          paddingBottom: '1rem',
+          paddingBottom: '0.9rem',
           marginBottom: '1rem'
         }}>
+          {/* Left: Queue Title & Stats */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 700 }}>
               Conversion Queue
             </h3>
-            <span className="badge badge-brand font-mono">
-              {queue.length} {queue.length === 1 ? 'File' : 'Files'}
+            <span className="badge badge-neutral font-mono">
+              {queue.length} {queue.length === 1 ? 'file' : 'files'}
             </span>
+            {queue.length > 0 && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} className="font-mono">
+                ({formatBytes(totalSizeBytes)})
+              </span>
+            )}
+            {doneCount > 0 && (
+              <span className="badge badge-emerald font-mono">
+                {doneCount} ready
+              </span>
+            )}
+            {errorCount > 0 && (
+              <span className="badge badge-rose font-mono">
+                {errorCount} failed
+              </span>
+            )}
           </div>
 
+          {/* Right: Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Global Target Selector */}
             {queue.length > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>Set all to:</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Set all to:
+                </span>
                 <CustomSelect
                   value=""
-                  placeholder="Choose target..."
+                  placeholder="Target..."
                   onChange={(target) => {
                     setQueue(prev => prev.map(item => item.allowedTargets.includes(target) ? { ...item, targetFormat: target } : item));
                     playSound('click', sfx);
@@ -300,43 +459,94 @@ export default function FileConverterTab({
                     { value: 'xlsx', label: 'XLSX' }
                   ]}
                   accentColor="var(--brand-500)"
-                  minWidth="140px"
+                  minWidth="120px"
                   sfx={sfx}
                 />
               </div>
             )}
 
-            {queue.length > 0 && (
+            {/* Clear Completed Button */}
+            {doneCount > 0 && (
               <button 
-                onClick={clearQueue} 
+                type="button"
+                onClick={clearCompleted} 
                 className="btn-secondary"
-                style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem' }}
+                style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
+                title="Remove converted items from the queue"
               >
-                <Trash2 size={13} />
-                <span>{t('clearQueueBtn', lang)}</span>
+                <span>Clear Done</span>
               </button>
             )}
 
+            {/* Clear All Queue */}
+            {queue.length > 0 && (
+              <button 
+                type="button"
+                onClick={clearQueue} 
+                className="btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
+                title="Clear all files from the queue"
+              >
+                <Trash2 size={13} />
+                <span>Clear All</span>
+              </button>
+            )}
+
+            {/* Download All Completed Files */}
+            {doneCount > 1 && (
+              <button
+                type="button"
+                onClick={downloadAllCompleted}
+                className="btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
+                title="Download all converted files"
+              >
+                <Download size={13} />
+                <span>Download All ({doneCount})</span>
+              </button>
+            )}
+
+            {/* Batch Convert as ZIP */}
+            {queue.length > 1 && readyCount > 0 && (
+              <button
+                type="button"
+                onClick={handleBatchZipDownload}
+                disabled={isBatchZipLoading || isConverting}
+                className="btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
+                title="Convert all into a single downloaded ZIP archive"
+              >
+                {isBatchZipLoading ? (
+                  <Loader2 size={13} className="spin-slow" />
+                ) : (
+                  <Archive size={13} />
+                )}
+                <span>Export as ZIP</span>
+              </button>
+            )}
+
+            {/* Primary Convert All Button */}
             <button
+              type="button"
               onClick={processAllQueue}
-              disabled={queue.length === 0 || isConverting}
+              disabled={queue.length === 0 || isConverting || readyCount === 0}
               className="btn-primary"
               style={{
                 fontSize: '0.8rem',
-                padding: '0.5rem 1.25rem',
-                opacity: (queue.length === 0 || isConverting) ? 0.6 : 1,
-                cursor: (queue.length === 0 || isConverting) ? 'not-allowed' : 'pointer'
+                padding: '0.45rem 1.15rem',
+                opacity: (queue.length === 0 || isConverting || readyCount === 0) ? 0.6 : 1,
+                cursor: (queue.length === 0 || isConverting || readyCount === 0) ? 'not-allowed' : 'pointer'
               }}
             >
               {isConverting ? (
                 <>
                   <Loader2 size={14} className="spin-slow" />
-                  <span>Converting Batch...</span>
+                  <span>Converting Queue...</span>
                 </>
               ) : (
                 <>
-                  <Play size={14} fill="currentColor" />
-                  <span>{t('processQueueBtn', lang)}</span>
+                  <Play size={13} fill="currentColor" />
+                  <span>{queue.length > 1 ? `Convert All (${readyCount})` : 'Convert File'}</span>
                 </>
               )}
             </button>
@@ -346,16 +556,38 @@ export default function FileConverterTab({
         {/* Queue Items List */}
         {queue.length === 0 ? (
           <div style={{
-            padding: '2.5rem',
+            padding: '2.5rem 1rem',
             textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.82rem',
-            fontFamily: 'var(--font-mono)'
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem'
           }}>
-            No files in queue. Drag & drop files above to start converting.
+            <div style={{
+              width: '2.5rem',
+              height: '2.5rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border-card)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)'
+            }}>
+              <FileCode size={18} />
+            </div>
+            <div>
+              <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Your queue is currently empty
+              </p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                Drag and drop files above, or click browse to add items.
+              </p>
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {queue.map(item => (
               <div
                 key={item.id}
@@ -364,70 +596,82 @@ export default function FileConverterTab({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: '0.85rem',
-                  padding: '0.85rem 1.15rem',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--bg-glass-subtle)',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
                   border: '1px solid var(--border-card)',
-                  transition: 'all 0.2s ease'
+                  transition: 'background-color 0.15s ease'
                 }}
               >
                 {/* File Information */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 240px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 240px' }}>
                   <div style={{
                     width: '2.25rem',
                     height: '2.25rem',
-                    borderRadius: '8px',
-                    background: 'rgba(99, 102, 241, 0.15)',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-card)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--brand-500)'
+                    flexShrink: 0
                   }}>
-                    <FileCode size={18} />
+                    {getFileCategoryIcon(item.name)}
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, wordBreak: 'break-all' }}>
+                  <div style={{ overflow: 'hidden' }}>
+                    <div 
+                      title={item.name}
+                      style={{ 
+                        fontSize: '0.85rem', 
+                        fontWeight: 600, 
+                        whiteSpace: 'nowrap', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        maxWidth: '320px'
+                      }}
+                    >
                       {item.name}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} className="font-mono">
-                      {item.size}
+                      {item.sizeText}
                     </div>
                   </div>
                 </div>
 
                 {/* Target Format Selector & Options */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                    Convert to:
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label htmlFor={`target-${item.id}`} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Output:
+                  </label>
                   <CustomSelect
+                    id={`target-${item.id}`}
                     value={item.targetFormat}
                     onChange={(val) => updateTargetFormat(item.id, val)}
                     options={item.allowedTargets.map(tgt => ({ value: tgt, label: tgt.toUpperCase() }))}
                     disabled={item.status === 'converting' || item.status === 'done'}
                     accentColor="var(--brand-500)"
-                    minWidth="120px"
+                    minWidth="110px"
                     sfx={sfx}
                   />
 
+                  {/* Options Settings Gear */}
                   <button
-                    title="Conversion Options"
-                    onClick={() => onOpenOptions(item)}
+                    type="button"
+                    title="Configure encoding parameters (quality, resolution, bitrate)"
+                    aria-label={`Options for ${item.name}`}
+                    onClick={() => {
+                      if (onOpenOptions) onOpenOptions(item);
+                      setOptionsModalItem(item);
+                    }}
+                    disabled={item.status === 'converting'}
+                    className="btn-secondary"
                     style={{
-                      width: '2rem',
-                      height: '2rem',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-card)',
-                      background: 'var(--bg-surface)',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer'
+                      padding: '0.45rem',
+                      color: Object.keys(item.options || {}).length > 0 ? 'var(--brand-500)' : 'var(--text-secondary)'
                     }}
                   >
-                    <Settings2 size={14} />
+                    <Settings2 size={15} />
                   </button>
                 </div>
 
@@ -435,9 +679,11 @@ export default function FileConverterTab({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {item.status === 'ready' && (
                     <button
+                      type="button"
                       onClick={() => processItem(item)}
+                      disabled={isConverting}
                       className="btn-secondary"
-                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.8rem' }}
                     >
                       Convert
                     </button>
@@ -451,82 +697,119 @@ export default function FileConverterTab({
                   )}
 
                   {item.status === 'done' && (
-                    <button
-                      onClick={() => downloadResult(item)}
-                      className="btn-primary"
-                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', background: '#10b981' }}
-                    >
-                      <Download size={13} />
-                      <span>Download</span>
-                    </button>
-                  )}
-
-                  {item.status === 'error' && (
-                    <div className="badge badge-rose" title={item.error || 'Failed'}>
-                      <AlertCircle size={12} />
-                      <span>Error</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span className="badge badge-emerald" title="Converted successfully">
+                        <Check size={12} />
+                        <span>Ready</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => downloadResult(item)}
+                        className="btn-primary"
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.8rem', background: 'var(--emerald-500)' }}
+                        title="Download converted file"
+                      >
+                        <Download size={13} />
+                        <span>Download</span>
+                      </button>
                     </div>
                   )}
 
+                  {item.status === 'error' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div 
+                        className="badge badge-rose" 
+                        title={item.error || 'Conversion error'}
+                        style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        <AlertCircle size={12} />
+                        <span>{item.error ? item.error.substring(0, 30) : 'Failed'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => processItem(item)}
+                        className="btn-secondary"
+                        style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
+                        title="Retry conversion"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Retry</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Remove Button */}
                   <button
+                    type="button"
                     onClick={() => removeQueueItem(item.id)}
+                    className="btn-secondary"
                     style={{
                       border: 'none',
                       background: 'transparent',
                       color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                      padding: '0.4rem'
+                      padding: '0.4rem',
+                      cursor: 'pointer'
                     }}
-                    title="Remove"
+                    title="Remove from queue"
+                    aria-label={`Remove ${item.name}`}
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Watch Folder Automation Panel */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
+      {/* Watch Folder Automation Panel (Collapsible Drawer) */}
+      <section 
+        aria-label="Watch folder automation"
+        className="glass-panel" 
+        style={{ padding: '1.25rem' }}
+      >
         <div 
           onClick={() => setWatchFolderOpen(!watchFolderOpen)}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            userSelect: 'none'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{
               width: '2.25rem',
               height: '2.25rem',
-              borderRadius: '8px',
-              background: 'rgba(6, 182, 212, 0.15)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(2, 132, 199, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--cyan-500)'
             }}>
-              <FolderSync size={18} />
+              <FolderSync size={17} />
             </div>
             <div>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 800 }}>
-                {t('watchFolderTitle', lang)}
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>
+                {t('watchFolderTitle', lang) || 'Watch Folder Automation'}
               </h4>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                {t('watchFolderSub', lang)}
+                {t('watchFolderSub', lang) || 'Monitors a local folder and automatically converts files upon arrival.'}
               </p>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <span className={`badge ${watchConfig.enabled ? 'badge-emerald' : 'badge-amber'}`}>
-              {watchConfig.enabled ? 'Active Daemon' : 'Disabled'}
+            <span className={`badge ${watchConfig.enabled ? 'badge-emerald' : 'badge-neutral'}`}>
+              {watchConfig.enabled ? 'Daemon Active' : 'Disabled'}
             </span>
-            <Sliders size={16} style={{ color: 'var(--text-muted)' }} />
+            {watchFolderOpen ? (
+              <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} />
+            ) : (
+              <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
+            )}
           </div>
         </div>
 
@@ -540,11 +823,12 @@ export default function FileConverterTab({
             gap: '1rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
                 <input
                   type="checkbox"
                   checked={watchConfig.enabled}
                   onChange={(e) => setWatchConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                  style={{ accentColor: 'var(--brand-500)' }}
                 />
                 <span>Enable Background Watch Folder Daemon</span>
               </label>
@@ -552,8 +836,8 @@ export default function FileConverterTab({
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
-                  Input Watch Directory:
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                  Input Directory Path:
                 </label>
                 <input
                   type="text"
@@ -561,8 +845,8 @@ export default function FileConverterTab({
                   onChange={(e) => setWatchConfig(prev => ({ ...prev, path: e.target.value }))}
                   style={{
                     width: '100%',
-                    padding: '0.55rem 0.85rem',
-                    borderRadius: '8px',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-input)',
                     border: '1px solid var(--border-card)',
                     color: 'var(--text-primary)',
@@ -573,8 +857,8 @@ export default function FileConverterTab({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
-                  Output Destination Directory:
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                  Output Destination Path:
                 </label>
                 <input
                   type="text"
@@ -582,8 +866,8 @@ export default function FileConverterTab({
                   onChange={(e) => setWatchConfig(prev => ({ ...prev, outputPath: e.target.value }))}
                   style={{
                     width: '100%',
-                    padding: '0.55rem 0.85rem',
-                    borderRadius: '8px',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-input)',
                     border: '1px solid var(--border-card)',
                     color: 'var(--text-primary)',
@@ -594,8 +878,8 @@ export default function FileConverterTab({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
-                  Target Format:
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                  Default Target Format:
                 </label>
                 <input
                   type="text"
@@ -604,8 +888,8 @@ export default function FileConverterTab({
                   placeholder="e.g. pdf, png, mp3"
                   style={{
                     width: '100%',
-                    padding: '0.55rem 0.85rem',
-                    borderRadius: '8px',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-input)',
                     border: '1px solid var(--border-card)',
                     color: 'var(--text-primary)',
@@ -617,24 +901,40 @@ export default function FileConverterTab({
             </div>
 
             {watchMessage && (
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: watchMessage.includes('✓') ? '#10b981' : '#f43f5e' }}>
+              <div style={{ 
+                fontSize: '0.78rem', 
+                fontWeight: 600, 
+                color: watchMessage.includes('Error') ? 'var(--rose-500)' : 'var(--emerald-500)' 
+              }}>
                 {watchMessage}
               </div>
             )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
+                type="button"
                 onClick={handleSaveWatchConfig}
                 disabled={watchSaving}
                 className="btn-primary"
-                style={{ fontSize: '0.78rem', padding: '0.5rem 1.15rem' }}
+                style={{ fontSize: '0.78rem', padding: '0.45rem 1.15rem' }}
               >
-                {watchSaving ? 'Saving...' : t('saveConfigBtn', lang)}
+                {watchSaving ? 'Saving...' : (t('saveConfigBtn', lang) || 'Save Configuration')}
               </button>
             </div>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* File Options Modal */}
+      {optionsModalItem && (
+        <FileOptionsModal 
+          isOpen={Boolean(optionsModalItem)}
+          onClose={() => setOptionsModalItem(null)}
+          item={optionsModalItem}
+          onSaveOptions={handleSaveOptions}
+          sfx={sfx}
+        />
+      )}
 
     </div>
   );

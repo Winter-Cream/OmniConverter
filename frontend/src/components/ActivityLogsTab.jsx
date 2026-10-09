@@ -5,10 +5,9 @@ import {
   RotateCcw, 
   Search, 
   FileText, 
-  CheckCircle2, 
   HardDrive, 
-  Zap, 
-  FileBox 
+  FileBox,
+  Timer
 } from 'lucide-react';
 import { clearServerHistory, deleteServerHistoryItem, resetServerStats } from '../services/api';
 import { playSound } from '../utils/audio';
@@ -27,23 +26,23 @@ export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
   });
 
   const handleClearHistory = async () => {
-    if (!window.confirm('Are you sure you want to clear all conversion activity logs?')) return;
+    if (!window.confirm('Clear all conversion activity logs?')) return;
     playSound('click', sfx);
     await clearServerHistory();
-    refreshStats();
+    if (refreshStats) refreshStats();
   };
 
   const handleDeleteItem = async (index) => {
     playSound('click', sfx);
     await deleteServerHistoryItem(index);
-    refreshStats();
+    if (refreshStats) refreshStats();
   };
 
   const handleResetStats = async () => {
-    if (!window.confirm('Reset all statistics and gamification XP to zero?')) return;
+    if (!window.confirm('Reset all lifetime conversion counts and stats to zero?')) return;
     playSound('click', sfx);
     await resetServerStats();
-    refreshStats();
+    if (refreshStats) refreshStats();
   };
 
   const formatBytes = (bytes) => {
@@ -54,137 +53,154 @@ export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const formatSeconds = (sec) => {
+    if (!sec || sec === 0) return '0s';
+    const mins = Math.floor(sec / 60);
+    const remainder = sec % 60;
+    if (mins > 0) return `${mins}m ${remainder}s`;
+    return `${sec}s`;
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      
       {/* Stats Summary Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: '1rem'
       }}>
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{
-            width: '3rem',
-            height: '3rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(99, 102, 241, 0.15)',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(99, 102, 241, 0.12)',
             color: 'var(--brand-500)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <FileBox size={24} />
+            <FileBox size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
               Total Converted
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
               {stats?.filesConverted || 0}
             </div>
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{
-            width: '3rem',
-            height: '3rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(16, 185, 129, 0.15)',
-            color: '#10b981',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(16, 185, 129, 0.12)',
+            color: 'var(--emerald-500)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <HardDrive size={24} />
+            <HardDrive size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
               Data Processed
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
               {formatBytes(stats?.bytesProcessed)}
             </div>
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{
-            width: '3rem',
-            height: '3rem',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(245, 158, 11, 0.15)',
-            color: '#f59e0b',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(2, 132, 199, 0.12)',
+            color: 'var(--cyan-500)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Zap size={24} />
+            <Timer size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-              Total Explorer XP
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              Time Saved
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#f59e0b' }}>
-              {stats?.xp || 0} XP
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+              {formatSeconds(stats?.timeSavedSeconds || 0)}
             </div>
           </div>
         </div>
       </div>
 
       {/* History Table Container */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.75rem',
           borderBottom: '1px solid var(--border-card)',
-          paddingBottom: '1rem',
+          paddingBottom: '0.85rem',
           marginBottom: '1rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <Clock size={20} color="#10b981" />
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>
-              Activity & Conversion Log
+            <Clock size={18} style={{ color: 'var(--brand-500)' }} />
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 700 }}>
+              Recent Conversions
             </h3>
+            <span className="badge badge-neutral font-mono">
+              {history.length} {history.length === 1 ? 'entry' : 'entries'}
+            </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             {/* Search Input */}
             <div style={{ position: 'relative' }}>
-              <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <Search size={13} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
                 placeholder="Filter logs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
-                  padding: '0.4rem 0.65rem 0.4rem 2rem',
-                  borderRadius: 'var(--radius-md)',
+                  padding: '0.4rem 0.65rem 0.4rem 1.85rem',
+                  borderRadius: 'var(--radius-sm)',
                   background: 'var(--bg-input)',
                   border: '1px solid var(--border-card)',
                   color: 'var(--text-primary)',
-                  fontSize: '0.78rem'
+                  fontSize: '0.78rem',
+                  width: '160px'
                 }}
               />
             </div>
 
             <button
+              type="button"
               onClick={handleClearHistory}
               disabled={history.length === 0}
               className="btn-secondary"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
+              title="Clear all logged items"
             >
               <Trash2 size={13} />
-              <span>Clear Log</span>
+              <span>Clear History</span>
             </button>
 
             <button
+              type="button"
               onClick={handleResetStats}
               className="btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem', color: '#f43f5e' }}
+              style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem', color: 'var(--rose-500)' }}
+              title="Reset all stats to zero"
             >
               <RotateCcw size={13} />
               <span>Reset Stats</span>
@@ -203,18 +219,18 @@ export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
                 fontFamily: 'var(--font-mono)',
                 textTransform: 'uppercase'
               }}>
-                <th style={{ padding: '0.75rem' }}>Source File</th>
-                <th style={{ padding: '0.75rem' }}>Target Format</th>
-                <th style={{ padding: '0.75rem' }}>Size</th>
-                <th style={{ padding: '0.75rem' }}>Timestamp</th>
-                <th style={{ padding: '0.75rem', textAlign: 'right' }}>Action</th>
+                <th style={{ padding: '0.65rem 0.75rem' }}>Source File</th>
+                <th style={{ padding: '0.65rem 0.75rem' }}>Target Format</th>
+                <th style={{ padding: '0.65rem 0.75rem' }}>Size</th>
+                <th style={{ padding: '0.65rem 0.75rem' }}>Time</th>
+                <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                    No conversions recorded yet.
+                  <td colSpan={5} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    {searchTerm ? 'No activity logs matching search.' : 'No conversions recorded yet. Converted files will appear here.'}
                   </td>
                 </tr>
               ) : (
@@ -226,25 +242,28 @@ export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
                       fontSize: '0.8rem'
                     }}
                   >
-                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>
+                    <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <FileText size={15} color="var(--brand-500)" />
-                        <span>{item.name}</span>
+                        <FileText size={15} style={{ color: 'var(--brand-500)' }} />
+                        <span style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.name}
+                        </span>
                       </div>
                     </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span className="badge badge-brand font-mono">
+                    <td style={{ padding: '0.65rem 0.75rem' }}>
+                      <span className="badge badge-neutral font-mono">
                         {item.target}
                       </span>
                     </td>
-                    <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }} className="font-mono">
+                    <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-secondary)' }} className="font-mono">
                       {item.size}
                     </td>
-                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }} className="font-mono">
+                    <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)' }} className="font-mono">
                       {item.timestamp || 'Just now'}
                     </td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>
                       <button
+                        type="button"
                         onClick={() => handleDeleteItem(idx)}
                         style={{
                           border: 'none',
@@ -254,8 +273,9 @@ export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
                           padding: '0.25rem'
                         }}
                         title="Delete entry"
+                        aria-label={`Delete entry ${item.name}`}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </td>
                   </tr>

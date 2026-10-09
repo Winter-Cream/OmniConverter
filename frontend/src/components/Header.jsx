@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { 
-  Flame, 
   CheckCircle, 
   Volume2, 
   VolumeX, 
   Sun, 
   Moon, 
   Search, 
-  Globe, 
   ChevronDown, 
-  Activity,
-  Award
+  ShieldCheck
 } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import appLogo from '../assets/logo.png';
@@ -26,7 +23,7 @@ const LANGUAGES = [
 ];
 
 export default function Header({
-  stats,
+  stats: _stats,
   lang,
   setLang,
   theme,
@@ -39,10 +36,6 @@ export default function Header({
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   const currentLangObj = LANGUAGES.find(l => l.code === lang) || LANGUAGES[0];
-  const level = stats?.level || 1;
-  const xp = stats?.xp || 0;
-  const nextLevelXp = level * 200;
-  const progressPercent = Math.min(100, Math.round((xp / nextLevelXp) * 100));
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -61,17 +54,16 @@ export default function Header({
       position: 'sticky',
       top: 0,
       zIndex: 40,
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      background: 'var(--bg-glass)',
+      background: 'var(--bg-surface)',
       borderBottom: '1px solid var(--border-card)',
-      transition: 'all 0.2s ease'
+      boxShadow: 'var(--shadow-sm)',
+      transition: 'background-color 0.15s ease, border-color 0.15s ease'
     }}>
       <div style={{
         maxWidth: '1280px',
         margin: '0 auto',
-        padding: '0 1rem',
-        height: '4.25rem',
+        padding: '0 1.25rem',
+        height: '4rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -79,18 +71,17 @@ export default function Header({
       }}>
         {/* Brand Logo & Name */}
         <div 
-          style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', cursor: 'pointer', userSelect: 'none' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', userSelect: 'none' }}
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          title="OmniConverter PRO"
+          title="OmniConverter - Desktop File Engine"
         >
           <div style={{
-            width: '2.65rem',
-            height: '2.65rem',
+            width: '2.25rem',
+            height: '2.25rem',
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative'
+            justifyContent: 'center'
           }}>
             <img 
               src={appLogo} 
@@ -99,107 +90,90 @@ export default function Header({
                 width: '100%',
                 height: '100%',
                 objectFit: 'contain',
-                borderRadius: '50%',
-                filter: 'drop-shadow(0 4px 14px rgba(99, 102, 241, 0.45))',
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease'
+                borderRadius: '6px'
               }}
-              className="brand-logo-img"
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem' }}>
             <span style={{
-              fontSize: '1.25rem',
+              fontSize: '1.15rem',
               fontWeight: 800,
               fontFamily: 'var(--font-heading)',
-              letterSpacing: '-0.025em',
+              letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
               lineHeight: 1
             }}>
               OmniConverter
             </span>
-            <span className="badge badge-brand font-mono" style={{ fontSize: '0.65rem', padding: '0.15rem 0.45rem', lineHeight: 1 }}>
+            <span className="badge badge-brand font-mono" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', lineHeight: 1 }}>
               v4.1 PRO
             </span>
           </div>
         </div>
 
-        {/* Spotlight Search Shortcut Button */}
-        <button
-          onClick={() => {
-            playSound('click', sfx);
-            onOpenSpotlight();
-          }}
-          className="btn-secondary"
-          style={{
-            display: 'none',
-            alignItems: 'center',
-            gap: '0.65rem',
-            padding: '0.45rem 0.9rem',
-            fontSize: '0.78rem',
-            color: 'var(--text-secondary)'
-          }}
-          id="spotlight-header-btn"
-        >
-          <Search size={14} color="var(--brand-500)" />
-          <span>Search tools...</span>
-          <kbd style={{
-            padding: '0.15rem 0.4rem',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-card)',
-            borderRadius: '6px',
-            fontSize: '0.65rem',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 700
-          }}>
-            Ctrl K
-          </kbd>
-        </button>
-
-        {/* Gamification & Live Engine Stats */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          {/* Daily Streak */}
-          <div className="badge badge-amber" title="Daily Streak">
-            <Flame size={13} style={{ color: '#f59e0b' }} />
-            <span>{stats?.streak || 1} Day Streak</span>
-          </div>
-
-          {/* Files Converted */}
-          <div className="badge badge-emerald" title="Files Processed">
-            <CheckCircle size={13} style={{ color: '#10b981' }} />
-            <span className="font-mono">{stats?.filesConverted || 0}</span>
-          </div>
-
-          {/* Level Progress */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.25rem 0.65rem',
-            borderRadius: '9999px',
-            background: 'rgba(139, 92, 246, 0.12)',
-            border: '1px solid rgba(139, 92, 246, 0.25)',
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            color: '#a78bfa'
-          }}>
-            <Award size={13} />
-            <span className="font-mono">LVL {level}</span>
-            <div style={{
-              width: '4rem',
-              height: '0.4rem',
-              borderRadius: '9999px',
-              background: 'rgba(0, 0, 0, 0.25)',
-              overflow: 'hidden',
-              position: 'relative'
+        {/* Center / Search & Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          {/* Spotlight Search Shortcut Button */}
+          <button
+            type="button"
+            onClick={() => {
+              playSound('click', sfx);
+              onOpenSpotlight();
+            }}
+            className="btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.4rem 0.85rem',
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-input)'
+            }}
+            id="spotlight-header-btn"
+            title="Search tools and commands (Ctrl+K)"
+          >
+            <Search size={14} style={{ color: 'var(--brand-500)' }} />
+            <span style={{ display: 'inline' }}>Quick Search</span>
+            <kbd style={{
+              padding: '0.12rem 0.35rem',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-card)',
+              borderRadius: '4px',
+              fontSize: '0.65rem',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 600,
+              color: 'var(--text-muted)'
             }}>
-              <div style={{
-                height: '100%',
-                width: `${progressPercent}%`,
-                background: 'var(--brand-gradient)',
-                borderRadius: '9999px',
-                transition: 'width 0.3s ease'
-              }} />
-            </div>
+              Ctrl K
+            </kbd>
+          </button>
+
+          {/* Engine Connectivity Status */}
+          <div 
+            className={`badge ${backendOnline ? 'badge-emerald' : 'badge-amber'}`}
+            title={backendOnline ? 'Local Python conversion engine is connected and ready.' : 'Engine offline: conversions require the local backend.'}
+            style={{ cursor: 'default' }}
+          >
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: backendOnline ? 'var(--emerald-500)' : 'var(--amber-500)',
+              display: 'inline-block'
+            }} />
+            <span>{backendOnline ? 'Engine Online' : 'Engine Offline'}</span>
+          </div>
+
+          {/* Privacy Guarantee */}
+          <div 
+            className="badge badge-neutral" 
+            title="All files remain on your local computer. Zero remote server uploads."
+            style={{ display: 'none', cursor: 'default' }}
+            id="privacy-header-badge"
+          >
+            <ShieldCheck size={12} style={{ color: 'var(--brand-500)' }} />
+            <span>100% Local</span>
           </div>
         </div>
 
@@ -207,115 +181,105 @@ export default function Header({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.25rem',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-glass-subtle)',
-          border: '1px solid var(--border-card)'
+          gap: '0.4rem'
         }}>
           {/* Language Selector */}
           <div style={{ position: 'relative' }}>
             <button
+              type="button"
               onClick={() => setLangMenuOpen(!langMenuOpen)}
+              className="btn-secondary"
+              aria-label="Select language"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                padding: '0.35rem 0.6rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border-card)',
-                background: 'var(--bg-surface)',
-                color: 'var(--text-primary)',
+                padding: '0.4rem 0.6rem',
                 fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer'
+                fontWeight: 600
               }}
             >
               <span>{currentLangObj.flag}</span>
               <span className="font-mono">{currentLangObj.code.toUpperCase()}</span>
-              <ChevronDown size={11} style={{ opacity: 0.7 }} />
+              <ChevronDown size={12} style={{ opacity: 0.6 }} />
             </button>
 
             {langMenuOpen && (
-              <div style={{
-                position: 'absolute',
-                top: '115%',
-                right: 0,
-                width: '10.5rem',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-card)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-drop)',
-                padding: '0.4rem',
-                zIndex: 50
-              }}>
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: '115%',
+                  right: 0,
+                  width: '10.5rem',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-card)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-drop)',
+                  padding: '0.35rem',
+                  zIndex: 50
+                }}
+              >
                 {LANGUAGES.map(l => (
-                  <div
+                  <button
                     key={l.code}
+                    type="button"
                     onClick={() => {
                       setLang(l.code);
                       setLangMenuOpen(false);
                       playSound('click', sfx);
                     }}
                     style={{
+                      width: '100%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '0.45rem 0.65rem',
-                      borderRadius: '6px',
+                      borderRadius: 'var(--radius-sm)',
                       fontSize: '0.75rem',
-                      fontWeight: 600,
+                      fontWeight: 500,
                       cursor: 'pointer',
-                      background: l.code === lang ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                      color: l.code === lang ? 'var(--brand-500)' : 'var(--text-primary)'
+                      border: 'none',
+                      background: l.code === lang ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                      color: l.code === lang ? 'var(--brand-500)' : 'var(--text-primary)',
+                      textAlign: 'left'
                     }}
                   >
                     <span>{l.flag} {l.name}</span>
                     {l.code === lang && <CheckCircle size={12} color="var(--brand-500)" />}
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* SFX Toggle */}
+          {/* SFX Audio Toggle */}
           <button
+            type="button"
             onClick={toggleSfx}
-            title={sfx ? "Mute Sound FX" : "Enable Sound FX"}
+            title={sfx ? "Sound Effects: Enabled (Click to mute)" : "Sound Effects: Muted (Click to enable)"}
+            aria-label={sfx ? "Mute audio effects" : "Enable audio effects"}
+            className="btn-secondary"
             style={{
-              width: '2rem',
-              height: '2rem',
-              borderRadius: '8px',
-              border: '1px solid var(--border-card)',
-              background: 'var(--bg-surface)',
-              color: sfx ? 'var(--brand-500)' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
+              padding: '0.45rem',
+              color: sfx ? 'var(--brand-500)' : 'var(--text-muted)'
             }}
           >
-            {sfx ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            {sfx ? <Volume2 size={15} /> : <VolumeX size={15} />}
           </button>
 
           {/* Theme Switcher */}
           <button
+            type="button"
             onClick={toggleTheme}
             title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className="btn-secondary"
             style={{
-              width: '2rem',
-              height: '2rem',
-              borderRadius: '8px',
-              border: '1px solid var(--border-card)',
-              background: 'var(--bg-surface)',
-              color: theme === 'dark' ? '#f59e0b' : '#6366f1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
+              padding: '0.45rem',
+              color: theme === 'dark' ? '#f59e0b' : '#6366f1'
             }}
           >
-            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
         </div>
       </div>

@@ -16,6 +16,10 @@ omni_db.json
 # Nested legacy directories
 File_Converter_Pro/
 
+# Frontend build artifacts (generated — do not commit)
+frontend/dist/
+frontend/node_modules/
+
 # IDEs & System files
 .vscode/
 .idea/

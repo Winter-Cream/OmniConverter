@@ -1,10 +1,11 @@
 """
-OmniConverter PRO 4.0 Ultra - FastAPI Backend Server
+OmniConverter PRO 4.2.0 - FastAPI Backend Server
 Provides high-performance REST APIs for single & batch conversions, Watch Folder automation,
 statistics tracking, AI tool proxies, and serving the modern web frontend.
 """
 
 import os
+import re
 import sys
 import io
 import time
@@ -18,27 +19,80 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 
 from pydantic import BaseModel
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from converter_engine import converter_engine, check_ffmpeg
 from watch_daemon import WatchFolderDaemon
 
-app = FastAPI(
-    title="OmniConverter PRO 4.1.0 Server",
-    description="Python-powered backend conversion engine & automation daemon",
-    version="4.1.0"
-)
+# ─── Security constants ───────────────────────────────────────────────────────
+MAX_UPLOAD_BYTES   = 200 * 1024 * 1024   # 200 MB per file
+MAX_BATCH_FILES    = 50                   # max files per batch request
+MAX_TTS_CHARS      = 2000                 # max chars for TTS synthesis
 
-# Enable CORS for local web applications & development
+ALLOWED_EXTENSIONS = {
+    # Documents
+    ".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt",
+    ".txt", ".rtf", ".odt", ".ods", ".odp", ".html", ".htm",
+    # Images
+    ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff",
+    ".tif", ".svg", ".ico", ".heic", ".heif",
+    # Audio
+    ".mp3", ".wav", ".aac", ".ogg", ".flac", ".m4a", ".opus", ".wma",
+    # Video
+    ".mp4", ".avi", ".mkv", ".mov", ".webm", ".flv", ".wmv", ".m4v",
+    # Data / Code
+    ".csv", ".json", ".xml", ".yaml", ".yml", ".tsv", ".sql", ".md",
+    ".py", ".js", ".ts", ".java", ".c", ".cpp", ".rs", ".go",
+}
+
+# Localhost-only origins (desktop app)
+_LOCALHOST_ORIGINS = [
+    "http://localhost:8500", "http://127.0.0.1:8500",
+    "http://localhost:8501", "http://127.0.0.1:8501",
+    "http://localhost:5173", "http://127.0.0.1:5173",
+]
+
+# ─── Rate limiter ─────────────────────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+
+# ─── App ─────────────────────────────────────────────────────────────────────
+ENV = os.getenv("OMNI_ENV", "production")
+app = FastAPI(
+    title="OmniConverter PRO 4.2.0 Server",
+    description="Python-powered backend conversion engine & automation daemon",
+    version="4.2.0",
+    docs_url="/docs" if ENV == "dev" else None,
+    redoc_url="/redoc" if ENV == "dev" else None,
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ─── Security Headers middleware ─────────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"]         = "SAMEORIGIN"
+        response.headers["Referrer-Policy"]         = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"]        = "1; mode=block"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ─── CORS locked to localhost only ───────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_LOCALHOST_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Workspace directories setup
@@ -55,12 +109,44 @@ FRONTEND_ASSETS = FRONTEND_DIST / "assets"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 if FRONTEND_ASSETS.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_ASSETS)), name="assets")
+if FRONTEND_DIST.exists():
+    app.mount("/dist", StaticFiles(directory=str(FRONTEND_DIST)), name="dist_root")
 
 # Global thread lock for database access
 DB_LOCK = threading.Lock()
 
 # Instantiate Watch Folder Daemon
 daemon = WatchFolderDaemon(DATA_FILE, db_lock=DB_LOCK)
+
+# ─── Security helpers ─────────────────────────────────────────────────────────
+def sanitize_filename(name: str) -> str:
+    """Strip path separators, non-safe characters, and cap length."""
+    name = Path(name).name
+    name = re.sub(r'[^\w\-.() ]', '_', name)
+    return name[:128] or "upload"
+
+def validate_extension(filename: str):
+    """Raise 415 if file extension is not in the allowed set."""
+    ext = Path(filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=415, detail=f"Unsupported file type '{ext}'. Upload a supported format.")
+
+def validate_target_format(target_format: str):
+    """Raise 400 if target_format is not a recognised conversion target."""
+    fmt = target_format.strip().lower()
+    if not fmt or not re.match(r'^[a-z0-9]{1,10}$', fmt):
+        raise HTTPException(status_code=400, detail=f"Invalid target format: '{target_format}'")
+    return fmt
+
+def guard_watch_path(raw: str) -> Path:
+    """Resolve path and ensure it stays inside BASE_DIR to prevent traversal."""
+    try:
+        resolved = Path(raw).resolve()
+    except Exception:
+        raise HTTPException(400, "Invalid path.")
+    if not str(resolved).startswith(str(BASE_DIR)):
+        raise HTTPException(400, "Watch folder path must be within the application directory.")
+    return resolved
 
 def find_available_port(start_port: int = 8500) -> int:
     """Finds an available free port starting from start_port to avoid port conflicts."""
@@ -95,7 +181,16 @@ def load_db() -> Dict[str, Any]:
 
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                db = json.load(f)
+            # Basic schema validation / coercion
+            db["filesConverted"]  = int(db.get("filesConverted", 0))
+            db["bytesProcessed"]  = int(db.get("bytesProcessed", 0))
+            db["timeSavedSeconds"]= int(db.get("timeSavedSeconds", 0))
+            db["xp"]              = int(db.get("xp", 0))
+            db["level"]           = int(db.get("level", 1))
+            db["streak"]          = int(db.get("streak", 1))
+            db["history"]         = db.get("history", []) if isinstance(db.get("history"), list) else []
+            return db
         except Exception:
             return {"filesConverted": 0, "bytesProcessed": 0, "xp": 0, "level": 1, "history": []}
 
@@ -173,7 +268,9 @@ async def health_check():
     }
 
 @app.post("/api/convert")
+@limiter.limit("30/minute")
 async def convert_single_file(
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     target_format: str = Form(...),
@@ -186,6 +283,9 @@ async def convert_single_file(
     scale: Optional[float] = Form(None),
     quality: Optional[int] = Form(None)
 ):
+    validate_extension(file.filename)
+    target_format = validate_target_format(target_format)
+
     try:
         opt_dict = json.loads(options) if options else {}
     except Exception:
@@ -200,7 +300,11 @@ async def convert_single_file(
     if quality: opt_dict["quality"] = quality
 
     content = await file.read()
-    res = converter_engine.convert_file(content, file.filename, target_format, opt_dict)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum upload size is 200 MB.")
+
+    safe_name = sanitize_filename(file.filename)
+    res = converter_engine.convert_file(content, safe_name, target_format, opt_dict)
 
     if not res.success:
         raise HTTPException(status_code=400, detail=f"Conversion error: {res.error}")
@@ -235,12 +339,18 @@ async def convert_single_file(
 
 @app.post("/api/batch-convert")
 @app.post("/api/convert/zip")
+@limiter.limit("10/minute")
 async def convert_batch_files(
+    request: Request,
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     target_format: str = Form(...),
     options: Optional[str] = Form("{}")
 ):
+    if len(files) > MAX_BATCH_FILES:
+        raise HTTPException(400, f"Maximum {MAX_BATCH_FILES} files per batch request.")
+    target_format = validate_target_format(target_format)
+
     try:
         opt_dict = json.loads(options) if options else {}
     except Exception:
@@ -249,9 +359,12 @@ async def convert_batch_files(
     file_tuples = []
     total_bytes = 0
     for f in files:
+        validate_extension(f.filename)
         data = await f.read()
+        if len(data) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, f"File '{sanitize_filename(f.filename)}' exceeds 200 MB limit.")
         total_bytes += len(data)
-        file_tuples.append((f.filename, data))
+        file_tuples.append((sanitize_filename(f.filename), data))
 
     zip_path = converter_engine.convert_batch(file_tuples, target_format, opt_dict)
 
@@ -312,11 +425,15 @@ async def configure_watch_folder(
     output_path: str = Form(...),
     target_format: str = Form(...)
 ):
+    safe_in  = guard_watch_path(path)
+    safe_out = guard_watch_path(output_path)
+    target_format = validate_target_format(target_format)
+
     db = load_db()
     db["watchFolder"] = {
         "enabled": enabled,
-        "path": path,
-        "output_path": output_path,
+        "path": str(safe_in),
+        "output_path": str(safe_out),
         "target_format": target_format
     }
     save_db(db)
@@ -329,7 +446,10 @@ async def configure_watch_folder(
     return {"status": "success", "watchFolder": db["watchFolder"]}
 
 @app.post("/api/ai/tts")
-async def ai_tts_synthesizer(text: str = Form(...), voice: str = Form("neutral")):
+@limiter.limit("20/minute")
+async def ai_tts_synthesizer(request: Request, text: str = Form(...), voice: str = Form("neutral")):
+    if len(text) > MAX_TTS_CHARS:
+        raise HTTPException(400, f"Text too long. Maximum {MAX_TTS_CHARS} characters for TTS.")
     import math
     import struct
     sample_rate = 24000
@@ -681,7 +801,8 @@ def get_builtin_knowledge_reply(query: str) -> str:
 
 
 @app.post("/api/ai/chat")
-async def api_ai_chat(req: AIChatRequest):
+@limiter.limit("20/minute")
+async def api_ai_chat(req: AIChatRequest, request: Request):
     provider = (req.provider or "builtin").lower()
     system_prompt = (
         "You are OmniAI, the expert AI assistant for OmniConverter (Universal File Converter & PDF Suite). "
@@ -784,10 +905,10 @@ async def api_ai_chat(req: AIChatRequest):
             return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v4"}
 
     except urllib.error.HTTPError as he:
-        err_body = he.read().decode("utf-8", errors="ignore")
-        return {"reply": f"⚠️ **API Request Error ({he.code})**: {err_body}\n\nFalling back to built-in knowledge:\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
-    except Exception as e:
-        return {"reply": f"⚠️ **Connection Error**: {str(e)}\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
+        # Do NOT expose raw error body — may contain key info
+        return {"reply": f"⚠️ **API Request Error ({he.code})**: Check your API key and try again.\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
+    except Exception:
+        return {"reply": "⚠️ **Connection Error**: Could not reach the AI provider. Check your key and network.\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
 
 
 if __name__ == "__main__":
@@ -802,11 +923,11 @@ if __name__ == "__main__":
         daemon.start()
 
     print("\n=======================================================")
-    print(f" OmniConverter PRO 4.0 Ultra Server Starting...")
+    print(f" OmniConverter PRO 4.2.0 Starting...")
     print(f" URL: {url}")
     print("=======================================================\n")
 
     threading.Timer(1.2, lambda: webbrowser.open(url)).start()
 
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    uvicorn.run(app, host="127.0.0.1", port=port, limit_max_requests=1000)
 
