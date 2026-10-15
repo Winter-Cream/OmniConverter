@@ -1,5 +1,5 @@
 """
-OmniConverter PRO 4.0 Ultra - Core Python Conversion Engine
+OmniConverter 5 Pro Max - Core Python Conversion Engine
 Supports high-fidelity conversion across Documents, Images, Audio, Video, Data Formats, and Code.
 Integrates with File_Converter_Pro modules when present, with native fallback using Python standard libraries & PyPDF, Docx, OpenPyXL, Pandas, Pillow, etc.
 """
@@ -114,7 +114,7 @@ class ConversionResult:
 
 
 class OmniConverterEngine:
-    """Main Python conversion dispatcher for OmniConverter PRO 4.0."""
+    """Main Python conversion dispatcher for OmniConverter 5 Pro Max."""
 
     MIME_MAP = {
         "pdf": "application/pdf",

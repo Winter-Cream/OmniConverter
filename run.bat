@@ -1,8 +1,8 @@
 @echo off
-title OmniConverter PRO 4.1.0 Launcher
+title OmniConverter 5 Pro Max Launcher
 cls
 echo ===================================================================
-echo               OmniConverter PRO 4.1.0 Launcher               
+echo               OmniConverter 5 Pro Max Launcher               
 echo ===================================================================
 echo.
 

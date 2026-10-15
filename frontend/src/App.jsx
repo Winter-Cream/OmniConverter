@@ -281,7 +281,7 @@ export default function App() {
         color: 'var(--text-muted)'
       }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>OmniConverter PRO 4.1.0 • Desktop File Engine & PDF Suite</div>
+          <div>OmniConverter 5 Pro Max • Desktop File Engine &amp; PDF Suite</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span>100% Local Execution</span>
             <span>•</span>

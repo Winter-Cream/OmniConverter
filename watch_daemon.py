@@ -1,5 +1,5 @@
 """
-OmniConverter PRO 4.0 Ultra - Watch Folder Automation Daemon
+OmniConverter 5 Pro Max - Watch Folder Automation Daemon
 Monitors specified input directory in background thread and auto-converts files to target format.
 Includes Windows file-ready checks, thread-safe DB synchronization, and infinite-loop prevention.
 """

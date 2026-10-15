@@ -1,5 +1,5 @@
 /*
-  OmniConverter PRO 4.0 Ultra - Master Frontend JavaScript Engine
+  OmniConverter 5 Pro Max - Master Frontend JavaScript Engine
   Includes COMPLETE 118-ELEMENT PERIODIC TABLE & EXHAUSTIVE 10-CATEGORY MULTI-UNIT CONVERTER
 */
 
@@ -63,7 +63,7 @@ const I18N_DICT = {
     logCleared: "History log cleared."
   },
   es: {
-    appTitle: "OmniConverter PRO 4.0",
+    appTitle: "OmniConverter 5 Pro Max",
     appSub: "Archivos • IA Gemini • Seguridad • Física • Química",
     fileHub: "Centro de Archivos",
     aiStudio: "Estudio IA Gemini",
@@ -85,7 +85,7 @@ const I18N_DICT = {
     logCleared: "Historial limpiado."
   },
   fr: {
-    appTitle: "OmniConverter PRO 4.0",
+    appTitle: "OmniConverter 5 Pro Max",
     appSub: "Fichiers • IA Gemini • Sécurité • Physique • Chimie",
     fileHub: "Hub Fichiers",
     aiStudio: "Studio IA Gemini",
@@ -107,7 +107,7 @@ const I18N_DICT = {
     logCleared: "Historique effacé."
   },
   de: {
-    appTitle: "OmniConverter PRO 4.0",
+    appTitle: "OmniConverter 5 Pro Max",
     appSub: "Dateien • Gemini KI • Sicherheit • Physik • Chemie",
     fileHub: "Datei-Hub",
     aiStudio: "Gemini KI Studio",
@@ -129,7 +129,7 @@ const I18N_DICT = {
     logCleared: "Verlauf gelöscht."
   },
   ja: {
-    appTitle: "OmniConverter PRO 4.0",
+    appTitle: "OmniConverter 5 Pro Max",
     appSub: "ファイル • Gemini AI • セキュリティ • 物理 • 化学",
     fileHub: "ファイルハブ",
     aiStudio: "Gemini AI スタジオ",
@@ -151,7 +151,7 @@ const I18N_DICT = {
     logCleared: "履歴を消去しました。"
   },
   zh: {
-    appTitle: "OmniConverter PRO 4.0",
+    appTitle: "OmniConverter 5 Pro Max",
     appSub: "文件 • Gemini AI • 安全 • 物理 • 化学",
     fileHub: "文件中心",
     aiStudio: "Gemini AI 工作室",
@@ -173,7 +173,7 @@ const I18N_DICT = {
     logCleared: "历史记录已清除。"
   },
   hi: {
-    appTitle: "OmniConverter PRO 4.0",
+    appTitle: "OmniConverter 5 Pro Max",
     appSub: "फ़ाइलें • Gemini AI • सुरक्षा • भौतिकी • रसायन शास्त्र",
     fileHub: "फ़ाइल हब",
     aiStudio: "Gemini AI स्टूडियो",

@@ -267,7 +267,7 @@ async def get_formats():
 async def health_check():
     return {
         "status": "online",
-        "version": "4.1.0",
+        "version": "5.0.0",
         "engine": "OmniConverter Python Engine",
         "has_ffmpeg": check_ffmpeg(),
         "has_fcp": getattr(sys.modules["converter_engine"], "HAS_FCP", False),

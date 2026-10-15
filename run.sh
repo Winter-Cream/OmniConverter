@@ -2,7 +2,7 @@
 set -e
 
 echo "==================================================================="
-echo "              OmniConverter PRO 4.1.0 Launcher                     "
+echo "              OmniConverter 5 Pro Max Launcher                     "
 echo "==================================================================="
 
 if ! command -v python3 &> /dev/null; then
