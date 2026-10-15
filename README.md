@@ -23,6 +23,7 @@
   <a href="#why-omniconverter"><b>💡 Why Us?</b></a> •
   <a href="#which-mode"><b>🧭 Which Mode?</b></a> •
   <a href="#core-features"><b>✨ Features</b></a> •
+  <a href="#omni-ai"><b>🤖 OmniAI</b></a> •
   <a href="#supported-formats"><b>📑 50+ Formats</b></a> •
   <a href="#system-dependencies"><b>📦 Dependencies</b></a> •
   <a href="#rest-api"><b>🔌 REST API</b></a> •
@@ -115,10 +116,65 @@ Commercial cloud converters subject users to **paywalls, strict 15–25 MB uploa
 * **Real-Time Bidirectional Sync**: Instant updates as you type with live baseline formulas (e.g. `1 Wh = 0.860421 kcal`).
 * **Custom Dropdowns**: Clean glassmorphic selection menus, quick value presets (`1`, `5`, `10`, `100`, `1000`), and animated unit swapping.
 
-### 🤖 6. OmniAI Floating Assistant
+### 🤖 6. OmniAI Supercopilot
 * On-screen intelligent assistant capable of answering questions regarding conversions, PDF workflows, and mathematical formulas.
 * **Bring Your Own Key (BYOK)**: Supports **Google Gemini**, **OpenAI**, **xAI Grok**, and **Anthropic Claude**, or run completely free with the **Built-in Offline Knowledge Engine**.
 * **Web Audio TTS**: Listen to replies with synthesized voice audio playback.
+* **5 Capability Modes**: Universal, PDF & Files, Code & Scripts, Writing & Translate, Math & Calculators.
+* **Voice Input**: Speak your question using the Web Speech API microphone button.
+* **Export**: Download the full conversation as a Markdown transcript.
+
+---
+
+<a id="omni-ai"></a>
+## 🤖 OmniAI Supercopilot
+
+<div align="center">
+
+<img src="docs/omni-ai-logo.png" alt="OmniAI Supercopilot" width="110" />
+
+**Your all-in-one AI — so you never need another tool.**
+
+</div>
+
+OmniAI is a fully-integrated AI Supercopilot built directly into OmniConverter. Activate it instantly with **`Alt + A`** (or the floating badge in the bottom-right corner), and get expert-level help on anything — without leaving the app.
+
+### 💪 Capabilities
+
+| Mode | What OmniAI can do |
+| :--- | :--- |
+| 🌐 **Universal** | General questions, recommendations, and multi-domain answers |
+| 📄 **PDF & Files** | Merge, split, compress, encrypt, OCR guidance and step-by-step workflows |
+| 👨‍💻 **Code & Scripts** | Generate Python scripts, FFmpeg one-liners, Regex patterns, shell commands |
+| ✍️ **Writing & Translate** | Rewrite, summarize, translate, proofread, and format any text |
+| 🧭 **Math & Calculators** | Unit conversions, formula derivations, scientific calculations |
+
+### 🔌 AI Provider Support
+
+| Provider | Mode | Notes |
+| :--- | :--- | :--- |
+| **Built-in Engine** | Offline, free | No key needed. Covers 30+ intents natively |
+| **Ollama** | Local LLM | Run any model locally at `http://localhost:11434` |
+| **Google Gemini** | Cloud | `gemini-1.5-flash`, `gemini-2.0-flash`, etc. |
+| **OpenAI** | Cloud | `gpt-4o`, `gpt-4o-mini`, and all compatible models |
+| **Anthropic Claude** | Cloud | `claude-3-5-sonnet`, `claude-3-haiku`, etc. |
+| **xAI Grok** | Cloud | `grok-beta` |
+| **OpenRouter / Custom** | Cloud | Any OpenAI-compatible endpoint |
+
+### ⌨️ Keyboard Shortcut
+
+| Shortcut | Action |
+| :--- | :--- |
+| `Alt` + `A` | Toggle OmniAI Supercopilot open / closed |
+| `Ctrl` + `K` | Open Spotlight Command Palette |
+
+### 🎤 Features
+- **Microphone** — Voice input via Web Speech API
+- **TTS** — Listen to AI replies with speech synthesis
+- **Copy** — One-click copy on all code blocks
+- **Expand** — Maximize the chat window for long sessions
+- **Export** — Download the full chat as a `.md` transcript
+- **Action Buttons** — Contextual action buttons appear inline with AI replies
 
 ---
 
@@ -360,11 +416,16 @@ OmniConverter/
 ├── static/
 │   ├── css/
 │   │   └── style.css           # Vanilla CSS stylesheet & design tokens
-│   └── js/
-│       └── app.js              # Client-side interface & conversion logic
+│   ├── js/
+│   │   └── app.js              # Client-side interface & conversion logic
+│   └── omni-ai-logo.png        # OmniAI Supercopilot dedicated 3D logo
+├── docs/                       # GitHub Pages static demo & assets
+│   ├── index.html              # Interactive GitHub Pages demo
+│   └── omni-ai-logo.png        # OmniAI logo served in the demo
 ├── tests/
 │   ├── test_api.py             # FastAPI REST endpoint integration suites
-│   └── test_ocr.py             # RapidOCR vision verification tests
+│   ├── test_ocr.py             # RapidOCR vision verification tests
+│   └── test_ai_chat_suite.py   # OmniAI built-in knowledge engine test suite
 ├── requirements.txt            # Python package dependencies
 ├── run.bat                     # 1-Click Windows desktop launcher
 ├── run.sh                      # 1-Click Linux / macOS launcher

@@ -157,7 +157,8 @@
     @media(max-width:640px){.unit-layout{grid-template-columns:1fr}.unit-fields{grid-template-columns:1fr}}
 
     /* ─── Chatbot FAB ─────────────────────────────────────────────────────────── */
-    #chat-fab{position:fixed;bottom:1.75rem;right:1.75rem;z-index:50;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--brand-600),var(--violet-500));border:none;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.45);display:flex;align-items:center;justify-content:center;font-size:1.35rem;transition:transform .2s,box-shadow .2s}
+    #chat-fab{position:fixed;bottom:1.75rem;right:1.75rem;z-index:50;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--brand-600),var(--violet-500));border:none;cursor:pointer;box-shadow:0 4px 24px rgba(99,102,241,.5);display:flex;align-items:center;justify-content:center;padding:0;overflow:hidden;transition:transform .2s,box-shadow .2s}
+    #chat-fab img{width:100%;height:100%;object-fit:cover;border-radius:50%}
     #chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(99,102,241,.6)}
     #chat-panel{position:fixed;bottom:5.5rem;right:1.75rem;z-index:50;width:340px;max-height:480px;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:var(--radius-xl);box-shadow:var(--shadow-drop);display:none;flex-direction:column;overflow:hidden}
     #chat-panel.open{display:flex}
@@ -472,20 +473,20 @@
 </div>
 
 <!-- ─── AI Chatbot FAB ──────────────────────────────────────────────────────── -->
-<button id="chat-fab" onclick="toggleChat()" title="OmniAI Assistant" aria-label="Open AI Assistant">🤖</button>
+<button id="chat-fab" onclick="toggleChat()" title="OmniAI Supercopilot" aria-label="Open OmniAI Supercopilot"><img src="/static/omni-ai-logo.png" alt="OmniAI" /></button>
 <div id="chat-panel">
   <div class="chat-header">
     <div style="display:flex;align-items:center;gap:.6rem">
-      <span style="font-size:1.1rem">🤖</span>
+      <img src="/static/omni-ai-logo.png" alt="OmniAI" style="width:30px;height:30px;border-radius:50%;object-fit:cover" />
       <div>
-        <div style="font-size:.85rem;font-weight:600">OmniAI Assistant</div>
-        <div style="font-size:.7rem;color:var(--text-muted)">Ask me anything about OmniConverter</div>
+        <div style="font-size:.85rem;font-weight:600">OmniAI Supercopilot</div>
+        <div style="font-size:.7rem;color:var(--text-muted)">Your all-in-one AI — conversions, code, writing &amp; more</div>
       </div>
     </div>
     <button class="icon-btn" onclick="toggleChat()" aria-label="Close chat">✕</button>
   </div>
   <div class="chat-messages" id="chat-messages">
-    <div class="chat-msg bot">👋 Hi! I'm OmniAI. Ask me how to merge PDFs, convert files, use the watch folder, and more!</div>
+    <div class="chat-msg bot">👋 Hi! I'm <strong>OmniAI Supercopilot</strong>. I can help with PDF workflows, file conversions, FFmpeg commands, Python scripts, unit math, writing, and much more — ask me anything!</div>
   </div>
   <div class="chat-input-row">
     <input type="text" id="chat-input" placeholder="Ask anything…" onkeydown="if(event.key==='Enter')sendChat()" />
