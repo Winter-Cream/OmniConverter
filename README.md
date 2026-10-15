@@ -3,7 +3,7 @@
 <img src="assets/logo.png" alt="OmniConverter Logo" width="130" />
 
 # OmniConverter
-### High-Performance Universal Media Engine • Pro PDF Suite • On-Device AI OCR
+### Version 5 Pro Max — Universal Media Engine • Pro PDF Suite • OmniAI Supercopilot
 
 [![CI Build](https://img.shields.io/github/actions/workflow/status/Winter-Cream/OmniConverter/ci.yml?branch=main&label=CI%20Build&style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/Winter-Cream/OmniConverter/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge)](LICENSE)

@@ -1,5 +1,5 @@
 """
-OmniConverter PRO 4.2.0 - FastAPI Backend Server
+OmniConverter 5 Pro Max - FastAPI Backend Server
 Provides high-performance REST APIs for single & batch conversions, Watch Folder automation,
 statistics tracking, AI tool proxies, and serving the modern web frontend.
 """
@@ -65,9 +65,9 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 # ─── App ─────────────────────────────────────────────────────────────────────
 ENV = os.getenv("OMNI_ENV", "production")
 app = FastAPI(
-    title="OmniConverter PRO 4.2.0 Server",
+    title="OmniConverter 5 Pro Max Server",
     description="Python-powered backend conversion engine & automation daemon",
-    version="4.2.0",
+    version="5.0.0",
     docs_url="/docs" if ENV == "dev" else None,
     redoc_url="/redoc" if ENV == "dev" else None,
 )
@@ -1187,7 +1187,7 @@ if __name__ == "__main__":
         daemon.start()
 
     print("\n=======================================================")
-    print(f" OmniConverter PRO 4.2.0 Starting...")
+    print(f" OmniConverter 5 Pro Max Starting...")
     print(f" URL: {url}")
     print("=======================================================\n")
 
