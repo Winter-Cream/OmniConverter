@@ -17,6 +17,7 @@ import {
   ArrowRight 
 } from 'lucide-react';
 import { playSound } from '../utils/audio';
+import { translateUiCopy } from '../utils/translations';
 
 export default function CommandPaletteModal({ 
   isOpen, 
@@ -24,7 +25,8 @@ export default function CommandPaletteModal({
   onSelectTab, 
   onToggleTheme, 
   theme, 
-  sfx 
+  sfx,
+  lang = 'en'
 }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -49,9 +51,11 @@ export default function CommandPaletteModal({
   const filtered = useMemo(() => {
     return commands.filter(cmd => 
       cmd.name.toLowerCase().includes(query.toLowerCase()) || 
-      cmd.category.toLowerCase().includes(query.toLowerCase())
+      cmd.category.toLowerCase().includes(query.toLowerCase()) ||
+      translateUiCopy(cmd.name, lang).toLowerCase().includes(query.toLowerCase()) ||
+      translateUiCopy(cmd.category, lang).toLowerCase().includes(query.toLowerCase())
     );
-  }, [commands, query]);
+  }, [commands, query, lang]);
 
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   if (isOpen !== prevIsOpen) {

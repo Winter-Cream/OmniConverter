@@ -20,6 +20,7 @@ const LANGUAGES = [
   { code: 'ja', flag: '🇯🇵', name: '日本語' },
   { code: 'zh', flag: '🇨🇳', name: '中文' },
   { code: 'hi', flag: '🇮🇳', name: 'हिन्दी' },
+  { code: 'hi-Latn', flag: '🇮🇳', name: 'Hinglish' },
 ];
 
 export default function Header({

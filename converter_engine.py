@@ -630,6 +630,35 @@ class OmniConverterEngine:
     def compress_pdf(self, pdf_path: str, out_path: str, level: str = "medium", password: str = ""):
         if not HAS_PYPDF:
             raise RuntimeError("pypdf library is required for PDF Compress.")
+
+        # PyMuPDF can recompress and downsample the embedded images that make
+        # up most large/scanned PDFs. pypdf's stream compression alone often
+        # leaves those image bytes unchanged.
+        if HAS_PYMUPDF:
+            doc = pymupdf.open(pdf_path)
+            try:
+                if doc.needs_pass and (not password or doc.authenticate(password) <= 0):
+                    raise ValueError("PDF is password protected. Please provide the correct password.")
+
+                image_settings = {
+                    "low": (200, 80),
+                    "medium": (150, 60),
+                    "high": (96, 45),
+                }
+                dpi_target, quality = image_settings.get(level, image_settings["medium"])
+                doc.rewrite_images(dpi_target=dpi_target, quality=quality)
+                doc.save(
+                    out_path,
+                    garbage=4,
+                    deflate=True,
+                    deflate_images=True,
+                    deflate_fonts=True,
+                    use_objstms=1,
+                )
+                return
+            finally:
+                doc.close()
+
         reader = pypdf.PdfReader(pdf_path)
         self._handle_encrypted_reader(reader, password)
 

@@ -139,13 +139,21 @@ def validate_target_format(target_format: str):
     return fmt
 
 def guard_watch_path(raw: str) -> Path:
-    """Resolve path and ensure it stays inside BASE_DIR to prevent traversal."""
+    """Resolve a user-selected absolute local path for the watch daemon."""
+    value = (raw or "").strip()
+    if not value:
+        raise HTTPException(400, "Watch folder paths cannot be empty.")
     try:
-        resolved = Path(raw).resolve()
-    except Exception:
-        raise HTTPException(400, "Invalid path.")
-    if not str(resolved).startswith(str(BASE_DIR)):
-        raise HTTPException(400, "Watch folder path must be within the application directory.")
+        candidate = Path(value).expanduser()
+        if not candidate.is_absolute():
+            raise HTTPException(400, "Watch folder paths must be absolute paths.")
+        resolved = candidate.resolve()
+    except HTTPException:
+        raise
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise HTTPException(400, f"Invalid watch folder path: {exc}")
+    if resolved.exists() and not resolved.is_dir():
+        raise HTTPException(400, f"Watch folder path is not a directory: {resolved}")
     return resolved
 
 def find_available_port(start_port: int = 8500) -> int:
@@ -429,6 +437,15 @@ async def configure_watch_folder(
     safe_out = guard_watch_path(output_path)
     target_format = validate_target_format(target_format)
 
+    if enabled and safe_in == safe_out:
+        raise HTTPException(400, "Input and output folders must be different.")
+    if enabled:
+        try:
+            safe_in.mkdir(parents=True, exist_ok=True)
+            safe_out.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise HTTPException(400, f"Could not create the watch folders: {exc}")
+
     db = load_db()
     db["watchFolder"] = {
         "enabled": enabled,
@@ -693,68 +710,288 @@ class AIChatRequest(BaseModel):
     provider: str = "builtin"
     api_key: Optional[str] = None
     model: Optional[str] = None
+    endpoint: Optional[str] = None
+    mode: Optional[str] = "universal"
     history: Optional[List[Dict[str, str]]] = []
 
 
-def get_builtin_knowledge_reply(query: str) -> str:
+def get_builtin_knowledge_reply(query: str, mode: str = "universal") -> str:
     q = query.lower()
-    if any(k in q for k in ["merge", "combine"]):
+
+    # 1. SPECIFIC CODING, REGEX & SCRIPTING (Highest specificity)
+    if any(k in q for k in ["python", "script", "batch convert script", "pil", "pypdf", "pandas"]):
+        return (
+            "### 💻 Python Automation Recipes for File Tasks\n\n"
+            "Here is a production-ready Python script to batch convert images in a directory using `Pillow`:\n\n"
+            "```python\n"
+            "from PIL import Image\n"
+            "from pathlib import Path\n\n"
+            "def batch_convert_images(input_dir, output_dir, target_ext='webp', quality=85):\n"
+            "    in_path, out_path = Path(input_dir), Path(output_dir)\n"
+            "    out_path.mkdir(parents=True, exist_ok=True)\n"
+            "    \n"
+            "    for img_file in in_path.glob('*.*'):\n"
+            "        if img_file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.bmp', '.tiff']:\n"
+            "            with Image.open(img_file) as im:\n"
+            "                dest = out_path / f\"{img_file.stem}.{target_ext}\"\n"
+            "                im.save(dest, quality=quality, optimize=True)\n"
+            "                print(f\"Converted: {img_file.name} -> {dest.name}\")\n\n"
+            "# Usage\n"
+            "batch_convert_images('./input_photos', './output_webp', 'webp', quality=85)\n"
+            "```\n\n"
+            "*Need a script for PDFs, ffmpeg, or pandas? Just ask OmniAI for the exact code!*"
+        )
+    elif any(k in q for k in ["regex", "regular expression", "pattern"]):
+        return (
+            "### 🧩 Essential Regular Expression (Regex) Patterns\n\n"
+            "- **Email Address**:\n"
+            "  `^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$`\n"
+            "- **URL (HTTP/HTTPS)**:\n"
+            "  `https?:\\/\\/(?:www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)`\n"
+            "- **Phone Number (International)**:\n"
+            "  `^\\+?[1-9]\\d{1,14}$`\n"
+            "- **Date (YYYY-MM-DD)**:\n"
+            "  `^\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])$`\n"
+            "- **Slug / Filename Safe**:\n"
+            "  `^[a-z0-9]+(?:-[a-z0-9]+)*$`\n\n"
+            "*Want a custom regex for specific text or data extraction? Just provide sample input!*"
+        )
+    elif any(k in q for k in ["ffmpeg", "one-liner", "command recipe"]):
+        return (
+            "### 🎬 Top FFmpeg Terminal One-Liners\n\n"
+            "1. **Compress Video with High Quality (CRF 23)**:\n"
+            "   `ffmpeg -i input.mp4 -vcodec libx264 -crf 23 -preset slow output.mp4`\n\n"
+            "2. **Extract Audio (MP3 320kbps) from Video**:\n"
+            "   `ffmpeg -i video.mp4 -vn -acodec libmp3lame -b:a 320k audio.mp3`\n\n"
+            "3. **Cut/Trim Video without Re-encoding (Instant)**:\n"
+            "   `ffmpeg -ss 00:01:30 -to 00:03:45 -i input.mp4 -c copy output.mp4`\n\n"
+            "4. **Convert MP4 to WebM for Fast Web Loading**:\n"
+            "   `ffmpeg -i input.mp4 -c:v libvpx-vp9 -b:v 1500k -c:a libopus output.webm`\n\n"
+            "5. **Resize Video to 1080p (Keep Aspect Ratio)**:\n"
+            "   `ffmpeg -i input.mp4 -vf scale=1920:-2 -c:a copy output_1080p.mp4`"
+        )
+
+    # 2. TECHNICAL CALCULATIONS & UNITS
+    elif any(k in q for k in ["bitrate formula", "aspect ratio", "calculate", "formula", "calculator", "kib", "storage units", "gigabytes to megabytes", "temperature conversion"]):
+        return (
+            "### 🧮 Multi-Unit Converter & Technical Calculations\n\n"
+            "- **Data Storage Units**:\n"
+            "  - $1\\text{ KB} = 1,000\\text{ Bytes}$ (Decimal)\n"
+            "  - $1\\text{ KiB} = 1,024\\text{ Bytes}$ (Binary Kibibyte)\n"
+            "  - $1\\text{ GB} = 1,024\\text{ MB} = 1,048,576\\text{ KB}$\n\n"
+            "- **Video Bitrate to File Size Formula**:\n"
+            "  $$\\text{Size (MB)} = \\frac{\\text{Bitrate (kbps)} \\times \\text{Duration (seconds)}}{8 \\times 1024}$$\n"
+            "  *Example: A 10-minute video at 5,000 kbps = $\\approx 366\\text{ MB}$*.\n\n"
+            "- **Common Video Resolutions (16:9)**:\n"
+            "  - 4K UHD: `3840 x 2160`\n"
+            "  - 1440p QHD: `2560 x 1440`\n"
+            "  - 1080p FHD: `1920 x 1080`\n"
+            "  - 720p HD: `1280 x 720`\n\n"
+            "[ACTION:OPEN_UNITS|🧮 Open Interactive Unit Converter]"
+        )
+
+    # 3. VIDEO & MEDIA SPECIFICS
+    elif any(k in q for k in ["video", "mp4", "mkv", "webm", "avi", "mov", "codec", "h264", "hevc", "discord", "instagram", "tiktok"]):
+        return (
+            "### 🎥 Video Conversion & Encoding Guide\n\n"
+            "OmniConverter supports full hardware-accelerated video encoding for all major formats:\n"
+            "- **Formats Supported**: `MP4`, `MKV`, `WEBM`, `AVI`, `MOV`, `FLV`, `WMV`, `M4V`\n"
+            "- **Codecs**: H.264 (universal compatibility), H.265/HEVC (50% smaller files), VP9 / AV1 (web standard)\n\n"
+            "**Best Practices & Presets:**\n"
+            "- **Discord Upload (<25MB / <10MB)**: Convert to `MP4` with video quality `720p` or `480p`, audio bitrate `96k`.\n"
+            "- **Instagram Reels & TikTok**: Format `MP4`, aspect ratio `9:16` (1080x1920), 30 or 60 fps.\n"
+            "- **Web Embedding**: Convert to `WEBM` (VP9) for ultra-lightweight browser loading.\n"
+            "- **Strip Audio Track**: Toggle *Remove Audio* in conversion options to produce silent video.\n\n"
+            "[ACTION:OPEN_CONVERTER|🚀 Go to Video Converter]"
+        )
+    elif any(k in q for k in ["audio", "mp3", "wav", "flac", "aac", "m4a", "opus", "extract audio", "strip audio"]):
+        return (
+            "### 🎵 Audio Extraction & Conversion Guide\n\n"
+            "- **Extract Audio from Video**: Drop any `MP4`, `MKV`, or `MOV` file into OmniConverter and select `MP3`, `AAC`, or `WAV` as target format!\n"
+            "- **Bitrate Recommendations**:\n"
+            "  - `320 kbps`: Audiophile / Studio quality (highest fidelity for music)\n"
+            "  - `192 kbps`: Optimal balance for music & podcasts (high quality, half the size of 320k)\n"
+            "  - `128 kbps`: Ideal for voice recordings, lectures, and compact file storage\n"
+            "- **Lossless vs Lossy**:\n"
+            "  - Use `FLAC` or `WAV` for lossless archival\n"
+            "  - Use `MP3`, `M4A`, or `OPUS` for broad playback across mobile and car stereos\n\n"
+            "[ACTION:OPEN_CONVERTER|🎵 Go to Audio Converter]"
+        )
+
+    # 4. IMAGES & GRAPHICS
+    elif any(k in q for k in ["image", "png", "webp", "jpg", "jpeg", "svg", "ico", "favicon", "transparent"]):
+        return (
+            "### 🖼️ Image Conversion & Optimization\n\n"
+            "- **PNG $\\rightarrow$ WEBP**: Reduces file size by 30–70% while keeping full alpha transparency!\n"
+            "- **Favicon Creation**: Convert any image to `ICO` to generate website and desktop icons with multi-resolution support (16x16, 32x32, 48x48, 64x64).\n"
+            "- **Lossy vs Lossless Quality**: Use the Quality slider (e.g. 85%) for WebP/JPEG to cut size in half with zero noticeable difference.\n"
+            "- **Resize Dimensions**: Specify exact Width & Height in conversion options to batch scale graphics.\n\n"
+            "[ACTION:OPEN_CONVERTER|🖼️ Go to Image Converter]"
+        )
+
+    # 5. DATA FORMATS
+    elif any(k in q for k in ["data", "json", "csv", "yaml", "xml", "sql", "excel", "xlsx"]):
+        return (
+            "### 📊 Data & Structured Format Conversion\n\n"
+            "OmniConverter transforms structured data formats with schema preservation:\n"
+            "- **CSV $\\leftrightarrow$ JSON**: Convert flat tabular CSV into structured JSON arrays and vice versa.\n"
+            "- **JSON $\\leftrightarrow$ YAML**: Clean serialization for Kubernetes configs, GitHub Actions, and app settings.\n"
+            "- **XLSX $\\rightarrow$ CSV / PDF**: Fast spreadsheet extraction.\n"
+            "- **XML $\\rightarrow$ JSON**: Parse hierarchical tags into modern key-value dictionaries.\n\n"
+            "[ACTION:OPEN_CONVERTER|📊 Open Data Converter]"
+        )
+
+    # 6. PDF SUITE
+    elif any(k in q for k in ["merge", "combine"]):
         return (
             "### 📄 How to Merge PDFs in OmniConverter\n\n"
-            "1. Switch to the **PDF Suite** tab (or press `Ctrl + K` and select *Merge PDFs*).\n"
-            "2. Select or drag multiple PDF files into the **Merge PDFs** box.\n"
-            "3. Drag files up/down to arrange their merge order.\n"
-            "4. Click **Merge PDFs** — your unified PDF will download instantly!\n\n"
-            "*Tip: PDF merging runs 100% locally with zero uploads.*"
+            "1. Switch to the **PDF Suite** tab and select the **Merge PDFs** tool.\n"
+            "2. Drag & drop or select multiple PDF files.\n"
+            "3. Use the reorder buttons to arrange files in your desired page sequence.\n"
+            "4. Click **Merge PDFs** — your unified PDF is generated 100% locally with zero cloud uploads!\n\n"
+            "[ACTION:OPEN_MERGE|🚀 Open PDF Merge Tool]\n\n"
+            "*Tip: Merging is completely lossless and retains original bookmarks and hyperlinks.*"
         )
-    elif any(k in q for k in ["split", "extract"]):
+    elif any(k in q for k in ["split", "extract page"]):
         return (
             "### ✂️ How to Split & Extract PDF Pages\n\n"
-            "1. Go to the **PDF Suite** tab and find **Split & Extract Pages**.\n"
-            "2. Upload your PDF and choose your target extraction:\n"
-            "   - **Custom Range**: e.g., `1-3, 5, 8`\n"
-            "   - **Even / Odd Pages**: extracts only even or odd numbered pages.\n"
-            "3. Select **Mode**:\n"
-            "   - *Single Combined PDF*: combines selected pages into 1 document.\n"
-            "   - *ZIP Archive*: extracts each page into separate PDFs inside a `.zip` archive!\n"
-            "4. Click **Split PDF**."
+            "1. Open the **PDF Suite** tab and locate **Split & Extract Pages**.\n"
+            "2. Upload your PDF document and define your extraction mode:\n"
+            "   - **Custom Range**: e.g., `1-3, 5, 8-12` (comma-separated)\n"
+            "   - **Even / Odd Pages**: extracts only even or odd numbered pages\n"
+            "3. Choose your output mode:\n"
+            "   - *Single Combined PDF*: combines extracted pages into one clean document\n"
+            "   - *ZIP Archive*: saves each selected page into individual PDF files inside a `.zip` archive\n"
+            "4. Click **Split PDF** to download instantly.\n\n"
+            "[ACTION:OPEN_SPLIT|✂️ Open PDF Split Tool]"
         )
-    elif any(k in q for k in ["compress", "reduce size", "smaller"]):
+    elif any(k in q for k in ["compress", "reduce size", "smaller", "shrink"]):
         return (
             "### 🗜️ How to Compress PDFs & Reduce File Size\n\n"
-            "1. Open the **PDF Suite** tab and locate **Compress PDF Size**.\n"
-            "2. Select your compression preset:\n"
-            "   - **Low**: Minimal quality loss (15–30% size reduction)\n"
-            "   - **Medium (Recommended)**: Balanced optimization (40–60% reduction)\n"
-            "   - **High**: Maximum compression (up to 85–90% reduction)\n"
-            "3. Upload your PDF and click **Compress PDF**."
+            "1. Navigate to **PDF Suite** $\\rightarrow$ **Compress PDF Size**.\n"
+            "2. Select the optimal compression preset for your needs:\n"
+            "   - **Low**: Minimal quality loss, keeps high DPI (15–30% size reduction)\n"
+            "   - **Medium (Recommended)**: Balanced optimization for email & web (40–60% reduction)\n"
+            "   - **High**: Maximum compression for tight upload limits (up to 85–90% reduction)\n"
+            "3. Upload your PDF and click **Compress PDF**.\n\n"
+            "[ACTION:OPEN_COMPRESS|🗜️ Open PDF Compress Tool]\n\n"
+            "*Formula: OmniConverter strips unreferenced objects, flattens font streams, and compresses image assets.*"
         )
     elif any(k in q for k in ["protect", "encrypt", "password", "lock"]):
         return (
-            "### 🔒 How to Encrypt & Protect PDFs\n\n"
-            "1. Navigate to **PDF Suite** $\\rightarrow$ **Encrypt PDF Document**.\n"
-            "2. Upload your PDF and enter a secure password.\n"
-            "3. Click **Protect PDF** — your document is now secured with standard AES encryption."
+            "### 🔒 How to Encrypt & Password-Protect PDFs\n\n"
+            "1. Go to **PDF Suite** $\\rightarrow$ **Encrypt PDF Document**.\n"
+            "2. Upload the document you wish to secure.\n"
+            "3. Enter a strong password.\n"
+            "4. Click **Protect PDF** — secured instantly with standard AES encryption.\n\n"
+            "[ACTION:OPEN_PROTECT|🔒 Open PDF Encryption Tool]"
         )
     elif any(k in q for k in ["unlock", "decrypt", "remove password"]):
         return (
-            "### 🔓 How to Decrypt / Unlock Password-Protected PDFs\n\n"
-            "1. Go to **PDF Suite** $\\rightarrow$ **Decrypt Password-Protected PDF**.\n"
-            "2. Upload the locked document and type the current password.\n"
-            "3. Click **Unlock PDF** to strip the password restrictions."
+            "### 🔓 How to Decrypt / Remove Password from PDFs\n\n"
+            "1. Switch to **PDF Suite** $\\rightarrow$ **Decrypt Password-Protected PDF**.\n"
+            "2. Upload your locked PDF file.\n"
+            "3. Type the existing password to authorize decryption.\n"
+            "4. Click **Unlock PDF** to strip the password lock and export a clean document.\n\n"
+            "[ACTION:OPEN_UNLOCK|🔓 Open PDF Decrypt Tool]"
         )
-    elif any(k in q for k in ["watch", "folder", "daemon", "automate"]):
+    elif any(k in q for k in ["rotate", "turn page", "orientation"]):
         return (
-            "### ⚡ How Watch Folder Automation Works\n\n"
-            "OmniConverter includes a background automation daemon that converts files the moment you drop them in a folder!\n\n"
-            "1. In the **File Converter** tab, expand the **Watch Folder Automation** panel.\n"
-            "2. Specify your **Input Folder** (e.g. `C:\\OmniWatch\\Input`) and **Output Folder**.\n"
-            "3. Choose your default target format (e.g., `PDF`, `PNG`, `MP3`).\n"
-            "4. Or run via terminal:\n"
-            "   ```bash\n"
-            "   python watch_daemon.py --input ./watch_input --output ./watch_output --target pdf\n"
-            "   ```"
+            "### 🔄 How to Rotate PDF Pages\n\n"
+            "1. Go to **PDF Suite** $\\rightarrow$ **Rotate PDF Pages**.\n"
+            "2. Upload your PDF and choose rotation angle: **90° Clockwise**, **180° Inverted**, or **270° Counter-Clockwise**.\n"
+            "3. Choose target pages: `all`, `even`, `odd`, or a custom range (e.g. `2, 4-6`).\n"
+            "4. Click **Rotate PDF**.\n\n"
+            "[ACTION:OPEN_ROTATE|🔄 Open PDF Rotate Tool]"
         )
+    elif any(k in q for k in ["ocr", "scan", "text recognition", "tesseract", "extract text"]):
+        return (
+            "### 🔍 OCR Studio & Text Recognition\n\n"
+            "OmniConverter includes a built-in OCR (Optical Character Recognition) engine that extracts editable text from images and scanned PDFs:\n\n"
+            "1. In **PDF Suite**, scroll to **OCR Text Recognition**.\n"
+            "2. Upload any scanned PDF or image (`PNG`, `JPG`, `TIFF`, `WEBP`).\n"
+            "3. View extracted text live with page breakdown, confidence scores, and download as `.txt`!\n\n"
+            "[ACTION:OPEN_OCR|🔍 Open OCR Studio]"
+        )
+
+    # 7. WATCH FOLDER AUTOMATION
+    elif any(k in q for k in ["watch", "folder", "daemon", "automate", "background"]):
+        return (
+            "### ⚡ Watch Folder Background Automation\n\n"
+            "OmniConverter can continuously monitor a local folder on your computer and automatically convert new incoming files:\n\n"
+            "1. In the **File Converter** tab, expand the **Watch Folder Automation** card.\n"
+            "2. Set **Input Folder** (e.g., `C:\\Users\\User\\Downloads\\Incoming`).\n"
+            "3. Set **Output Folder** and default **Target Format** (e.g., `PDF`, `PNG`, `MP3`).\n"
+            "4. Click **Save & Enable Daemon**.\n\n"
+            "**Terminal Command Line Usage:**\n"
+            "```bash\n"
+            "python watch_daemon.py --input C:\\OmniWatch\\In --output C:\\OmniWatch\\Out --target pdf\n"
+            "```\n\n"
+            "[ACTION:OPEN_WATCH|⚡ Open Watch Folder Setup]"
+        )
+
+    # 8. GENERAL WRITING & TRANSLATION
+    elif any(k in q for k in ["write", "email", "draft", "summarize", "proofread", "letter"]):
+        return (
+            "### ✍️ Writing & Editing Assistant\n\n"
+            "OmniAI can help you draft, polish, and restructure documents:\n"
+            "- **Professional Email Templates**: Business inquiries, follow-ups, project proposals, bug reports\n"
+            "- **Summarization**: Turn long reports or PDF contents into clean executive bullet points\n"
+            "- **Tone Adjustment**: Shift text between *Formal*, *Concise*, *Persuasive*, or *Technical*\n\n"
+            "*Paste any text here and tell me what you want to change (e.g., 'Make this email more concise' or 'Summarize this in 3 bullets')!*"
+        )
+    elif any(k in q for k in ["translate", "translation", "spanish", "french", "german", "hindi", "japanese", "chinese"]):
+        return (
+            "### 🌐 Multilingual Translation Assistant\n\n"
+            "OmniAI translates text across 20+ languages including English, Spanish, French, German, Italian, Portuguese, Japanese, Chinese, and Hindi.\n\n"
+            "**Quick Language Example (Greetings & File Terms):**\n"
+            "| English | Spanish | French | German | Hindi |\n"
+            "|---|---|---|---|---|\n"
+            "| File Converter | Convertidor de Archivos | Convertisseur de Fichiers | Datei-Konverter | फ़ाइल कनवर्टर |\n"
+            "| Merge PDFs | Unir PDFs | Fusionner les PDF | PDFs zusammenführen | पीडीएफ मर्ज करें |\n"
+            "| Compress | Comprimir | Compresser | Komprimieren | संपीड़ित करें |\n\n"
+            "*Simply type: `Translate this to [Language]: [your text]` and OmniAI will handle it!*"
+        )
+
+    # 9. GENERAL UNIT TAB
+    elif any(k in q for k in ["unit", "conversion", "units"]):
+        return (
+            "### 🧮 Multi-Unit Converter & Technical Calculations\n\n"
+            "Switch to the **Unit Converter** tab to convert over **100+ units across 10 categories**:\n"
+            "- *Data Storage, Length, Weight & Mass, Speed, Temperature, Area, Volume, Time, Energy, Pressure*.\n"
+            "Values update bidirectionally in real-time as you type!\n\n"
+            "[ACTION:OPEN_UNITS|🧮 Open Interactive Unit Converter]"
+        )
+
+    # 10. SHORTCUTS & NAVIGATION
+    elif any(k in q for k in ["shortcut", "hotkey", "command", "ctrl+k", "spotlight"]):
+        return (
+            "### ⌨️ Desktop Keyboard Shortcuts\n\n"
+            "- **`Ctrl + K` / `Cmd + K`**: Opens the **Spotlight Command Palette** for instant tool search.\n"
+            "- **`Alt + A`**: Toggles the **OmniAI Assistant** window.\n"
+            "- **`Esc`**: Closes active modals, search panels, and the chat window.\n"
+            "- **`Enter`**: Executes conversion jobs or sends AI messages.\n\n"
+            "[ACTION:OPEN_SPOTLIGHT|🔍 Open Spotlight Palette]"
+        )
+
+    # 11. API KEYS & PROVIDERS
+    elif any(k in q for k in ["api", "key", "gemini", "openai", "grok", "claude", "ollama", "settings"]):
+        return (
+            "### ⚙️ How to Connect AI Providers in OmniAI\n\n"
+            "OmniAI supports both **Zero-Configuration Built-in AI** and direct connections to frontier models:\n\n"
+            "1. Click the **Gear icon (⚙️)** in the top right of this chat window.\n"
+            "2. Select your desired AI provider:\n"
+            "   - **⚡ Built-in Engine**: Works instantly offline and online with zero setup!\n"
+            "   - **🦙 Ollama (100% Local & Private)**: Connects to your local Ollama server (`http://localhost:11434`) for Llama 3, DeepSeek, or Mistral.\n"
+            "   - **🌟 Google Gemini**: Gemini 2.0 Flash / 1.5 Flash.\n"
+            "   - **🤖 OpenAI**: GPT-4o / GPT-4o-mini.\n"
+            "   - **🧠 Anthropic Claude**: Claude 3.5 Sonnet.\n"
+            "   - **⚡ xAI Grok**: Grok-2.\n"
+            "   - **🌐 Custom / OpenRouter**: Any OpenAI-compatible endpoint.\n"
+            "3. Paste your API key (if required) and click **Save Configuration**."
+        )
+
+    # 12. SUPPORTED FORMATS LIST
     elif any(k in q for k in ["format", "supported", "extension", "type"]):
         return (
             "### 📑 Supported File Formats (50+ Types)\n\n"
@@ -762,71 +999,77 @@ def get_builtin_knowledge_reply(query: str) -> str:
             "- **🖼️ Images**: `PNG`, `JPG`, `WEBP`, `GIF`, `BMP`, `TIFF`, `SVG`, `ICO`\n"
             "- **🎵 Audio**: `MP3`, `WAV`, `AAC`, `OGG`, `FLAC`, `M4A`, `OPUS`\n"
             "- **🎥 Video**: `MP4`, `AVI`, `MKV`, `MOV`, `WEBM`, `FLV`\n"
-            "- **📊 Data & Code**: `CSV`, `JSON`, `XML`, `YAML`, `TSV`, `SQL`"
+            "- **📊 Data & Code**: `CSV`, `JSON`, `XML`, `YAML`, `TSV`, `SQL`\n\n"
+            "[ACTION:OPEN_CONVERTER|🚀 Go to File Converter]"
         )
-    elif any(k in q for k in ["shortcut", "hotkey", "command", "ctrl+k", "spotlight"]):
-        return (
-            "### ⌨️ Keyboard Shortcuts\n\n"
-            "- **`Ctrl + K` / `Cmd + K`**: Opens the **Spotlight Command Palette** for instant tool search.\n"
-            "- **`Esc`**: Closes modals, popups, and the AI Assistant.\n"
-            "- **`Enter`**: Submits conversion jobs or sends AI messages."
-        )
-    elif any(k in q for k in ["unit", "conversion", "science", "calculate", "temperature", "weight", "length"]):
-        return (
-            "### 🧮 Multi-Unit Converter Engine\n\n"
-            "Switch to the **Unit Converter** tab to convert over **100+ units across 10 categories**:\n"
-            "- *Data Storage, Length, Weight & Mass, Speed, Temperature, Area, Volume, Time, Energy, Pressure*.\n"
-            "Values update bidirectionally in real-time as you type!"
-        )
-    elif any(k in q for k in ["api", "key", "gemini", "openai", "grok", "claude", "settings"]):
-        return (
-            "### ⚙️ How to Connect Gemini, OpenAI, or Grok API Keys\n\n"
-            "1. Click the **Gear icon (⚙️)** in the top right of this chat window.\n"
-            "2. Select your AI Provider (**Google Gemini**, **OpenAI**, **xAI Grok**, or **Claude**).\n"
-            "3. Paste your API Key and click **Save & Connect**.\n"
-            "4. Your key is stored securely and locally in your browser session!"
-        )
+
+    # 13. GENERAL CONVERSATIONAL / GREETING FALLBACK
     else:
         return (
-            f"### 🤖 OmniAI Assistant\n\n"
-            f"I can help you with anything in **OmniConverter**! Here are some things you can ask me:\n\n"
-            f"- *\"How do I merge multiple PDFs?\"*\n"
-            f"- *\"How do I split a PDF into separate files inside a ZIP?\"*\n"
-            f"- *\"How to compress a PDF by 80%?\"*\n"
-            f"- *\"How do I configure the Watch Folder background daemon?\"*\n"
-            f"- *\"What video and audio formats can I convert?\"*\n"
-            f"- *\"How to configure Google Gemini, OpenAI, or Grok API keys?\"*\n\n"
-            f"Feel free to ask or click the gear ⚙️ to connect your favorite AI model!"
+            "### 🌟 OmniAI Universal Copilot\n\n"
+            "I am **OmniAI**, your universal intelligent assistant. I can help you with anything across your workflow:\n\n"
+            "- **📄 PDF Suite**: Merge, split, compress, password-protect, rotate, or OCR extract\n"
+            "- **🎥 Media Conversion**: Compress video, extract audio, convert formats, match bitrates\n"
+            "- **💻 Coding & Terminal**: Python batch scripts, FFmpeg recipes, shell scripts, regex generator\n"
+            "- **✍️ Writing & Translation**: Polish emails, summarize documents, translate text in 20+ languages\n"
+            "- **🧮 Calculations**: Unit conversions, file size calculators, video bitrate math\n"
+            "- **⚡ Automation**: Background Watch Folder setup and daemon scripts\n\n"
+            "*Ask any question or click a quick action below to get started!*"
         )
 
 
 @app.post("/api/ai/chat")
-@limiter.limit("20/minute")
+@limiter.limit("30/minute")
 async def api_ai_chat(req: AIChatRequest, request: Request):
     provider = (req.provider or "builtin").lower()
     system_prompt = (
-        "You are OmniAI, the expert AI assistant for OmniConverter (Universal File Converter & PDF Suite). "
-        "Help the user efficiently with file conversions (PDF, Video, Audio, Image, Data), Watch Folder daemon, "
-        "PDF operations (Merge, Split, Compress, Protect, Unlock, Rotate), and Unit conversions. "
-        "Format responses cleanly with markdown and bullet points."
+        "You are OmniAI, the supreme universal AI copilot built into OmniConverter. "
+        "You help users with everything: file conversions (PDF, Video, Audio, Image, Data), "
+        "programming & scripting (Python, JavaScript, Bash, SQL, Regex, FFmpeg), "
+        "writing, summarization, multilingual translation, mathematics, technical troubleshooting, "
+        "and general problem solving. "
+        "Always provide structured, clear, and proactive answers with markdown and code snippets where helpful."
     )
 
+    # BUILT-IN INTELLIGENCE (Instant & Offline)
     if provider == "builtin" or not req.api_key:
-        reply = get_builtin_knowledge_reply(req.message)
-        return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v4"}
+        # If user explicitly configured Ollama with no key needed
+        if provider == "ollama":
+            pass  # handled in Ollama block below
+        else:
+            # Check if query matches our extensive knowledge base
+            reply = get_builtin_knowledge_reply(req.message, req.mode or "universal")
+            return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v5"}
 
     try:
+        # LOCAL OLLAMA (100% Private & Offline)
+        if provider == "ollama":
+            model = req.model or "llama3.2"
+            base_url = (req.endpoint or "http://localhost:11434").rstrip("/")
+            url = f"{base_url}/api/chat"
+            messages = [{"role": "system", "content": system_prompt}]
+            if req.history:
+                for h in req.history[-4:]:
+                    messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
+            messages.append({"role": "user", "content": req.message})
+
+            payload = {"model": model, "messages": messages, "stream": False}
+            data = json.dumps(payload).encode("utf-8")
+            h_req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(h_req, timeout=45) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                reply = res_data.get("message", {}).get("content", "No response from Ollama.")
+                return {"reply": reply, "provider": "ollama", "model": model}
+
         # GOOGLE GEMINI
-        if provider == "gemini":
-            model = req.model or "gemini-1.5-flash"
+        elif provider == "gemini":
+            model = req.model or "gemini-2.0-flash"
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={req.api_key}"
-            
             prompt_text = f"{system_prompt}\n\nUser Question: {req.message}"
             payload = {
                 "contents": [{"parts": [{"text": prompt_text}]}],
-                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1024}
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 2048}
             }
-            
             data = json.dumps(payload).encode("utf-8")
             h_req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
             with urllib.request.urlopen(h_req, timeout=30) as resp:
@@ -859,6 +1102,28 @@ async def api_ai_chat(req: AIChatRequest, request: Request):
                 reply = res_data["choices"][0]["message"]["content"]
                 return {"reply": reply, "provider": "openai", "model": model}
 
+        # ANTHROPIC CLAUDE
+        elif provider == "claude":
+            model = req.model or "claude-3-5-sonnet-20241022"
+            url = "https://api.anthropic.com/v1/messages"
+            payload = {
+                "model": model,
+                "max_tokens": 2048,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": req.message}]
+            }
+            data = json.dumps(payload).encode("utf-8")
+            h_req = urllib.request.Request(url, data=data, headers={
+                "Content-Type": "application/json",
+                "x-api-key": req.api_key,
+                "anthropic-version": "2023-06-01"
+            })
+            with urllib.request.urlopen(h_req, timeout=30) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                content = res_data.get("content", [])
+                reply = "".join(c.get("text", "") for c in content if c.get("type") == "text")
+                return {"reply": reply, "provider": "claude", "model": model}
+
         # xAI GROK
         elif provider == "grok":
             model = req.model or "grok-2-latest"
@@ -878,37 +1143,36 @@ async def api_ai_chat(req: AIChatRequest, request: Request):
                 reply = res_data["choices"][0]["message"]["content"]
                 return {"reply": reply, "provider": "grok", "model": model}
 
-        # ANTHROPIC CLAUDE
-        elif provider == "claude":
-            model = req.model or "claude-3-5-sonnet-20241022"
-            url = "https://api.anthropic.com/v1/messages"
-            payload = {
-                "model": model,
-                "max_tokens": 1024,
-                "system": system_prompt,
-                "messages": [{"role": "user", "content": req.message}]
-            }
+        # CUSTOM / OPENROUTER (OpenAI-compatible)
+        elif provider in ["custom", "openrouter"]:
+            model = req.model or "meta-llama/llama-3.3-70b-instruct"
+            url = req.endpoint or "https://openrouter.ai/api/v1/chat/completions"
+            messages = [{"role": "system", "content": system_prompt}]
+            if req.history:
+                for h in req.history[-4:]:
+                    messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
+            messages.append({"role": "user", "content": req.message})
+
+            payload = {"model": model, "messages": messages, "temperature": 0.7}
             data = json.dumps(payload).encode("utf-8")
             h_req = urllib.request.Request(url, data=data, headers={
                 "Content-Type": "application/json",
-                "x-api-key": req.api_key,
-                "anthropic-version": "2023-06-01"
+                "Authorization": f"Bearer {req.api_key}"
             })
             with urllib.request.urlopen(h_req, timeout=30) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
-                content = res_data.get("content", [])
-                reply = "".join(c.get("text", "") for c in content if c.get("type") == "text")
-                return {"reply": reply, "provider": "claude", "model": model}
+                reply = res_data["choices"][0]["message"]["content"]
+                return {"reply": reply, "provider": provider, "model": model}
 
         else:
-            reply = get_builtin_knowledge_reply(req.message)
-            return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v4"}
+            reply = get_builtin_knowledge_reply(req.message, req.mode or "universal")
+            return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v5"}
 
     except urllib.error.HTTPError as he:
-        # Do NOT expose raw error body — may contain key info
-        return {"reply": f"⚠️ **API Request Error ({he.code})**: Check your API key and try again.\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
-    except Exception:
-        return {"reply": "⚠️ **Connection Error**: Could not reach the AI provider. Check your key and network.\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
+        return {"reply": f"⚠️ **API Request Error ({he.code})**: Check your API key, endpoint, and try again.\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
+    except Exception as e:
+        return {"reply": f"⚠️ **Connection Notice**: Could not reach external provider ({e}). Falling back to OmniKnowledge:\n\n" + get_builtin_knowledge_reply(req.message), "provider": "builtin", "error": True}
+
 
 
 if __name__ == "__main__":

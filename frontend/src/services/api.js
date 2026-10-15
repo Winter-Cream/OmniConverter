@@ -226,11 +226,11 @@ export async function runOcrDocument(file, pageRange = 'all', forceOcr = false, 
 }
 
 // AI Assistant
-export async function sendAIChat(message, provider = 'builtin', apiKey = '', model = '', history = []) {
+export async function sendAIChat(message, provider = 'builtin', apiKey = '', model = '', history = [], endpoint = '', mode = 'universal') {
   const res = await fetch(`${API_BASE}/api/ai/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, provider, api_key: apiKey, model, history })
+    body: JSON.stringify({ message, provider, api_key: apiKey, model, history, endpoint, mode })
   });
 
   if (!res.ok) {
@@ -269,7 +269,10 @@ export async function updateWatchFolderConfig(enabled, path, outputPath, targetF
     body: formData
   });
 
-  if (!res.ok) throw new Error('Failed to update Watch Folder daemon config');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(errorData.detail || 'Failed to update Watch Folder daemon config');
+  }
   return await res.json();
 }
 

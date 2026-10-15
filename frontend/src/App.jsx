@@ -13,6 +13,7 @@ import CommandPaletteModal from './components/CommandPaletteModal';
 import AiChatbot from './components/AiChatbot';
 
 import { checkHealth, fetchFormats, fetchStats } from './services/api';
+import { observeUiLocale } from './utils/translations';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('converter');
@@ -93,6 +94,8 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('omni_lang', lang);
   }, [lang]);
+
+  useEffect(() => observeUiLocale(document.getElementById('root'), lang), [lang]);
 
   useEffect(() => {
     localStorage.setItem('omni_sfx', sfx.toString());
@@ -217,19 +220,34 @@ export default function App() {
               stats={stats}
               refreshStats={loadData}
               sfx={sfx}
+              lang={lang}
             />
           )}
 
           {activeTab === 'achievements' && (
             <AchievementsTab 
               stats={stats}
+              lang={lang}
             />
           )}
         </main>
       </div>
 
       {/* Floating OmniAI Assistant Chatbot */}
-      <AiChatbot sfx={sfx} />
+      <AiChatbot 
+        sfx={sfx} 
+        lang={lang} 
+        onNavigate={(tab, sectionId) => {
+          setActiveTab(tab);
+          if (sectionId) {
+            setTimeout(() => {
+              const el = document.getElementById(sectionId);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+          }
+        }}
+        onOpenSpotlight={() => setSpotlightOpen(true)}
+      />
 
       {/* Spotlight Command Palette Modal (Ctrl + K) */}
       <CommandPaletteModal 
@@ -239,6 +257,7 @@ export default function App() {
         onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
         theme={theme}
         sfx={sfx}
+        lang={lang}
       />
 
       {/* OCR Inspector Modal */}

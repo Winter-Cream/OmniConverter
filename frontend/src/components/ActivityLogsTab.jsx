@@ -11,8 +11,9 @@ import {
 } from 'lucide-react';
 import { clearServerHistory, deleteServerHistoryItem, resetServerStats } from '../services/api';
 import { playSound } from '../utils/audio';
+import { translateUiCopy } from '../utils/translations';
 
-export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
+export default function ActivityLogsTab({ stats, refreshStats, sfx, lang = 'en' }) {
   const [searchTerm, setSearchTerm] = useState('');
   const history = stats?.history || [];
 
@@ -26,7 +27,7 @@ export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
   });
 
   const handleClearHistory = async () => {
-    if (!window.confirm('Clear all conversion activity logs?')) return;
+    if (!window.confirm(translateUiCopy('Clear all conversion activity logs?', lang))) return;
     playSound('click', sfx);
     await clearServerHistory();
     if (refreshStats) refreshStats();
@@ -39,7 +40,7 @@ export default function ActivityLogsTab({ stats, refreshStats, sfx }) {
   };
 
   const handleResetStats = async () => {
-    if (!window.confirm('Reset all lifetime conversion counts and stats to zero?')) return;
+    if (!window.confirm(translateUiCopy('Reset all lifetime conversion counts and stats to zero?', lang))) return;
     playSound('click', sfx);
     await resetServerStats();
     if (refreshStats) refreshStats();

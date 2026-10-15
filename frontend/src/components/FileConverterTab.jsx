@@ -22,7 +22,7 @@ import {
   Archive
 } from 'lucide-react';
 import { convertSingleFile, convertBatchFiles, updateWatchFolderConfig } from '../services/api';
-import { t } from '../utils/translations';
+import { t, translateUiCopy } from '../utils/translations';
 import { playSound } from '../utils/audio';
 import CustomSelect from './CustomSelect';
 import FileOptionsModal from './FileOptionsModal';
@@ -260,7 +260,7 @@ export default function FileConverterTab({
       playSound('success', sfx);
       if (refreshStats) refreshStats();
     } catch (err) {
-      alert(`Batch ZIP failed: ${err.message}`);
+      alert(translateUiCopy(`Batch ZIP failed: ${err.message}`, lang));
       playSound('error', sfx);
     } finally {
       setIsBatchZipLoading(false);
