@@ -107,7 +107,7 @@ export default function Header({
               OmniConverter
             </span>
             <span className="badge badge-brand font-mono" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', lineHeight: 1 }}>
-              v4.1 PRO
+              v5 Pro Max
             </span>
           </div>
         </div>
