@@ -31,16 +31,29 @@ Use the browser queue for single or batch conversions, inspect available output 
 
 > Conversion files stay on the machine running the OmniConverter server. If you connect OmniAI to a cloud provider, prompts sent to that provider leave your machine. Provider credentials are stored in browser local storage.
 
-## Demo
+## Screenshots
 
-<div align="center">
-  <table>
-    <tr><td align="center" width="760">
-      <strong>OmniConverter in action</strong><br><br>
-      🎬 Demo recording coming soon — replace this panel with <code>docs/demo.gif</code> when available.
-    </td></tr>
-  </table>
-</div>
+OmniConverter includes light and dark themes. The screenshots below show the main workspace in both appearances.
+
+| File converter · Light | File converter · Dark |
+| --- | --- |
+| ![File Converter in light theme](docs/screenshots/file-converter-light.png) | ![File Converter in dark theme](docs/screenshots/file-converter-dark.png) |
+
+| PDF suite · Light | PDF suite · Dark |
+| --- | --- |
+| ![PDF Suite in light theme](docs/screenshots/pdf-suite-light.png) | ![PDF Suite in dark theme](docs/screenshots/pdf-suite-dark.png) |
+
+| Unit converter · Light | Unit converter · Dark |
+| --- | --- |
+| ![Unit Converter in light theme](docs/screenshots/unit-converter-light.png) | ![Unit Converter in dark theme](docs/screenshots/unit-converter-dark.png) |
+
+| Activity logs · Light | Activity logs · Dark |
+| --- | --- |
+| ![Activity Logs in light theme](docs/screenshots/activity-logs-light.png) | ![Activity Logs in dark theme](docs/screenshots/activity-logs-dark.png) |
+
+| Achievements · Light | Achievements · Dark |
+| --- | --- |
+| ![Achievements in light theme](docs/screenshots/achievements-light.png) | ![Achievements in dark theme](docs/screenshots/achievements-dark.png) |
 
 ## Features
 
