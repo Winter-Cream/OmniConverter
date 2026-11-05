@@ -1,66 +1,100 @@
-# OmniConverter
-
-<p align="center">
+<div align="center">
   <img src="assets/logo.png" alt="OmniConverter logo" width="150" />
-</p>
+  <h1>OmniConverter</h1>
+  <p><strong>Convert files, work with PDFs, and use AI tools from one self-hosted workspace.</strong></p>
+  <p>
+    <a href="https://github.com/Winter-Cream/OmniConverter/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Winter-Cream/OmniConverter?style=flat-square" alt="License"></a>
+    <a href="https://github.com/Winter-Cream/OmniConverter/stargazers"><img src="https://img.shields.io/github/stars/Winter-Cream/OmniConverter?style=flat-square" alt="GitHub stars"></a>
+    <a href="https://github.com/Winter-Cream/OmniConverter/commits/main"><img src="https://img.shields.io/github/last-commit/Winter-Cream/OmniConverter?style=flat-square" alt="Last commit"></a>
+    <a href="https://github.com/Winter-Cream/OmniConverter/issues"><img src="https://img.shields.io/github/issues/Winter-Cream/OmniConverter?style=flat-square" alt="Open issues"></a>
+    <img src="https://img.shields.io/badge/Python-FastAPI-009688?style=flat-square" alt="Python and FastAPI">
+    <img src="https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=flat-square" alt="React and Vite">
+  </p>
+  <p>
+    <a href="#get-started">Get started</a> ·
+    <a href="#supported-formats">Supported formats</a> ·
+    <a href="#api-quick-example">API</a> ·
+    <a href="https://github.com/Winter-Cream/OmniConverter/issues">Report an issue</a>
+  </p>
+</div>
 
-OmniConverter is a local-first file conversion app with a React interface and a Python/FastAPI backend. It converts files across 47 supported input extensions, includes common PDF tools, and can watch a folder for new files to convert.
+---
 
-File conversion runs on the machine hosting OmniConverter. OmniAI can use its built-in knowledge mode or a configured local or cloud model; cloud providers receive the prompts sent to them.
+## See it in action
 
-[![CI](https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Winter-Cream/OmniConverter/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+<div align="center">
+  <table>
+    <tr><td align="center" width="800">
+      <strong>Product demo</strong><br><br>
+      🎬 A screen-recording demo is coming soon.<br>
+      Replace this panel with <code>docs/demo.gif</code> when a demo is ready.
+    </td></tr>
+  </table>
+</div>
+
+## Why OmniConverter?
+
+- ⚡ **One place for everyday file work** — convert supported files, handle PDFs, and batch-process files through one interface.
+- 🔒 **Run it on your own machine** — file conversion is handled by the local OmniConverter server; no conversion service account is required.
+- 🧭 **A practical web interface** — the React app presents format choices and tools without requiring command-line use.
+- 🔁 **Automate repeat work** — configure a watch folder to convert incoming files into a separate output folder.
+- 🤖 **Choose how OmniAI runs** — use built-in answers, a local Ollama model, or configure a supported cloud/API provider.
+
+> OmniAI cloud providers receive the prompts sent to them. Provider API keys are stored in the browser's local storage. Use Built-in or Ollama for local prompt handling.
 
 ## Features
 
-- **File conversion:** Documents, images, audio, video, spreadsheets, structured data, and code files. Available targets depend on the input format; the app shows the supported choices for each file.
-- **Batch conversion:** Convert a group of files to one target format and download the outputs in a ZIP archive.
-- **PDF tools:** Merge, split, compress, protect, unlock, rotate, and extract text from PDFs.
-- **OCR:** Extract text from PDFs and supported image files using the installed OCR engine.
-- **Watch folder:** Monitor an input directory and save converted files to an output directory. Successfully converted source files are removed from the input folder. Keep the output folder separate from the input folder.
-- **Unit converter:** Convert values across common measurement categories.
-- **OmniAI:** Use built-in answers, a local Ollama model, or configured OpenAI, Gemini, Anthropic, xAI, and OpenAI-compatible APIs.
+- Convert individual files or batches and download batch output as a ZIP archive.
+- Merge, split, compress, protect, unlock, rotate, and extract/OCR text from PDFs.
+- Extract text from supported PDFs and images using the installed OCR engine.
+- Convert common measurement units.
+- Monitor a configured input folder and move successful conversions to an output folder. Successfully converted source files are removed from the input folder; keep the output folder separate from the input folder.
+- Ask OmniAI for built-in help or connect Ollama, OpenAI, Gemini, Anthropic, xAI, or a custom OpenAI-compatible chat API.
 
 ## Supported formats
 
-The converter advertises these **47 input extensions**. Not every input can convert to every output; the `/api/formats` endpoint and the UI list valid targets per input.
+OmniConverter currently advertises **47 input extensions**. Valid output choices depend on the selected input; the app and `/api/formats` endpoint provide the available targets.
 
-| Category | Inputs |
+| Type | Supported input extensions |
 | --- | --- |
-| Documents | PDF, DOCX, TXT, HTML, HTM, MD |
-| Presentations | PPTX |
-| Images | PNG, JPG, JPEG, WEBP, GIF, BMP, TIFF, ICO, SVG |
-| Audio* | MP3, WAV, OGG, FLAC, AAC, M4A, OPUS |
-| Video* | MP4, WEBM, MKV, AVI, MOV, FLV, WMV, M4V |
-| Data and spreadsheets | CSV, TSV, XLSX, JSON, XML, YAML, YML |
-| Code and text | PY, JS, TS, SQL, JAVA, C, CPP, RS, GO |
+| Documents | `.pdf`, `.docx`, `.txt`, `.html`, `.htm`, `.md` |
+| Presentations | `.pptx` |
+| Images | `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.bmp`, `.tiff`, `.ico`, `.svg` |
+| Audio* | `.mp3`, `.wav`, `.ogg`, `.flac`, `.aac`, `.m4a`, `.opus` |
+| Video* | `.mp4`, `.webm`, `.mkv`, `.avi`, `.mov`, `.flv`, `.wmv`, `.m4v` |
+| Data and spreadsheets | `.csv`, `.tsv`, `.xlsx`, `.json`, `.xml`, `.yaml`, `.yml` |
+| Code and text | `.py`, `.js`, `.ts`, `.sql`, `.java`, `.c`, `.cpp`, `.rs`, `.go` |
 
-**Known format limitations:** Legacy Excel `.xls` files are not supported. Spreadsheet exports to a single-table format use the first worksheet. PPTX-to-PDF conversion preserves extracted slide content, but its layout may differ from the original presentation.
+**Format notes:** Legacy Excel `.xls` is not supported. Spreadsheet conversions to a single-table output use the first worksheet. PPTX-to-PDF conversion reconstructs slide content and may not preserve the original layout.
 
-\* Audio and video conversions require FFmpeg installed and available on `PATH`. The API health endpoint reports whether FFmpeg is detected.
+\* Audio and video conversion requires FFmpeg installed and available on `PATH`. Check `/api/health` to see whether the server detects FFmpeg.
 
-## Requirements
+## Get started
 
-- Python 3.10 or newer
-- Node.js and npm to build the React frontend
-- FFmpeg for audio and video conversions
+### Choose an install method
 
-## Quick start
+| Method | Availability |
+| --- | --- |
+| GitHub Releases / standalone executables | No published binaries yet. |
+| Package managers | No package-manager manifests are currently provided. |
+| Docker | Supported; build the frontend assets first, then build the image below. |
+| Run from source | Supported on Windows, macOS, and Linux with Python; Node.js/npm are needed to build the frontend. |
 
-### Windows
+### Run from source
 
-From the repository folder, run:
+Requirements: Python 3.10+, Node.js with npm. Install FFmpeg as well if you need audio or video conversions.
 
-```bat
-run.bat
+#### Windows
+
+Run from the repository folder:
+
+```powershell
+./run.bat
 ```
 
-The launcher installs the Python requirements, builds the frontend if its production bundle is missing, and starts the server. Open the URL printed by the server, normally `http://localhost:8500`.
+The launcher installs Python requirements, builds the frontend if the production bundle is missing, and starts the server. Open the local address printed in the terminal (normally `http://localhost:8500`).
 
-### Linux or macOS
-
-Create a virtual environment, install the Python dependencies, build the frontend, and start the server:
+#### macOS / Linux
 
 ```bash
 python3 -m venv .venv
@@ -74,29 +108,11 @@ cd ..
 python server.py
 ```
 
-Open the URL printed in the terminal. `run.sh` is also available as a convenience launcher.
+Open the address printed by the server. The `run.sh` launcher is also available.
 
-## Build the frontend
+### Run with Docker
 
-When changing the React app, rebuild its production assets before launching the backend:
-
-```bash
-cd frontend
-npm ci
-npm run build
-```
-
-For frontend development with Vite:
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-## Docker
-
-Build the frontend first, then build and run the container from the repository root:
+Build the React frontend before building the image:
 
 ```bash
 cd frontend
@@ -107,33 +123,44 @@ docker build -t omniconverter .
 docker run --rm -p 8500:8500 omniconverter
 ```
 
-The Docker image installs FFmpeg. Open `http://localhost:8500`.
+Then open [http://localhost:8500](http://localhost:8500). The Docker image includes FFmpeg and Poppler utilities.
 
-## OmniAI setup
+## Usage
 
-Open OmniAI settings in the app and select a provider. The built-in mode needs no key. Ollama needs a running local Ollama server and an installed model. Cloud providers need a valid API key and an available model for that account. Custom endpoints must provide an OpenAI-compatible chat-completions API.
+### Convert files in the app
 
-API keys are saved in the browser’s local storage and sent to the local backend for provider authentication. Cloud prompts are sent to the selected provider. Use Built-in or Ollama when you want prompts to stay local to your machine.
+1. Start OmniConverter and open its local web address.
+2. Add or drop a file (or select multiple files for a batch).
+3. Choose one of the output formats offered for the selected input.
+4. Start conversion and save the result. Batch results are provided as a ZIP archive.
 
-## REST API
+### Configure OmniAI
 
-The backend exposes endpoints for health checks, format metadata, conversions, PDF operations, OCR, watch-folder configuration, and OmniAI. Start the server, then check:
+Open OmniAI settings, choose a provider, and enter the required model/API details. Built-in mode needs no key. Ollama requires a running local server and installed model. Cloud providers require a valid key and model. Custom providers must expose an OpenAI-compatible chat-completions endpoint.
+
+### Watch a folder
+
+Use the watch-folder controls in the app to choose an input folder, a separate output folder, and a target format. The server must have filesystem access to both folders. Successfully converted source files are removed from the input folder.
+
+## API quick example
+
+With the server running, check health and supported formats:
 
 ```bash
 curl http://localhost:8500/api/health
 curl http://localhost:8500/api/formats
 ```
 
-Convert a file with `POST /api/convert`:
+Convert a DOCX file to PDF:
 
 ```bash
 curl -X POST http://localhost:8500/api/convert \
   -F "file=@document.docx" \
   -F "target_format=pdf" \
-  -o document_converted.pdf
+  -o document.pdf
 ```
 
-Convert multiple files to a ZIP with `POST /api/convert/zip`:
+Convert a batch of images to WebP and receive a ZIP:
 
 ```bash
 curl -X POST http://localhost:8500/api/convert/zip \
@@ -143,38 +170,47 @@ curl -X POST http://localhost:8500/api/convert/zip \
   -o converted-files.zip
 ```
 
-Interactive API documentation is available at `/docs` when the server is started with `OMNI_ENV=dev`.
+Interactive API documentation is available at `/docs` when `OMNI_ENV=dev`.
 
-## Run checks
+## How it works
 
-Install the project requirements, then run the test suite:
+```text
+React + Vite web app  →  FastAPI backend  →  format-specific conversion libraries
+                                           ├─ FFmpeg for audio/video
+                                           ├─ PDF, Office, image, and data tooling
+                                           └─ optional local or remote OmniAI provider
+```
+
+The browser serves as the user interface. The Python backend validates requests and performs conversions on the machine running the server. A background watch-folder daemon handles configured incoming files. OmniAI can use built-in responses, a local Ollama endpoint, or a configured external API.
+
+## Development
 
 ```bash
+python -m pip install -r requirements.txt
 python -m pytest -q
-```
-
-Build the frontend with:
-
-```bash
 cd frontend
+npm ci
 npm run build
+npm run lint
 ```
 
-The GitHub Actions workflow runs lint checks and the Python tests on pushes and pull requests to `main` and `develop`.
+The repository's GitHub Actions workflow runs Python lint checks and tests on pushes and pull requests to `main` and `develop`.
 
-## Update the GitHub repository
+## Contributing
 
-After reviewing your changes, use these commands from the repository root to commit and push the current working tree to `main`:
+Bug reports, reproducible conversion examples, and focused pull requests are welcome. Please open an issue for larger changes, include sample input/output details where possible, and run the relevant checks above before submitting a pull request.
 
-```bash
-git status
-git add -A
-git commit -m "docs: refresh README and verified project capabilities"
-git push origin main
-```
+## Roadmap
 
-`git add -A` stages all current project changes, not only this README. Review `git status` before committing.
+- [ ] Add a short product demo and screenshots.
+- [ ] Publish signed standalone builds for desktop platforms.
+- [ ] Expand conversion coverage and document format-specific fidelity limits.
+- [ ] Add broader automated coverage for conversion workflows across operating systems.
 
 ## License
 
-OmniConverter is licensed under the [MIT License](LICENSE).
+OmniConverter is distributed under the [MIT License](LICENSE).
+
+<div align="center">
+  <sub>Built for practical file conversion on your own machine.</sub>
+</div>
