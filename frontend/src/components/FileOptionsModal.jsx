@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sliders, Check, RotateCcw } from 'lucide-react';
+import { X, Sliders, Check, RotateCcw, ShieldCheck, Info } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import CustomSelect from './CustomSelect';
+import { inspectFileMetadata } from '../services/api';
 
 const DEFAULT_OPTIONS = {
   quality: 90,
@@ -9,11 +10,14 @@ const DEFAULT_OPTIONS = {
   audio_bitrate: '320k',
   strip_audio: false,
   resize_width: '',
-  resize_height: ''
+  resize_height: '',
+  target_size_preset: 'max_quality',
+  strip_metadata: false
 };
 
 export default function FileOptionsModal({ isOpen, onClose, item, onSaveOptions, sfx }) {
   const [options, setOptions] = useState(DEFAULT_OPTIONS);
+  const [metadataState, setMetadataState] = useState({ loading: false, data: null, error: '' });
 
   const [prevItem, setPrevItem] = useState(item);
 
@@ -43,6 +47,22 @@ export default function FileOptionsModal({ isOpen, onClose, item, onSaveOptions,
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const extForInspection = item?.name?.split('.').pop().toLowerCase();
+  const canInspectMetadata = extForInspection === 'pdf' || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ico', 'tiff'].includes(extForInspection);
+  useEffect(() => {
+    if (!isOpen || !item || !canInspectMetadata) {
+      return undefined;
+    }
+    let cancelled = false;
+    // Reset the prior inspection while starting this file's metadata request.
+    // oxlint-disable-next-line react/set-state-in-effect
+    setMetadataState({ loading: true, data: null, error: '' });
+    inspectFileMetadata(item.file)
+      .then(data => { if (!cancelled) setMetadataState({ loading: false, data, error: '' }); })
+      .catch(error => { if (!cancelled) setMetadataState({ loading: false, data: null, error: error.message }); });
+    return () => { cancelled = true; };
+  }, [isOpen, item, canInspectMetadata]);
+
   if (!isOpen || !item) return null;
 
   const handleSave = () => {
@@ -59,8 +79,12 @@ export default function FileOptionsModal({ isOpen, onClose, item, onSaveOptions,
   const ext = item.name.split('.').pop().toLowerCase();
   const targetExt = (item.targetFormat || '').toLowerCase();
   const isImage = ['png', 'jpg', 'jpeg', 'webp', 'bmp'].includes(ext) || ['png', 'jpg', 'jpeg', 'webp'].includes(targetExt);
-  const isVideo = ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext);
-  const isAudio = ['mp3', 'wav', 'ogg', 'flac', 'aac'].includes(targetExt) || ['mp3', 'wav', 'ogg', 'flac', 'aac'].includes(ext);
+  const isVideo = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'flv', 'wmv', 'm4v'].includes(ext);
+  const isAudio = ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus'].includes(targetExt) || ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus'].includes(ext);
+  const hasSizePreset = ['jpg', 'jpeg', 'webp'].includes(targetExt)
+    || ['mp3', 'aac', 'ogg'].includes(targetExt)
+    || ['mp4', 'webm'].includes(targetExt)
+    || targetExt === 'pdf';
 
   return (
     <div 
@@ -84,6 +108,8 @@ export default function FileOptionsModal({ isOpen, onClose, item, onSaveOptions,
         style={{
           width: '100%',
           maxWidth: '460px',
+          maxHeight: 'calc(100vh - 2rem)',
+          overflowY: 'auto',
           padding: '1.5rem',
           display: 'flex',
           flexDirection: 'column',
@@ -151,6 +177,49 @@ export default function FileOptionsModal({ isOpen, onClose, item, onSaveOptions,
 
         {/* Options Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {hasSizePreset && (
+            <div>
+              <label htmlFor="target-size-preset" style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>
+                Target file size · best effort
+              </label>
+              <select
+                id="target-size-preset"
+                value={options.target_size_preset || 'max_quality'}
+                onChange={event => setOptions(prev => ({ ...prev, target_size_preset: event.target.value }))}
+                style={{ width: '100%', padding: '0.55rem 0.65rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-input)', border: '1px solid var(--border-card)', color: 'var(--text-primary)', fontSize: '0.78rem' }}
+              >
+                <option value="max_quality">Max Quality · no size target</option>
+                <option value="email_2mb">Aim under 2 MB · email</option>
+                <option value="under_10mb">Aim under 10 MB</option>
+              </select>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.45 }}>
+                The converter adjusts image quality or media bitrate when possible. Duration, content, and codec limits mean the size is an estimate, not a guarantee.
+              </p>
+            </div>
+          )}
+
+          {canInspectMetadata && (
+            <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)', background: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                <Info size={14} color="var(--brand-500)" /> Privacy & metadata
+              </div>
+              {metadataState.loading && <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Inspecting common metadata…</p>}
+              {metadataState.error && <p role="status" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{metadataState.error}</p>}
+              {!metadataState.loading && !metadataState.error && metadataState.data && (
+                Object.keys(metadataState.data.fields || {}).length ? (
+                  <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(90px, 0.6fr) 1fr', gap: '0.3rem 0.6rem', margin: '0 0 0.7rem', fontSize: '0.7rem' }}>
+                    {Object.entries(metadataState.data.fields).map(([label, value]) => <React.Fragment key={label}><dt style={{ color: 'var(--text-muted)' }}>{label}</dt><dd style={{ margin: 0, color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{value}</dd></React.Fragment>)}
+                  </dl>
+                ) : <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>No common camera or document metadata was found.</p>
+              )}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.74rem', cursor: 'pointer', lineHeight: 1.4 }}>
+                <input type="checkbox" checked={options.strip_metadata || false} onChange={event => setOptions(prev => ({ ...prev, strip_metadata: event.target.checked }))} style={{ accentColor: 'var(--brand-500)', marginTop: '0.1rem' }} />
+                <span><ShieldCheck size={13} style={{ verticalAlign: 'middle', marginRight: '0.2rem' }} />Strip hidden image/PDF metadata from the converted output</span>
+              </label>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.35rem 0 0 1.25rem' }}>Metadata inspection is sent to this local OmniConverter server. Stripping may re-encode the file; keep your original if metadata matters.</p>
+            </div>
+          )}
+
           {/* Image Quality Slider */}
           {isImage && (
             <div>

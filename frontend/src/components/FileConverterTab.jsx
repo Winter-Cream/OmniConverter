@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   UploadCloud, 
   Trash2, 
@@ -19,9 +19,10 @@ import {
   File as FileIcon,
   ChevronDown,
   ChevronUp,
-  Archive
+  Archive,
+  Eye
 } from 'lucide-react';
-import { convertSingleFile, convertBatchFiles, updateWatchFolderConfig } from '../services/api';
+import { convertSingleFile, updateWatchFolderConfig } from '../services/api';
 import { t, translateUiCopy } from '../utils/translations';
 import { playSound } from '../utils/audio';
 import CustomSelect from './CustomSelect';
@@ -55,6 +56,105 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+function parseCsv(text, delimiter = ',') {
+  const rows = [];
+  let row = [], cell = '', quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === '"' && quoted && text[index + 1] === '"') { cell += '"'; index += 1; }
+    else if (char === '"') quoted = !quoted;
+    else if (char === delimiter && !quoted) { row.push(cell); cell = ''; }
+    else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && text[index + 1] === '\n') index += 1;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += char;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(current => current.some(value => value !== ''));
+}
+
+function toTableRows(value) {
+  if (Array.isArray(value)) {
+    if (value.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
+      const headers = [...new Set(value.flatMap(item => Object.keys(item)))];
+      return [headers, ...value.map(item => headers.map(header => String(item[header] ?? '')))];
+    }
+    return [['Value'], ...value.map(item => [typeof item === 'object' ? JSON.stringify(item) : String(item)])];
+  }
+  if (value && typeof value === 'object') return [['Key', 'Value'], ...Object.entries(value).map(([key, item]) => [key, typeof item === 'object' ? JSON.stringify(item) : String(item)])];
+  return [['Value'], [String(value ?? '')]];
+}
+
+function ResultPreview({ item, onClose }) {
+  const [url, setUrl] = useState('');
+  const [originalUrl, setOriginalUrl] = useState('');
+  const [table, setTable] = useState(null);
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const extension = (item.resultFilename || '').split('.').pop().toLowerCase();
+  const originalExtension = (item.name || '').split('.').pop().toLowerCase();
+  const mediaType = item.resultBlob?.type || '';
+  const isImage = mediaType.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff', 'ico', 'svg'].includes(extension);
+  const isAudio = mediaType.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus'].includes(extension);
+  const isVideo = mediaType.startsWith('video/') || ['mp4', 'webm', 'mkv', 'avi', 'mov'].includes(extension);
+  const isPdf = extension === 'pdf' || mediaType === 'application/pdf';
+
+  useEffect(() => {
+    if (!item.resultBlob) return undefined;
+    const objectUrl = URL.createObjectURL(item.resultBlob);
+    const sourceUrl = URL.createObjectURL(item.file);
+    // Object URLs are external browser resources and must be synchronized through an effect.
+    // oxlint-disable-next-line react/set-state-in-effect
+    setUrl(objectUrl);
+    setOriginalUrl(sourceUrl);
+    let cancelled = false;
+    const loadTable = async () => {
+      try {
+        let previewBlob = item.resultBlob;
+        let previewExtension = extension;
+        if (extension === 'xlsx') {
+          const previewFile = new File([item.resultBlob], item.resultFilename || 'preview.xlsx');
+          const converted = await convertSingleFile(previewFile, 'csv');
+          previewBlob = converted.blob;
+          previewExtension = 'csv';
+        }
+        if (['csv', 'tsv', 'json'].includes(previewExtension)) {
+          const raw = await previewBlob.text();
+          const rows = previewExtension === 'json' ? toTableRows(JSON.parse(raw)) : parseCsv(raw, previewExtension === 'tsv' ? '\t' : ',');
+          if (!cancelled) setTable(rows.slice(0, 101).map(row => row.slice(0, 30)));
+        } else if (!isImage && !isAudio && !isVideo && !isPdf && !['zip'].includes(extension)) {
+          const previewText = (await previewBlob.text()).slice(0, 12000);
+          if (!cancelled) setText(previewText);
+        }
+      } catch (previewError) {
+        if (!cancelled) setError(previewError.message || 'This file cannot be previewed.');
+      }
+    };
+    loadTable();
+    return () => { cancelled = true; URL.revokeObjectURL(objectUrl); URL.revokeObjectURL(sourceUrl); };
+  }, [item.file, item.resultBlob, item.resultFilename, extension, isImage, isAudio, isVideo, isPdf]);
+
+  return (
+    <div style={{ marginTop: '0.75rem', padding: '0.85rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-subtle)', border: '1px solid var(--border-card)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+        <strong style={{ fontSize: '0.78rem' }}>Converted preview · {item.resultFilename}</strong>
+        <button type="button" className="btn-secondary" onClick={onClose} aria-label="Close preview" style={{ padding: '0.25rem 0.5rem' }}>Close</button>
+      </div>
+      {isImage && url && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
+        {['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff', 'ico', 'svg'].includes(originalExtension) && <figure style={{ margin: 0, flex: '1 1 220px', textAlign: 'center' }}><figcaption style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Original · {item.name}</figcaption><img src={originalUrl} alt={`Original ${item.name}`} style={{ maxWidth: '100%', maxHeight: '360px', objectFit: 'contain' }} /></figure>}
+        <figure style={{ margin: 0, flex: '1 1 220px', textAlign: 'center' }}><figcaption style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Converted · {item.resultFilename}</figcaption><img src={url} alt={`Converted ${item.resultFilename}`} style={{ maxWidth: '100%', maxHeight: '360px', objectFit: 'contain' }} /></figure>
+      </div>}
+      {isAudio && url && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>{['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus'].includes(originalExtension) && <label style={{ fontSize: '0.72rem' }}>Original · {item.name}<audio controls src={originalUrl} style={{ display: 'block', width: '100%' }} /></label>}<label style={{ fontSize: '0.72rem' }}>Converted · {item.resultFilename}<audio controls src={url} style={{ display: 'block', width: '100%' }} /></label></div>}
+      {isVideo && url && <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>{['mp4', 'webm', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'm4v'].includes(originalExtension) && <video controls src={originalUrl} style={{ maxWidth: '48%', maxHeight: '360px' }} aria-label={`Original ${item.name}`} />}<video controls src={url} style={{ maxWidth: '48%', maxHeight: '360px' }} aria-label={`Converted ${item.resultFilename}`} /></div>}
+      {isPdf && url && <iframe title={`PDF preview: ${item.resultFilename}`} src={url} style={{ width: '100%', height: '420px', border: 0, background: 'white' }} />}
+      {table && <div style={{ overflow: 'auto', maxHeight: '360px' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}><tbody>{table.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => { const Tag = rowIndex === 0 ? 'th' : 'td'; return <Tag key={cellIndex} style={{ textAlign: 'left', padding: '0.4rem', borderBottom: '1px solid var(--border-card)', maxWidth: '240px', overflowWrap: 'anywhere' }}>{cell}</Tag>; })}</tr>)}</tbody></table></div>}
+      {text && <pre style={{ whiteSpace: 'pre-wrap', overflow: 'auto', maxHeight: '360px', fontSize: '0.75rem' }}>{text}</pre>}
+      {!isImage && !isAudio && !isVideo && !isPdf && !table && !text && !error && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Preview is not available for this output type.</p>}
+      {error && <p role="alert" style={{ color: 'var(--rose-500, #f43f5e)', fontSize: '0.78rem' }}>{error}</p>}
+    </div>
+  );
+}
+
 export default function FileConverterTab({
   formats,
   stats,
@@ -67,6 +167,8 @@ export default function FileConverterTab({
   const [queue, setQueue] = useState([]);
   const [isConverting, setIsConverting] = useState(false);
   const [isBatchZipLoading, setIsBatchZipLoading] = useState(false);
+  const [batchZipProgress, setBatchZipProgress] = useState(null);
+  const [previewItemId, setPreviewItemId] = useState(null);
   const [optionsModalItem, setOptionsModalItem] = useState(null);
   const [watchFolderOpen, setWatchFolderOpen] = useState(false);
   const [watchConfig, setWatchConfig] = useState({
@@ -87,7 +189,7 @@ export default function FileConverterTab({
   const [dragActive, setDragActive] = useState(false);
 
   // Helper to determine allowed targets for a given file extension
-  const getAllowedTargets = (filename) => {
+  const getAllowedTargets = useCallback((filename) => {
     const ext = filename.split('.').pop().toLowerCase();
     if (formats?.extensions && formats.extensions[ext]) {
       return formats.extensions[ext].targets || ['pdf', 'txt'];
@@ -121,9 +223,9 @@ export default function FileConverterTab({
       return ['json'];
     }
     return ['pdf', 'txt', 'json'];
-  };
+  }, [formats]);
 
-  const handleFiles = (fileList) => {
+  const handleFiles = useCallback((fileList) => {
     const newItems = Array.from(fileList).map(file => {
       const allowed = getAllowedTargets(file.name);
       return {
@@ -144,7 +246,39 @@ export default function FileConverterTab({
 
     setQueue(prev => [...prev, ...newItems]);
     playSound('upload', sfx);
-  };
+  }, [sfx, getAllowedTargets]);
+
+  useEffect(() => {
+    const onPaste = (event) => {
+      const target = event.target;
+      if (target?.isContentEditable || ['INPUT', 'TEXTAREA'].includes(target?.tagName)) return;
+      const items = Array.from(event.clipboardData?.items || []);
+      const images = items.filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+        .map((item, index) => {
+          const source = item.getAsFile();
+          if (!source) return null;
+          const extension = source.type.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+          return new File([source], `clipboard-image-${Date.now()}-${index}.${extension}`, { type: source.type });
+        }).filter(Boolean);
+      if (images.length) {
+        event.preventDefault();
+        handleFiles(images);
+        return;
+      }
+      const textItem = items.find(item => item.kind === 'string' && ['text/plain', 'application/json'].includes(item.type));
+      if (!textItem) return;
+      event.preventDefault();
+      textItem.getAsString(value => {
+        if (!value.trim() || value.length > 5_000_000) return;
+        let extension = 'txt';
+        let mime = 'text/plain';
+        try { JSON.parse(value); extension = 'json'; mime = 'application/json'; } catch { /* Keep ordinary clipboard text as TXT. */ }
+        handleFiles([new File([value], `clipboard-${Date.now()}.${extension}`, { type: mime })]);
+      });
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [handleFiles]);
 
   const onDragOver = (e) => {
     e.preventDefault();
@@ -250,17 +384,51 @@ export default function FileConverterTab({
     playSound('click', sfx);
   };
 
-  // Download batch converted as ZIP directly from backend
+  // Convert queued items with visible per-file status, then package successful results.
   const handleBatchZipDownload = async () => {
     if (queue.length === 0 || isBatchZipLoading) return;
     const targetFormat = queue[0].targetFormat;
-    // Check if all files support this target
-    const eligibleFiles = queue.map(q => q.file);
-    
+    if (queue.some(item => !item.allowedTargets.includes(targetFormat))) return;
+    const items = [...queue];
     setIsBatchZipLoading(true);
+    setBatchZipProgress({ completed: 0, total: items.length });
     playSound('click', sfx);
     try {
-      const { blob, filename } = await convertBatchFiles(eligibleFiles, targetFormat, {});
+      const { default: JSZip } = await import('jszip');
+      const archive = new JSZip();
+      const usedNames = new Set();
+      let completed = 0;
+      for (const item of items) {
+        let converted = item.status === 'done' && item.resultBlob
+          ? { blob: item.resultBlob, filename: item.resultFilename }
+          : null;
+        if (!converted) {
+          setQueue(prev => prev.map(current => current.id === item.id ? { ...current, status: 'converting', error: null } : current));
+          try {
+            converted = await convertSingleFile(item.file, targetFormat, item.options);
+            setQueue(prev => prev.map(current => current.id === item.id ? { ...current, status: 'done', resultBlob: converted.blob, resultFilename: converted.filename } : current));
+          } catch (error) {
+            setQueue(prev => prev.map(current => current.id === item.id ? { ...current, status: 'error', error: error.message } : current));
+            completed += 1;
+            setBatchZipProgress({ completed, total: items.length });
+            continue;
+          }
+        }
+        const originalName = converted.filename || `${item.name.replace(/\.[^/.]+$/, '')}_converted.${targetFormat}`;
+        let filename = originalName;
+        let version = 2;
+        while (usedNames.has(filename)) {
+          const dot = originalName.lastIndexOf('.');
+          filename = `${originalName.slice(0, dot)} (${version++})${originalName.slice(dot)}`;
+        }
+        usedNames.add(filename);
+        archive.file(filename, converted.blob);
+        completed += 1;
+        setBatchZipProgress({ completed, total: items.length });
+      }
+      if (!usedNames.size) throw new Error('None of the queued files converted successfully.');
+      const blob = await archive.generateAsync({ type: 'blob' });
+      const filename = `OmniConverter_Batch_${targetFormat.toUpperCase()}.zip`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -268,7 +436,7 @@ export default function FileConverterTab({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
       playSound('success', sfx);
       if (refreshStats) refreshStats();
     } catch (err) {
@@ -276,6 +444,7 @@ export default function FileConverterTab({
       playSound('error', sfx);
     } finally {
       setIsBatchZipLoading(false);
+      window.setTimeout(() => setBatchZipProgress(null), 2500);
     }
   };
 
@@ -317,6 +486,10 @@ export default function FileConverterTab({
   const doneCount = queue.filter(i => i.status === 'done').length;
   const errorCount = queue.filter(i => i.status === 'error').length;
   const readyCount = queue.filter(i => i.status === 'ready').length;
+  const finishedCount = queue.filter(i => ['done', 'error'].includes(i.status)).length;
+  const progressPercent = queue.length ? Math.round((finishedCount / queue.length) * 100) : 0;
+  const zipTarget = queue[0]?.targetFormat;
+  const zipAvailable = queue.length > 1 && queue.every(item => item.targetFormat === zipTarget && item.allowedTargets.includes(zipTarget));
   const totalSizeBytes = queue.reduce((acc, i) => acc + (i.sizeBytes || 0), 0);
 
   return (
@@ -371,7 +544,7 @@ export default function FileConverterTab({
           {t('dropzoneTitle', lang) || 'Drop files here or click to browse'}
         </h2>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '580px', margin: '0 auto 1.25rem', lineHeight: 1.5 }}>
-          {t('dropzoneSub', lang) || 'Convert between 50+ formats locally on your device without file size limits or cloud uploads.'}
+          {t('dropzoneSub', lang) || 'Drop files, browse, or press Ctrl+V to add clipboard images and text.'}
         </p>
 
         {/* Action Button inside Dropzone */}
@@ -442,7 +615,17 @@ export default function FileConverterTab({
                 {errorCount} failed
               </span>
             )}
+            {isConverting && <span className="badge badge-brand">{finishedCount}/{queue.length} processed</span>}
           </div>
+
+          {(isConverting || isBatchZipLoading) && (
+            <div style={{ flex: '1 1 100%', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <progress aria-label="Conversion progress" max="100" value={isBatchZipLoading && batchZipProgress ? Math.round(batchZipProgress.completed / batchZipProgress.total * 100) : progressPercent} style={{ width: '100%', height: '0.45rem', accentColor: 'var(--brand-500)' }} />
+              <span className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                {isBatchZipLoading && batchZipProgress ? `${batchZipProgress.completed}/${batchZipProgress.total}` : `${progressPercent}%`}
+              </span>
+            </div>
+          )}
 
           {/* Right: Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -455,6 +638,7 @@ export default function FileConverterTab({
                 <CustomSelect
                   value=""
                   placeholder="Target..."
+                  disabled={isConverting || isBatchZipLoading}
                   onChange={(target) => {
                     setQueue(prev => prev.map(item => item.allowedTargets.includes(target) ? { ...item, targetFormat: target } : item));
                     playSound('click', sfx);
@@ -484,6 +668,7 @@ export default function FileConverterTab({
               <button 
                 type="button"
                 onClick={clearCompleted} 
+                disabled={isBatchZipLoading || isConverting}
                 className="btn-secondary"
                 style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
                 title="Remove converted items from the queue"
@@ -497,6 +682,7 @@ export default function FileConverterTab({
               <button 
                 type="button"
                 onClick={clearQueue} 
+                disabled={isBatchZipLoading || isConverting}
                 className="btn-secondary"
                 style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
                 title="Clear all files from the queue"
@@ -521,21 +707,21 @@ export default function FileConverterTab({
             )}
 
             {/* Batch Convert as ZIP */}
-            {queue.length > 1 && readyCount > 0 && (
+            {zipAvailable && (
               <button
                 type="button"
                 onClick={handleBatchZipDownload}
                 disabled={isBatchZipLoading || isConverting}
                 className="btn-secondary"
                 style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }}
-                title="Convert all into a single downloaded ZIP archive"
+                title="Convert queued items in order and package successful outputs into one ZIP"
               >
                 {isBatchZipLoading ? (
                   <Loader2 size={13} className="spin-slow" />
                 ) : (
                   <Archive size={13} />
                 )}
-                <span>Export as ZIP</span>
+                <span>Download All as .ZIP</span>
               </button>
             )}
 
@@ -543,13 +729,13 @@ export default function FileConverterTab({
             <button
               type="button"
               onClick={processAllQueue}
-              disabled={queue.length === 0 || isConverting || readyCount === 0}
+              disabled={queue.length === 0 || isConverting || isBatchZipLoading || readyCount === 0}
               className="btn-primary"
               style={{
                 fontSize: '0.8rem',
                 padding: '0.45rem 1.15rem',
-                opacity: (queue.length === 0 || isConverting || readyCount === 0) ? 0.6 : 1,
-                cursor: (queue.length === 0 || isConverting || readyCount === 0) ? 'not-allowed' : 'pointer'
+                opacity: (queue.length === 0 || isConverting || isBatchZipLoading || readyCount === 0) ? 0.6 : 1,
+                cursor: (queue.length === 0 || isConverting || isBatchZipLoading || readyCount === 0) ? 'not-allowed' : 'pointer'
               }}
             >
               {isConverting ? (
@@ -650,6 +836,18 @@ export default function FileConverterTab({
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} className="font-mono">
                       {item.sizeText}
                     </div>
+                    {item.status === 'done' && item.resultBlob && (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }} className="font-mono">
+                        {formatBytes(item.file.size)} → {formatBytes(item.resultBlob.size)}
+                        {item.file.size > 0 && item.resultBlob.size !== item.file.size && (
+                          <span style={{ color: item.resultBlob.size < item.file.size ? 'var(--emerald-500, #10b981)' : 'var(--amber-500, #f59e0b)', marginLeft: '0.35rem' }}>
+                            {item.resultBlob.size < item.file.size
+                              ? `Saved ${Math.round((1 - item.resultBlob.size / item.file.size) * 100)}%`
+                              : `Increased ${Math.round((item.resultBlob.size / item.file.size - 1) * 100)}%`}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -663,7 +861,7 @@ export default function FileConverterTab({
                     value={item.targetFormat}
                     onChange={(val) => updateTargetFormat(item.id, val)}
                     options={item.allowedTargets.map(tgt => ({ value: tgt, label: tgt.toUpperCase() }))}
-                    disabled={item.status === 'converting' || item.status === 'done'}
+                    disabled={item.status === 'converting' || item.status === 'done' || isBatchZipLoading}
                     accentColor="var(--brand-500)"
                     minWidth="110px"
                     sfx={sfx}
@@ -678,7 +876,7 @@ export default function FileConverterTab({
                       if (onOpenOptions) onOpenOptions(item);
                       setOptionsModalItem(item);
                     }}
-                    disabled={item.status === 'converting'}
+                    disabled={item.status === 'converting' || isBatchZipLoading}
                     className="btn-secondary"
                     style={{
                       padding: '0.45rem',
@@ -695,7 +893,7 @@ export default function FileConverterTab({
                     <button
                       type="button"
                       onClick={() => processItem(item)}
-                      disabled={isConverting}
+                      disabled={isConverting || isBatchZipLoading}
                       className="btn-secondary"
                       style={{ fontSize: '0.75rem', padding: '0.35rem 0.8rem' }}
                     >
@@ -716,6 +914,17 @@ export default function FileConverterTab({
                         <Check size={12} />
                         <span>Ready</span>
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewItemId(current => current === item.id ? null : item.id)}
+                        className="btn-secondary"
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.55rem' }}
+                        title="Preview converted result"
+                        aria-expanded={previewItemId === item.id}
+                      >
+                        <Eye size={13} />
+                        <span>{previewItemId === item.id ? 'Hide' : 'Preview'}</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => downloadResult(item)}
@@ -742,6 +951,7 @@ export default function FileConverterTab({
                       <button
                         type="button"
                         onClick={() => processItem(item)}
+                        disabled={isBatchZipLoading || isConverting}
                         className="btn-secondary"
                         style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
                         title="Retry conversion"
@@ -756,6 +966,7 @@ export default function FileConverterTab({
                   <button
                     type="button"
                     onClick={() => removeQueueItem(item.id)}
+                    disabled={isBatchZipLoading || isConverting}
                     className="btn-secondary"
                     style={{
                       border: 'none',
@@ -770,6 +981,16 @@ export default function FileConverterTab({
                     <Trash2 size={14} />
                   </button>
                 </div>
+                {previewItemId === item.id && item.resultBlob && (
+                  <div style={{ flex: '1 1 100%', minWidth: 0 }}>
+                    <ResultPreview item={item} onClose={() => setPreviewItemId(null)} />
+                  </div>
+                )}
+                {item.status === 'error' && item.error && (
+                  <p role="alert" style={{ flex: '1 1 100%', margin: 0, fontSize: '0.74rem', color: 'var(--rose-500, #f43f5e)', overflowWrap: 'anywhere' }}>
+                    {item.error}
+                  </p>
+                )}
               </div>
             ))}
           </div>

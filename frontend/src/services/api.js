@@ -24,6 +24,17 @@ export async function fetchStats() {
   return await res.json();
 }
 
+export async function inspectFileMetadata(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_BASE}/api/metadata/inspect`, { method: 'POST', body: formData });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(errorData.detail || 'Metadata inspection failed');
+  }
+  return response.json();
+}
+
 export async function convertSingleFile(file, targetFormat, options = {}) {
   const formData = new FormData();
   formData.append('file', file);

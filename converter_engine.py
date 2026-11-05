@@ -20,6 +20,9 @@ import tempfile
 import subprocess
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
+from conversion_architecture import (
+    ConverterRegistry, NativeConverterPlugin, detect_file_format, find_conversion_path,
+)
 
 # Attempt to import File_Converter_Pro engine if available
 try:
@@ -82,7 +85,7 @@ except ImportError:
     HAS_OPENPYXL = False
 
 try:
-    from PIL import Image, ImageOps, ImageFilter
+    from PIL import Image, ImageOps, ImageFilter, ExifTags
     HAS_PILLOW = True
 except ImportError:
     HAS_PILLOW = False
@@ -433,6 +436,72 @@ class OmniConverterEngine:
         "mp4": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "webm": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "mkv": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "avi": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "mov": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "flv": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "wmv": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "m4v": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"]
     }
 
+    def __init__(self):
+        self.registry = ConverterRegistry()
+        category_groups = {
+            "documents": {"pdf", "docx", "pptx", "txt", "html", "htm", "md"},
+            "images": {"png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "tiff", "svg"},
+            "media": {"mp3", "wav", "ogg", "flac", "aac", "m4a", "opus", "mp4", "webm", "mkv", "avi", "mov", "flv", "wmv", "m4v"},
+            "data": {"csv", "tsv", "xlsx", "json", "xml", "yaml", "yml", "py", "js", "ts", "sql", "java", "c", "cpp", "rs", "go"},
+        }
+        for name, formats in category_groups.items():
+            self.registry.register(NativeConverterPlugin(
+                name=name, formats=frozenset(formats), targets=self.FORMAT_TARGETS,
+                handler=self._convert_native,
+            ))
+
+    def detect_format(self, data: bytes, filename: str) -> str | None:
+        """Return a recognized content format, correcting a misleading filename suffix."""
+        return detect_file_format(data, filename, set(self.FORMAT_TARGETS))
+
+    def inspect_metadata(self, data: bytes, filename: str) -> Dict[str, Any]:
+        """Return a small, safe-to-display summary of common PDF and image metadata."""
+        actual = self.detect_format(data, filename)
+        fields: Dict[str, str] = {}
+        if actual == "pdf" and HAS_PYMUPDF:
+            document = pymupdf.open(stream=data, filetype="pdf")
+            try:
+                metadata = document.metadata or {}
+                for key, label in (("title", "Title"), ("author", "Author"), ("subject", "Subject"),
+                                   ("creator", "Creator"), ("producer", "Producer"),
+                                   ("creationDate", "Created"), ("modDate", "Modified")):
+                    value = metadata.get(key)
+                    if value and str(value).strip():
+                        fields[label] = str(value).strip()[:300]
+            finally:
+                document.close()
+        elif actual in {"jpg", "jpeg", "tiff", "webp", "png", "bmp", "gif", "ico"} and HAS_PILLOW:
+            with Image.open(io.BytesIO(data)) as image:
+                exif = image.getexif()
+                tag_names = {tag_id: name for tag_id, name in ExifTags.TAGS.items()}
+                for tag_id, label in ((271, "Camera make"), (272, "Camera model"), (305, "Software"),
+                                      (306, "Date taken"), (315, "Author"), (33432, "Copyright")):
+                    value = exif.get(tag_id)
+                    if value:
+                        fields[label] = str(value).strip()[:300]
+                gps_pointer = exif.get(34853)
+                if gps_pointer:
+                    try:
+                        gps_ifd = exif.get_ifd(ExifTags.IFD.GPSInfo)
+                        gps_names = {tag_id: name for tag_id, name in ExifTags.GPSTAGS.items()}
+                        gps = {gps_names.get(key, str(key)): value for key, value in gps_ifd.items()}
+                        def decimal_degrees(value: Any) -> float:
+                            return float(value[0]) + float(value[1]) / 60 + float(value[2]) / 3600
+                        lat, lon = gps.get("GPSLatitude"), gps.get("GPSLongitude")
+                        if lat and lon:
+                            latitude, longitude = decimal_degrees(lat), decimal_degrees(lon)
+                            if gps.get("GPSLatitudeRef") == "S": latitude *= -1
+                            if gps.get("GPSLongitudeRef") == "W": longitude *= -1
+                            fields["GPS coordinates"] = f"{latitude:.6f}, {longitude:.6f}"
+                    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+                        fields["GPS location"] = "GPS data present"
+                # Some formats expose useful non-camera tags through the standard EXIF map.
+                for tag_id, value in exif.items():
+                    label = tag_names.get(tag_id)
+                    if label and label not in fields and isinstance(value, (str, int, float)) and str(value).strip():
+                        fields[label.replace("_", " ").title()] = str(value).strip()[:200]
+        return {"format": actual, "has_metadata": bool(fields), "fields": fields}
+
     def get_supported_formats(self) -> Dict[str, Any]:
         """Returns categories, supported extensions and target maps."""
         all_exts = {}
@@ -449,6 +518,38 @@ class OmniConverterEngine:
         }
 
     def convert_file(self, input_path_or_bytes: str | bytes, input_filename: str, target_format: str, options: Optional[Dict[str, Any]] = None) -> ConversionResult:
+        """Detect the input, find a shortest supported route, and execute each conversion step."""
+        options = options or {}
+        target = target_format.lower().lstrip(".")
+        try:
+            content = input_path_or_bytes if isinstance(input_path_or_bytes, bytes) else Path(input_path_or_bytes).read_bytes()
+            actual = self.detect_format(content, input_filename)
+            if actual is None:
+                return ConversionResult(False, error="Could not identify this file as a supported format.")
+            source = Path(input_filename).suffix.lower().lstrip(".")
+            source = actual
+            path = find_conversion_path(source, target, self.FORMAT_TARGETS)
+            if path is None:
+                return ConversionResult(False, error=f"No conversion route is available from {source.upper()} to {target.upper()}.")
+            if len(path) == 1:
+                return self._convert_single_step(input_path_or_bytes, f"{Path(input_filename).stem}.{source}", target, options)
+
+            current_data = content
+            result = None
+            current_name = f"{Path(input_filename).stem}.{source}"
+            for next_format in path[1:]:
+                result = self._convert_single_step(current_data, current_name, next_format, options)
+                if not result.success:
+                    return result
+                if next_format != target:
+                    current_data = Path(result.output_path).read_bytes()
+                    current_name = f"{Path(current_name).stem}.{next_format}"
+                    shutil.rmtree(Path(result.output_path).parent, ignore_errors=True)
+            return result
+        except (OSError, ValueError) as exc:
+            return ConversionResult(False, error=f"Unable to read or route this file: {exc}")
+
+    def _convert_single_step(self, input_path_or_bytes: str | bytes, input_filename: str, target_format: str, options: Optional[Dict[str, Any]] = None) -> ConversionResult:
         """Converts an input file to target format, streaming output to a temporary disk file to keep RAM usage low."""
         t0 = time.time()
         options = options or {}
@@ -477,7 +578,7 @@ class OmniConverterEngine:
                     raise RuntimeError("FFmpeg executable not found in system PATH. Required for audio/video media conversion.")
 
             # 2. Try File Converter Pro Engine first if available
-            if HAS_FCP and FCP_ENGINE is not None:
+            if HAS_FCP and FCP_ENGINE is not None and not options.get("strip_metadata") and not options.get("target_size_preset"):
                 conv_type = self._determine_fcp_type(input_ext, target_format)
                 if conv_type:
                     try:
@@ -495,9 +596,14 @@ class OmniConverterEngine:
                         print(f"[FCP Engine Fallback Warning]: {e_fcp}")
 
             # 3. Native Python Fallback Converters
-            self._convert_native(src_path, out_path, input_ext, target_format, options, out_stem)
+            plugin = self.registry.resolve(input_ext, target_format)
+            if plugin is None:
+                raise RuntimeError(f"No {input_ext.upper()} to {target_format.upper()} converter is registered.")
+            plugin.convert(src_path, out_path, input_ext, target_format, options, out_stem)
             if not os.path.isfile(out_path) or os.path.getsize(out_path) == 0:
                 raise RuntimeError("The converter did not produce a valid output file.")
+            if target_format == "pdf" and self._target_size_bytes(options) and input_ext != "pdf":
+                self._optimize_pdf_to_size(out_path, self._target_size_bytes(options), bool(options.get("strip_metadata")))
             # Multi-page PDF-to-image conversion is returned as a ZIP of page images.
             if input_ext == "pdf" and target_format in ["png", "jpg", "jpeg", "webp"] and zipfile.is_zipfile(out_path):
                 out_filename = f"{out_stem}_converted.zip"
@@ -533,13 +639,82 @@ class OmniConverterEngine:
             return f"{src_ext}_to_{dst_ext}"
         return None
 
+    @staticmethod
+    def _target_size_bytes(options: Dict[str, Any]) -> int | None:
+        """Resolve the UI's size preset to an approximate output byte budget."""
+        presets = {"email_2mb": 2 * 1024 * 1024, "under_10mb": 10 * 1024 * 1024}
+        return presets.get(str(options.get("target_size_preset", "")))
+
+    @staticmethod
+    def _probe_duration(path: str) -> float | None:
+        """Read media duration through ffprobe when installed; return None when unavailable."""
+        executable = shutil.which("ffprobe") or shutil.which("ffprobe.exe")
+        if not executable:
+            return None
+        try:
+            result = subprocess.run(
+                [executable, "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path],
+                capture_output=True, text=True, timeout=10, check=False,
+            )
+            duration = float(result.stdout.strip())
+            return duration if result.returncode == 0 and duration > 0 else None
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            return None
+
+    @staticmethod
+    def _optimize_pdf_to_size(pdf_path: str, target_bytes: int, strip_metadata: bool = False) -> None:
+        """Re-encode PDF images at progressively smaller settings toward a byte budget."""
+        if not HAS_PYMUPDF:
+            raise RuntimeError("PyMuPDF is required for PDF target-size compression.")
+        trial_path = f"{pdf_path}.optimized"
+        for dpi, quality in ((200, 80), (160, 65), (120, 50), (96, 35), (72, 25)):
+            document = pymupdf.open(pdf_path)
+            try:
+                if strip_metadata:
+                    document.set_metadata({})
+                    document.set_xml_metadata("")
+                document.rewrite_images(dpi_target=dpi, quality=quality)
+                document.save(trial_path, garbage=4, deflate=True, deflate_images=True,
+                              deflate_fonts=True, use_objstms=1)
+            finally:
+                document.close()
+            if os.path.getsize(trial_path) <= target_bytes:
+                os.replace(trial_path, pdf_path)
+                return
+        os.replace(trial_path, pdf_path)
+
     def _convert_native(self, src_path: str, out_path: str, src_ext: str, dst_ext: str, options: Dict[str, Any], stem: str):
         """Native python conversion handlers writing directly to out_path file."""
 
-        # Same format identity copy
+        # Same-format privacy scrubbing must re-save rather than copy the source bytes.
         if src_ext == dst_ext:
-            shutil.copyfile(src_path, out_path)
-            return
+            if options.get("strip_metadata") and src_ext == "pdf" and not self._target_size_bytes(options):
+                if HAS_PYMUPDF:
+                    document = pymupdf.open(src_path)
+                    try:
+                        document.set_metadata({})
+                        document.set_xml_metadata("")
+                        document.save(out_path, garbage=4, deflate=True)
+                    finally:
+                        document.close()
+                    return
+                if HAS_PYPDF:
+                    reader = pypdf.PdfReader(src_path)
+                    writer = pypdf.PdfWriter()
+                    for page in reader.pages:
+                        writer.add_page(page)
+                    writer.add_metadata({})
+                    with open(out_path, "wb") as output:
+                        writer.write(output)
+                    return
+                raise RuntimeError("PyMuPDF or pypdf is required to scrub PDF metadata.")
+            if src_ext == "pdf" and self._target_size_bytes(options):
+                self._optimize_pdf_to_size(src_path, self._target_size_bytes(options), bool(options.get("strip_metadata")))
+                shutil.copyfile(src_path, out_path)
+                return
+            if not (options.get("strip_metadata") and src_ext in {"png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "tiff"}):
+                shutil.copyfile(src_path, out_path)
+                return
 
         # 1. IMAGE -> IMAGE & IMAGE -> PDF (Pillow)
         if src_ext in ["png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "tiff"]:
@@ -570,15 +745,36 @@ class OmniConverterEngine:
                         img = img.convert("L")
 
                     target_fmt = "JPEG" if dst_ext in ["jpg", "jpeg"] else dst_ext.upper()
+                    save_metadata = {}
+                    if not options.get("strip_metadata") and target_fmt in {"JPEG", "WEBP", "PNG", "TIFF"}:
+                        try:
+                            exif_bytes = img.getexif().tobytes()
+                            if exif_bytes:
+                                save_metadata["exif"] = exif_bytes
+                        except (AttributeError, OSError, ValueError):
+                            pass
                     if target_fmt == "ICO":
                         img.save(out_path, format="ICO", sizes=[(32, 32), (64, 64), (128, 128)])
                     elif target_fmt == "PNG":
-                        img.save(out_path, format="PNG", optimize=True)
+                        img.save(out_path, format="PNG", optimize=True, **save_metadata)
                     else:
                         if img.mode in ("RGBA", "P") and target_fmt == "JPEG":
                             img = img.convert("RGB")
                         quality = int(options.get("quality", options.get("compressionQuality", 90)))
-                        img.save(out_path, format=target_fmt, quality=quality)
+                        target_bytes = self._target_size_bytes(options)
+                        if target_bytes and target_fmt in {"JPEG", "WEBP"}:
+                            # Try progressively lower quality, then reduce dimensions if needed.
+                            candidate = img.copy()
+                            while True:
+                                for candidate_quality in range(min(quality, 95), 19, -10):
+                                    candidate.save(out_path, format=target_fmt, quality=candidate_quality, optimize=True, **save_metadata)
+                                    if os.path.getsize(out_path) <= target_bytes:
+                                        return
+                                if candidate.width <= 160 or candidate.height <= 160:
+                                    break
+                                candidate = candidate.resize((max(1, int(candidate.width * 0.85)), max(1, int(candidate.height * 0.85))), Image.Resampling.LANCZOS)
+                            return
+                        img.save(out_path, format=target_fmt, quality=quality, **save_metadata)
                 return
 
         # 2. PDF -> IMAGES (PyMuPDF)
@@ -652,6 +848,20 @@ class OmniConverterEngine:
             dst_ext in ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"]):
             if check_ffmpeg():
                 cmd = ["ffmpeg", "-y", "-i", src_path]
+                target_bytes = self._target_size_bytes(options)
+                target_bitrate_set = False
+                if target_bytes:
+                    duration = self._probe_duration(src_path)
+                    if duration:
+                        total_kbps = max(32, int(target_bytes * 8 * 0.88 / duration / 1000))
+                        if dst_ext in ["mp4", "webm"]:
+                            audio_kbps = min(128, max(32, total_kbps // 8))
+                            video_kbps = max(64, total_kbps - audio_kbps)
+                            cmd.extend(["-b:v", f"{video_kbps}k", "-b:a", f"{audio_kbps}k"])
+                            target_bitrate_set = True
+                        elif dst_ext in ["mp3", "aac", "ogg"]:
+                            cmd.extend(["-b:a", f"{total_kbps}k"])
+                            target_bitrate_set = True
 
                 # Video Options
                 if dst_ext in ["mp4", "webm", "gif"]:
@@ -669,7 +879,7 @@ class OmniConverterEngine:
                         cmd.append("-an")
 
                 # Audio / Audio Extraction Options
-                if dst_ext in ["mp3", "wav", "aac", "flac", "ogg"]:
+                if dst_ext in ["mp3", "wav", "aac", "flac", "ogg"] and not target_bitrate_set:
                     cmd.append("-vn")
                     ab = str(options.get("audio_bitrate") or options.get("audioBitrate") or "320k").replace("kbps", "").replace("k", "")
                     cmd.extend(["-b:a", f"{ab}k"])

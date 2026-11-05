@@ -55,6 +55,26 @@ def test_single_file_conversion_endpoint():
     assert response.headers["content-type"] in ["application/json", "application/octet-stream"]
 
 
+def test_corrupt_image_returns_actionable_conversion_error():
+    response = client.post(
+        "/api/convert",
+        files={"file": ("broken.png", b"not a real image", "image/png")},
+        data={"target_format": "webp"},
+    )
+    assert response.status_code == 400
+    assert "corrupted" in response.json()["detail"].lower()
+
+
+def test_empty_conversion_upload_has_clear_error():
+    response = client.post(
+        "/api/convert",
+        files={"file": ("empty.txt", b"", "text/plain")},
+        data={"target_format": "json"},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "The uploaded file is empty."
+
+
 def test_batch_zip_conversion_endpoint():
     """Verify POST /api/convert/zip endpoint processes batch files and returns ZIP archive."""
     file1 = ("doc1.txt", b"First doc text", "text/plain")
@@ -180,6 +200,24 @@ def test_image_conversion_endpoint():
     )
     assert response.status_code == 200
     assert response.headers["content-type"] in ["image/webp", "application/octet-stream"]
+
+
+def test_metadata_inspection_uses_file_content_not_extension():
+    from PIL import Image
+    image = Image.new("RGB", (16, 16), color="red")
+    exif = image.getexif()
+    exif[272] = "OmniTest Camera"
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", exif=exif)
+
+    response = client.post(
+        "/api/metadata/inspect",
+        files={"file": ("misnamed.png", buffer.getvalue(), "image/png")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["format"] == "jpg"
+    assert data["fields"]["Camera model"] == "OmniTest Camera"
 
 
 def test_ai_tts_endpoint():

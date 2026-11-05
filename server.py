@@ -15,6 +15,9 @@ import socket
 import threading
 import urllib.request
 import urllib.error
+import tempfile
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -35,6 +38,60 @@ from watch_daemon import WatchFolderDaemon
 MAX_UPLOAD_BYTES   = 200 * 1024 * 1024   # 200 MB per file
 MAX_BATCH_FILES    = 50                   # max files per batch request
 MAX_TTS_CHARS      = 2000                 # max chars for TTS synthesis
+TEMP_RETENTION_SECONDS = 24 * 60 * 60
+TEMP_ARTIFACT_PREFIXES = (
+    "omni_conv_", "omni_batch_", "omni_pdf_", "omni_ocr_", "omni_merge_",
+    "omni_split_", "omni_compress_", "omni_protect_", "omni_unlock_", "omni_rotate_",
+)
+logger = logging.getLogger("omniconverter")
+
+
+def cleanup_temp_file(file_path: str) -> None:
+    """Remove a response's generated temp folder, limited to OmniConverter's temp artifacts."""
+    try:
+        root = Path(tempfile.gettempdir()).resolve()
+        parent = Path(file_path).resolve().parent
+        if not parent.is_relative_to(root):
+            return
+        if not parent.name.startswith(TEMP_ARTIFACT_PREFIXES) or parent.is_symlink():
+            return
+        if parent.is_dir():
+            shutil.rmtree(parent)
+    except FileNotFoundError:
+        return
+    except OSError:
+        logger.exception("Could not remove conversion temp directory for %s", Path(file_path).name)
+
+
+def cleanup_stale_temp_dirs(max_age_seconds: int = TEMP_RETENTION_SECONDS) -> int:
+    """Remove abandoned OmniConverter temp folders older than the retention window."""
+    root = Path(tempfile.gettempdir()).resolve()
+    cutoff = time.time() - max(0, max_age_seconds)
+    removed = 0
+    try:
+        for candidate in root.iterdir():
+            if (candidate.is_symlink() or not candidate.is_dir()
+                    or not candidate.name.startswith(TEMP_ARTIFACT_PREFIXES)):
+                continue
+            try:
+                if candidate.stat().st_mtime < cutoff:
+                    shutil.rmtree(candidate)
+                    removed += 1
+            except FileNotFoundError:
+                continue
+            except OSError:
+                logger.exception("Could not remove stale temp directory %s", candidate.name)
+    except OSError:
+        logger.exception("Could not scan temp directory %s", root)
+    return removed
+
+
+@asynccontextmanager
+async def app_lifespan(_app):
+    removed = cleanup_stale_temp_dirs()
+    if removed:
+        logger.info("Removed %s stale OmniConverter temp folders", removed)
+    yield
 
 ALLOWED_EXTENSIONS = {
     # Documents
@@ -70,6 +127,7 @@ app = FastAPI(
     version="5.0.0",
     docs_url="/docs" if ENV == "dev" else None,
     redoc_url="/redoc" if ENV == "dev" else None,
+    lifespan=app_lifespan,
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -125,11 +183,13 @@ def sanitize_filename(name: str) -> str:
     name = re.sub(r'[^\w\-.() ]', '_', name)
     return name[:128] or "upload"
 
-def validate_extension(filename: str):
-    """Raise 415 if file extension is not in the allowed set."""
+def validate_extension(filename: str, content: bytes | None = None):
+    """Validate by detected content when available, using the suffix as a fallback."""
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=415, detail=f"Unsupported file type '{ext}'. Upload a supported format.")
+        detected = converter_engine.detect_format(content, filename) if content else None
+        if not detected:
+            raise HTTPException(status_code=415, detail=f"Unsupported file type '{ext}'. Upload a supported format.")
 
 def validate_target_format(target_format: str):
     """Raise 400 if target_format is not a recognised conversion target."""
@@ -137,6 +197,20 @@ def validate_target_format(target_format: str):
     if not fmt or not re.match(r'^[a-z0-9]{1,10}$', fmt):
         raise HTTPException(status_code=400, detail=f"Invalid target format: '{target_format}'")
     return fmt
+
+def user_facing_conversion_error(error: str) -> str:
+    """Translate common converter/dependency failures into concise actionable messages."""
+    message = (error or "").strip()
+    lowered = message.lower()
+    if "cannot identify image file" in lowered or "not a valid pdf" in lowered or "badzipfile" in lowered:
+        return "This file appears corrupted or its contents do not match its file type. Check the file and try again."
+    if "ffmpeg executable not found" in lowered:
+        return "Audio/video conversion requires FFmpeg. Install it and make sure it is available on PATH, then restart OmniConverter."
+    if "no conversion route" in lowered or "converter is not registered" in lowered:
+        return "This input and output format combination is not supported. Choose another output format."
+    if not message:
+        return "Conversion failed. Check the file and selected output format, then try again."
+    return f"Conversion failed: {message[:500]}"
 
 def guard_watch_path(raw: str) -> Path:
     """Resolve a user-selected absolute local path for the watch daemon."""
@@ -210,15 +284,6 @@ def save_db(data: Dict[str, Any]):
         except Exception as e:
             print(f"[DB Save Error]: {e}")
 
-def cleanup_temp_file(file_path: str):
-    """Background task to remove temp conversion directory after file streaming."""
-    try:
-        parent_dir = Path(file_path).parent
-        if parent_dir.exists() and ("omni_conv_" in parent_dir.name or "omni_batch_" in parent_dir.name or "omni_pdf_" in parent_dir.name):
-            shutil.rmtree(parent_dir, ignore_errors=True)
-    except Exception as e:
-        print(f"[Cleanup Warning]: {e}")
-
 # Serve main application HTML page (React frontend prioritized, fallback to templates/index.html)
 @app.get("/")
 @app.get("/app/{path:path}")
@@ -263,6 +328,23 @@ async def get_formats():
     """Returns dynamic format metadata, categories, and allowed target formats."""
     return converter_engine.get_supported_formats()
 
+@app.post("/api/metadata/inspect")
+async def inspect_file_metadata(file: UploadFile = File(...)):
+    """Inspect common metadata in PDFs and supported raster images without saving the upload."""
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum upload size is 200 MB.")
+    detected = converter_engine.detect_format(content, file.filename or "upload")
+    if detected != "pdf" and detected not in {"png", "jpg", "jpeg", "webp", "gif", "bmp", "ico", "tiff"}:
+        raise HTTPException(status_code=415, detail="Metadata inspection is available for PDF and image files.")
+    try:
+        return converter_engine.inspect_metadata(content, file.filename or "upload")
+    except Exception as exc:
+        logger.info("Metadata inspection failed for uploaded file: %s", exc)
+        raise HTTPException(status_code=400, detail="The file could not be inspected. It may be corrupted or use an unsupported encoding.") from exc
+
 @app.get("/api/health")
 async def health_check():
     return {
@@ -291,7 +373,6 @@ async def convert_single_file(
     scale: Optional[float] = Form(None),
     quality: Optional[int] = Form(None)
 ):
-    validate_extension(file.filename)
     target_format = validate_target_format(target_format)
 
     try:
@@ -308,6 +389,9 @@ async def convert_single_file(
     if quality: opt_dict["quality"] = quality
 
     content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+    validate_extension(file.filename, content)
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large. Maximum upload size is 200 MB.")
 
@@ -315,7 +399,7 @@ async def convert_single_file(
     res = converter_engine.convert_file(content, safe_name, target_format, opt_dict)
 
     if not res.success:
-        raise HTTPException(status_code=400, detail=f"Conversion error: {res.error}")
+        raise HTTPException(status_code=400, detail=user_facing_conversion_error(res.error))
 
     # Record stats
     db = load_db()
@@ -367,8 +451,10 @@ async def convert_batch_files(
     file_tuples = []
     total_bytes = 0
     for f in files:
-        validate_extension(f.filename)
         data = await f.read()
+        if not data:
+            raise HTTPException(400, f"The uploaded file '{sanitize_filename(f.filename)}' is empty.")
+        validate_extension(f.filename, data)
         if len(data) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, f"File '{sanitize_filename(f.filename)}' exceeds 200 MB limit.")
         total_bytes += len(data)
@@ -527,6 +613,7 @@ async def api_pdf_merge(
     try:
         converter_engine.merge_pdfs(pdf_paths, out_path, pwd_list)
     except Exception as e:
+        cleanup_temp_file(out_path)
         raise HTTPException(status_code=400, detail=str(e))
 
     background_tasks.add_task(cleanup_temp_file, out_path)
@@ -554,6 +641,7 @@ async def api_pdf_split(
     try:
         actual_out = converter_engine.split_pdf(src_path, page_range, out_path, mode=mode, password=password)
     except Exception as e:
+        cleanup_temp_file(src_path)
         raise HTTPException(status_code=400, detail=str(e))
 
     mime = "application/zip" if mode == "zip" else "application/pdf"
@@ -578,6 +666,7 @@ async def api_pdf_compress(
     try:
         converter_engine.compress_pdf(src_path, out_path, level=level, password=password)
     except Exception as e:
+        cleanup_temp_file(src_path)
         raise HTTPException(status_code=400, detail=str(e))
 
     background_tasks.add_task(cleanup_temp_file, out_path)
@@ -600,6 +689,7 @@ async def api_pdf_protect(
     try:
         converter_engine.protect_pdf(src_path, password, out_path)
     except Exception as e:
+        cleanup_temp_file(src_path)
         raise HTTPException(status_code=400, detail=str(e))
 
     background_tasks.add_task(cleanup_temp_file, out_path)
@@ -622,6 +712,7 @@ async def api_pdf_unlock(
     try:
         converter_engine.unlock_pdf(src_path, password, out_path)
     except Exception as e:
+        cleanup_temp_file(src_path)
         raise HTTPException(status_code=400, detail=str(e))
 
     background_tasks.add_task(cleanup_temp_file, out_path)
@@ -646,6 +737,7 @@ async def api_pdf_rotate(
     try:
         converter_engine.rotate_pdf(src_path, angle, out_path, page_range=page_range, password=password)
     except Exception as e:
+        cleanup_temp_file(src_path)
         raise HTTPException(status_code=400, detail=str(e))
 
     background_tasks.add_task(cleanup_temp_file, out_path)
