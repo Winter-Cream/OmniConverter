@@ -279,7 +279,7 @@
              ondrop="handleDrop(event)">
           <span class="dropzone-icon">📁</span>
           <p style="font-size:.9rem;font-weight:600;margin-bottom:.35rem">Drop files here or click to browse</p>
-          <p style="font-size:.78rem;color:var(--text-muted)">PDF, DOCX, XLSX, PNG, JPG, MP3, MP4, CSV and 40+ more</p>
+          <p style="font-size:.78rem;color:var(--text-muted)">PDF, DOCX, PPTX, PNG, JPG, MP3, MP4, CSV, XLSX and more</p>
           <input type="file" id="file-input" style="display:none" multiple onchange="handleFileSelect(this.files)" />
         </div>
 
@@ -291,8 +291,9 @@
             <select id="target-format">
               <optgroup label="Documents">
                 <option value="pdf">PDF</option><option value="docx">DOCX</option>
+                <option value="pptx">PPTX</option>
                 <option value="txt">TXT</option><option value="html">HTML</option>
-                <option value="xlsx">XLSX</option><option value="csv">CSV</option>
+                <option value="md">Markdown</option>
               </optgroup>
               <optgroup label="Images">
                 <option value="png">PNG</option><option value="jpg">JPG</option>
@@ -310,7 +311,8 @@
               </optgroup>
               <optgroup label="Data">
                 <option value="json">JSON</option><option value="xml">XML</option>
-                <option value="yaml">YAML</option>
+                <option value="yaml">YAML</option><option value="csv">CSV</option>
+                <option value="tsv">TSV</option><option value="xlsx">XLSX</option>
               </optgroup>
             </select>
           </div>

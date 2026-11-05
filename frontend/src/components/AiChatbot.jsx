@@ -57,7 +57,7 @@ const QUICK_CHIPS = {
     'Python batch file converter script',
     'Top 5 FFmpeg one-liner recipes',
     'Regex for URLs and phone numbers',
-    'Convert CSV to JSON in Python',
+    'Convert JSON to YAML in Python',
     'Shell script to watch and encode videos'
   ],
   writing: [
@@ -75,6 +75,23 @@ const QUICK_CHIPS = {
     'Aspect ratio calculator formula'
   ]
 };
+
+function getSavedAIModel() {
+  const provider = localStorage.getItem('omni_ai_provider') || 'builtin';
+  const saved = localStorage.getItem('omni_ai_model') || '';
+  const retiredDefaults = {
+    'gemini-1.5-flash': 'gemini-3.8-flash',
+    'gemini-1.5-pro': 'gemini-3.8-flash',
+    'gemini-2.0-flash': 'gemini-3.8-flash',
+    'gpt-4o': 'gpt-5.5',
+    'gpt-4o-mini': 'gpt-5.5',
+    'claude-3-5-sonnet-20241022': 'claude-sonnet-4-6',
+    'grok-2': 'grok-4.7',
+    'grok-2-latest': 'grok-4.7',
+    'grok-beta': 'grok-4.7'
+  };
+  return retiredDefaults[saved] || (provider === 'gemini' && saved.startsWith('gemini-1.5-') ? 'gemini-3.8-flash' : saved);
+}
 
 export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotlight }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +114,7 @@ export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotligh
   // Settings
   const [provider, setProvider] = useState(() => localStorage.getItem('omni_ai_provider') || 'builtin');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('omni_ai_key') || '');
-  const [model, setModel] = useState(() => localStorage.getItem('omni_ai_model') || '');
+  const [model, setModel] = useState(getSavedAIModel);
   const [endpoint, setEndpoint] = useState(() => localStorage.getItem('omni_ai_endpoint') || '');
 
   const messagesEndRef = useRef(null);
@@ -188,7 +205,11 @@ export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotligh
     setLoading(true);
 
     try {
-      const history = newMsgs.map(m => ({ role: m.role, content: m.content }));
+      // Send prior turns only. The API appends this user message once.
+      const history = messages
+        .filter(m => m.content !== getChatWelcome(lang))
+        .slice(-6)
+        .map(m => ({ role: m.role, content: m.content }));
       const res = await sendAIChat(userMsg, provider, apiKey, model, history, endpoint, activeMode);
       setMessages(prev => [...prev, { role: 'assistant', content: res.reply || 'No response generated.' }]);
       playSound('success', sfx);
@@ -800,10 +821,10 @@ export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotligh
                   options={[
                     { value: 'builtin', label: '⚡ Built-in Super Engine (Instant, Offline, Free)' },
                     { value: 'ollama', label: '🦙 Ollama (100% Local LLM, Private, DeepSeek/Llama)' },
-                    { value: 'gemini', label: '🌟 Google Gemini (Gemini 2.0 Flash / 1.5 Flash)' },
-                    { value: 'openai', label: '🤖 OpenAI (GPT-4o / GPT-4o-mini)' },
-                    { value: 'claude', label: '🧠 Anthropic Claude (Claude 3.5 Sonnet)' },
-                    { value: 'grok', label: '⚡ xAI Grok (Grok-2)' },
+                    { value: 'gemini', label: '🌟 Google Gemini' },
+                    { value: 'openai', label: '🤖 OpenAI' },
+                    { value: 'claude', label: '🧠 Anthropic Claude' },
+                    { value: 'grok', label: '⚡ xAI Grok' },
                     { value: 'custom', label: '🌐 Custom / OpenRouter (OpenAI-compatible Endpoint)' }
                   ]}
                   accentColor="var(--brand-500)"
@@ -815,7 +836,7 @@ export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotligh
                   {provider === 'ollama' && 'Connects to your local Ollama runtime. Runs 100% on your machine.'}
                   {provider === 'gemini' && 'Connects to Google Cloud Generative Language API.'}
                   {provider === 'openai' && 'Connects directly to OpenAI platform endpoints.'}
-                  {provider === 'claude' && 'Connects directly to Anthropic Claude 3.5 Sonnet.'}
+                  {provider === 'claude' && 'Connects directly to the Anthropic Messages API.'}
                   {provider === 'grok' && 'Connects directly to xAI Grok API.'}
                   {provider === 'custom' && 'Works with OpenRouter, LM Studio, vLLM, or LocalAI.'}
                 </div>
@@ -852,7 +873,7 @@ export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotligh
                   </label>
                   <input
                     type="text"
-                    placeholder="https://openrouter.ai/api/v1/chat/completions"
+                    placeholder="https://openrouter.ai/api/v1 (or full /chat/completions URL)"
                     value={endpoint}
                     onChange={(e) => setEndpoint(e.target.value)}
                     style={{
@@ -891,7 +912,7 @@ export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotligh
                     }}
                   />
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    Key is saved only in your local browser session and never sent elsewhere.
+                    The key is stored in this browser and sent to the selected provider for authentication. Your prompt goes to that provider; Built-in mode stays offline.
                   </div>
                 </div>
               )}
@@ -903,7 +924,7 @@ export default function AiChatbot({ sfx, lang = 'en', onNavigate, onOpenSpotligh
                   </label>
                   <input
                     type="text"
-                    placeholder={provider === 'ollama' ? 'e.g. llama3.2 or deepseek-r1' : 'e.g. gemini-2.0-flash or gpt-4o'}
+                    placeholder={provider === 'ollama' ? 'e.g. llama3.2 or deepseek-r1' : provider === 'gemini' ? 'e.g. gemini-3.8-flash' : provider === 'claude' ? 'e.g. claude-sonnet-4-6' : provider === 'grok' ? 'e.g. grok-4.7' : provider === 'openai' ? 'e.g. gpt-5.5' : 'Enter the model ID for your provider'}
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
                     style={{

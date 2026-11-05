@@ -50,7 +50,7 @@ const I18N_DICT = {
     statsLogs: "Activity Logs",
     questsBadges: "Achievements",
     dropzoneTitle: "Drop files here or click to browse",
-    dropzoneSub: "Supports PDF, DOCX, XLSX, PPTX, PNG, JPG, WEBP, MP3, MP4, CSV, JSON & 50+ formats",
+    dropzoneSub: "Supports PDF, DOCX, PPTX, PNG, JPG, WEBP, MP3, MP4, JSON & 50+ formats",
     processQueueBtn: "Start Batch Conversion",
     clearQueueBtn: "Clear Queue",
     watchFolderTitle: "Watch Folder Automation Daemon",
@@ -72,7 +72,7 @@ const I18N_DICT = {
     statsLogs: "Estadísticas y Registros",
     questsBadges: "Misiones y Logros",
     dropzoneTitle: "Arrastre archivos aquí o haga clic",
-    dropzoneSub: "Soporta PDF, DOCX, XLSX, PPTX, PNG, JPG, MP3, MP4 y más de 50 formatos",
+    dropzoneSub: "Soporta PDF, DOCX, PPTX, PNG, JPG, MP3, MP4 y más de 50 formatos",
     processQueueBtn: "Iniciar Conversión en Lote",
     clearQueueBtn: "Limpiar Cola",
     watchFolderTitle: "Demonio de Automatización de Carpeta",
@@ -94,7 +94,7 @@ const I18N_DICT = {
     statsLogs: "Stats & Journaux",
     questsBadges: "Quêtes & Badges",
     dropzoneTitle: "Déposez des fichiers ici ou cliquez pour parcourir",
-    dropzoneSub: "Prend en charge PDF, DOCX, XLSX, PPTX, PNG, JPG, MP3, MP4",
+    dropzoneSub: "Prend en charge PDF, DOCX, PPTX, PNG, JPG, MP3, MP4",
     processQueueBtn: "Lancer la Conversion",
     clearQueueBtn: "Vider la File",
     watchFolderTitle: "Démon de Surveillance de Dossier",
@@ -116,7 +116,7 @@ const I18N_DICT = {
     statsLogs: "Statistiken & Protokolle",
     questsBadges: "Aufgaben & Abzeichen",
     dropzoneTitle: "Dateien hier ablegen oder klicken",
-    dropzoneSub: "Unterstützt PDF, DOCX, XLSX, PPTX, PNG, JPG, MP3, MP4 & 50+ Formate",
+    dropzoneSub: "Unterstützt PDF, DOCX, PPTX, PNG, JPG, MP3, MP4 & 50+ Formate",
     processQueueBtn: "Stapelkonvertierung Starten",
     clearQueueBtn: "Warteschlange Leeren",
     watchFolderTitle: "Ordner-Überwachungs-Daemon",
@@ -138,7 +138,7 @@ const I18N_DICT = {
     statsLogs: "統計とログ",
     questsBadges: "クエストとバッジ",
     dropzoneTitle: "ファイルをドロップするかクリックして選択",
-    dropzoneSub: "PDF、DOCX、XLSX、PPTX、PNG、JPG、MP3、MP4等50以上の形式に対応",
+    dropzoneSub: "PDF、DOCX、PPTX、PNG、JPG、MP3、MP4等50以上の形式に対応",
     processQueueBtn: "一括変換を開始",
     clearQueueBtn: "キューを消去",
     watchFolderTitle: "フォルダ監視自動化デーモン",
@@ -160,7 +160,7 @@ const I18N_DICT = {
     statsLogs: "统计与日志",
     questsBadges: "任务与勋章",
     dropzoneTitle: "拖放文件至此或点击浏览",
-    dropzoneSub: "支持 PDF、DOCX、XLSX、PPTX、PNG、JPG、MP3、MP4 等50+格式",
+    dropzoneSub: "支持 PDF、DOCX、PPTX、PNG、JPG、MP3、MP4 等50+格式",
     processQueueBtn: "开始批量转换",
     clearQueueBtn: "清空队列",
     watchFolderTitle: "文件夹监视自动化守护进程",
@@ -182,7 +182,7 @@ const I18N_DICT = {
     statsLogs: "आंकड़े और लॉग",
     questsBadges: "क्वेस्ट और बैज",
     dropzoneTitle: "फ़ाइलों को यहाँ खींचें या ब्राउज़ करने के लिए क्लिक करें",
-    dropzoneSub: "PDF, DOCX, XLSX, PPTX, PNG, JPG, MP3, MP4 और 50+ प्रारूप समर्थित",
+    dropzoneSub: "PDF, DOCX, PPTX, PNG, JPG, MP3, MP4 और 50+ प्रारूप समर्थित",
     processQueueBtn: "बैच रूपांतरण शुरू करें",
     clearQueueBtn: "कतार साफ़ करें",
     watchFolderTitle: "वॉच फ़ोल्डर ऑटोमेशन डेमन",
@@ -426,8 +426,8 @@ function updateThemeUI() {
 // CONTEXT-AWARE FILE CATEGORY DETECTION
 function getFileCategory(filename) {
   const ext = filename.split('.').pop().toLowerCase();
-  if (["mp4", "webm", "avi", "mov", "mkv"].includes(ext)) return "video";
-  if (["mp3", "wav", "aac", "flac", "ogg", "m4a"].includes(ext)) return "audio";
+  if (["mp4", "webm", "avi", "mov", "mkv", "flv", "wmv", "m4v"].includes(ext)) return "video";
+  if (["mp3", "wav", "aac", "flac", "ogg", "m4a", "opus"].includes(ext)) return "audio";
   if (["png", "jpg", "jpeg", "webp", "gif", "bmp", "ico", "tiff"].includes(ext)) return "image";
   return "document";
 }
@@ -438,8 +438,12 @@ function getDefaultTargetFormatForCategory(category, filename) {
   if (category === "audio") return "mp3";
   if (category === "image") return ext === "webp" ? "png" : "webp";
   if (ext === "pdf") return "docx";
-  if (ext === "docx") return "pdf";
-  if (ext === "xlsx" || ext === "csv") return "json";
+  if (ext === "docx" || ext === "doc") return "pdf";
+  if (ext === "pptx" || ext === "ppt") return "pdf";
+  if (["csv", "tsv", "xlsx"].includes(ext)) return "json";
+  if (["xml", "yaml", "yml"].includes(ext)) return "json";
+  if (ext === "md") return "html";
+  if (ext === "json") return "txt";
   return "pdf";
 }
 
@@ -688,10 +692,12 @@ function renderQueue() {
           <select onchange="updateQueueItemFormat('${item.id}', this.value)" class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-brand-600 dark:text-brand-300 font-bold focus:outline-none focus:border-brand-500">
             <option value="pdf" ${item.targetFormat === 'pdf' ? 'selected' : ''}>PDF Document</option>
             <option value="docx" ${item.targetFormat === 'docx' ? 'selected' : ''}>Word DOCX</option>
+            <option value="pptx" ${item.targetFormat === 'pptx' ? 'selected' : ''}>PowerPoint PPTX</option>
             <option value="txt" ${item.targetFormat === 'txt' ? 'selected' : ''}>Plain Text TXT</option>
             <option value="html" ${item.targetFormat === 'html' ? 'selected' : ''}>HTML Webpage</option>
             <option value="json" ${item.targetFormat === 'json' ? 'selected' : ''}>JSON Data</option>
             <option value="csv" ${item.targetFormat === 'csv' ? 'selected' : ''}>CSV Data</option>
+            <option value="xlsx" ${item.targetFormat === 'xlsx' ? 'selected' : ''}>Excel XLSX</option>
           </select>
         </div>
       `;
@@ -863,31 +869,6 @@ async function convertClientSide(file, targetFmt) {
   }
 
   const text = await file.text();
-  if (ext === "csv" && targetFmt === "json") {
-    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-    if (lines.length === 0) return "data:application/json,[]";
-    const headers = lines[0].split(",");
-    const result = lines.slice(1).map(line => {
-      const values = line.split(",");
-      let obj = {};
-      headers.forEach((h, i) => obj[h.trim()] = values[i] ? values[i].trim() : "");
-      return obj;
-    });
-    return "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(result, null, 2));
-  }
-
-  if (ext === "json" && targetFmt === "csv") {
-    const data = JSON.parse(text);
-    if (Array.isArray(data) && data.length > 0) {
-      const headers = Object.keys(data[0]);
-      const csvLines = [headers.join(",")];
-      data.forEach(row => {
-        csvLines.push(headers.map(h => JSON.stringify(row[h] || "")).join(","));
-      });
-      return "data:text/csv;charset=utf-8," + encodeURIComponent(csvLines.join("\n"));
-    }
-  }
-
   return "data:text/plain;charset=utf-8," + encodeURIComponent(text);
 }
 

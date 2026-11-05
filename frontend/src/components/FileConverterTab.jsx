@@ -29,7 +29,7 @@ import FileOptionsModal from './FileOptionsModal';
 
 function getFileCategoryIcon(filename) {
   const ext = (filename || '').split('.').pop().toLowerCase();
-  if (['pdf', 'docx', 'doc', 'txt', 'rtf', 'odt', 'html', 'md'].includes(ext)) {
+  if (['pdf', 'docx', 'doc', 'pptx', 'ppt', 'txt', 'rtf', 'odt', 'html', 'md'].includes(ext)) {
     return <FileText size={18} style={{ color: '#ef4444' }} />;
   }
   if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ico', 'svg', 'tiff'].includes(ext)) {
@@ -41,7 +41,7 @@ function getFileCategoryIcon(filename) {
   if (['mp4', 'webm', 'mkv', 'avi', 'mov', 'flv'].includes(ext)) {
     return <VideoIcon size={18} style={{ color: '#f59e0b' }} />;
   }
-  if (['csv', 'xlsx', 'xls', 'json', 'tsv', 'xml', 'yaml'].includes(ext)) {
+  if (['csv', 'xlsx', 'json', 'tsv', 'xml', 'yaml', 'yml'].includes(ext)) {
     return <FileSpreadsheet size={18} style={{ color: '#10b981' }} />;
   }
   return <FileIcon size={18} style={{ color: 'var(--text-muted)' }} />;
@@ -93,10 +93,13 @@ export default function FileConverterTab({
       return formats.extensions[ext].targets || ['pdf', 'txt'];
     }
     // Fallback based on common formats
-    if (['png', 'jpg', 'jpeg', 'webp', 'bmp', 'ico', 'gif', 'tiff'].includes(ext)) {
+    if (['png', 'jpg', 'jpeg', 'webp', 'bmp', 'ico', 'gif', 'tiff', 'svg'].includes(ext)) {
       return ['png', 'jpg', 'webp', 'bmp', 'ico', 'pdf'];
     }
-    if (['pdf', 'docx', 'txt', 'html', 'md'].includes(ext)) {
+    if (['pptx', 'ppt'].includes(ext)) {
+      return ['pdf', 'docx', 'txt', 'html', 'png', 'jpg'];
+    }
+    if (['pdf', 'docx', 'doc', 'txt', 'html', 'md'].includes(ext)) {
       return ['pdf', 'docx', 'txt', 'html', 'md', 'png', 'jpg'];
     }
     if (['mp3', 'wav', 'ogg', 'flac', 'aac'].includes(ext)) {
@@ -105,8 +108,17 @@ export default function FileConverterTab({
     if (['mp4', 'webm', 'mkv', 'avi'].includes(ext)) {
       return ['mp4', 'webm', 'gif', 'mp3', 'wav', 'aac'];
     }
-    if (['csv', 'json', 'xlsx'].includes(ext)) {
-      return ['csv', 'json', 'xlsx', 'txt'];
+    if (['csv', 'tsv', 'xlsx'].includes(ext)) {
+      return ['csv', 'tsv', 'xlsx', 'json', 'txt', 'pdf'];
+    }
+    if (['json'].includes(ext)) {
+      return ['json', 'yaml', 'csv', 'tsv', 'xlsx', 'txt'];
+    }
+    if (['xml'].includes(ext)) {
+      return ['json'];
+    }
+    if (['yaml', 'yml'].includes(ext)) {
+      return ['json'];
     }
     return ['pdf', 'txt', 'json'];
   };
@@ -378,7 +390,7 @@ export default function FileConverterTab({
           gap: '0.5rem',
           marginTop: '1.25rem'
         }}>
-          {['PDF & Documents', 'PNG, JPG & Images', 'MP4 & Videos', 'MP3 & Audio', 'CSV & Spreadsheets'].map((fmt) => (
+          {['PDF & Documents', 'PNG, JPG & Images', 'MP4 & Videos', 'MP3 & Audio', 'CSV, XLSX & Data'].map((fmt) => (
             <span 
               key={fmt} 
               className="badge badge-neutral" 
@@ -456,6 +468,8 @@ export default function FileConverterTab({
                     { value: 'mp4', label: 'MP4' },
                     { value: 'txt', label: 'TXT' },
                     { value: 'docx', label: 'DOCX' },
+                    { value: 'pptx', label: 'PPTX' },
+                    { value: 'csv', label: 'CSV' },
                     { value: 'xlsx', label: 'XLSX' }
                   ]}
                   accentColor="var(--brand-500)"
@@ -885,7 +899,7 @@ export default function FileConverterTab({
                   type="text"
                   value={watchConfig.targetFormat}
                   onChange={(e) => setWatchConfig(prev => ({ ...prev, targetFormat: e.target.value.toLowerCase() }))}
-                  placeholder="e.g. pdf, png, mp3"
+                  placeholder="e.g. pdf, png, json"
                   style={{
                     width: '100%',
                     padding: '0.5rem 0.75rem',

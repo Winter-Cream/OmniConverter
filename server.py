@@ -38,17 +38,17 @@ MAX_TTS_CHARS      = 2000                 # max chars for TTS synthesis
 
 ALLOWED_EXTENSIONS = {
     # Documents
-    ".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt",
-    ".txt", ".rtf", ".odt", ".ods", ".odp", ".html", ".htm",
+    ".pdf", ".docx", ".pptx",
+    ".txt", ".md", ".html", ".htm",
     # Images
     ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff",
-    ".tif", ".svg", ".ico", ".heic", ".heif",
+    ".svg", ".ico",
     # Audio
-    ".mp3", ".wav", ".aac", ".ogg", ".flac", ".m4a", ".opus", ".wma",
+    ".mp3", ".wav", ".aac", ".ogg", ".flac", ".m4a", ".opus",
     # Video
     ".mp4", ".avi", ".mkv", ".mov", ".webm", ".flv", ".wmv", ".m4v",
     # Data / Code
-    ".csv", ".json", ".xml", ".yaml", ".yml", ".tsv", ".sql", ".md",
+    ".json", ".xml", ".yaml", ".yml", ".tsv", ".sql", ".csv", ".xlsx",
     ".py", ".js", ".ts", ".java", ".c", ".cpp", ".rs", ".go",
 }
 
@@ -437,8 +437,11 @@ async def configure_watch_folder(
     safe_out = guard_watch_path(output_path)
     target_format = validate_target_format(target_format)
 
-    if enabled and safe_in == safe_out:
-        raise HTTPException(400, "Input and output folders must be different.")
+    valid_targets = {target for targets in converter_engine.FORMAT_TARGETS.values() for target in targets}
+    if target_format not in valid_targets:
+        raise HTTPException(400, f"Unsupported watch-folder target format '{target_format}'.")
+    if enabled and (safe_in == safe_out or safe_in in safe_out.parents or safe_out in safe_in.parents):
+        raise HTTPException(400, "Input and output folders must not be the same or nested inside one another.")
     if enabled:
         try:
             safe_in.mkdir(parents=True, exist_ok=True)
@@ -712,7 +715,33 @@ class AIChatRequest(BaseModel):
     model: Optional[str] = None
     endpoint: Optional[str] = None
     mode: Optional[str] = "universal"
-    history: Optional[List[Dict[str, str]]] = []
+    history: Optional[List[Dict[str, str]]] = None
+
+
+def _ai_history(req: AIChatRequest) -> List[Dict[str, str]]:
+    """Keep a short, clean conversational context and avoid duplicating this turn."""
+    history = []
+    for entry in (req.history or [])[-6:]:
+        role = entry.get("role")
+        content = entry.get("content")
+        if role not in {"user", "assistant"} or not isinstance(content, str) or not content.strip():
+            continue
+        if role == "user" and content.strip() == req.message.strip():
+            continue
+        history.append({"role": role, "content": content[-2000:]})
+    return history
+
+
+def _response_text(response: Dict[str, Any]) -> str:
+    """Read text from OpenAI-compatible Responses API results."""
+    if isinstance(response.get("output_text"), str) and response["output_text"].strip():
+        return response["output_text"].strip()
+    parts = []
+    for item in response.get("output", []):
+        for content in item.get("content", []):
+            if content.get("type") in {"output_text", "text"}:
+                parts.append(content.get("text", ""))
+    return "".join(parts).strip()
 
 
 def get_builtin_knowledge_reply(query: str, mode: str = "universal") -> str:
@@ -830,14 +859,13 @@ def get_builtin_knowledge_reply(query: str, mode: str = "universal") -> str:
         )
 
     # 5. DATA FORMATS
-    elif any(k in q for k in ["data", "json", "csv", "yaml", "xml", "sql", "excel", "xlsx"]):
+    elif any(k in q for k in ["data", "json", "yaml", "xml", "sql"]):
         return (
             "### 📊 Data & Structured Format Conversion\n\n"
             "OmniConverter transforms structured data formats with schema preservation:\n"
-            "- **CSV $\\leftrightarrow$ JSON**: Convert flat tabular CSV into structured JSON arrays and vice versa.\n"
             "- **JSON $\\leftrightarrow$ YAML**: Clean serialization for Kubernetes configs, GitHub Actions, and app settings.\n"
-            "- **XLSX $\\rightarrow$ CSV / PDF**: Fast spreadsheet extraction.\n"
-            "- **XML $\\rightarrow$ JSON**: Parse hierarchical tags into modern key-value dictionaries.\n\n"
+            "- **XML $\\rightarrow$ JSON**: Parse hierarchical tags into modern key-value dictionaries.\n"
+            "- **JSON $\\leftrightarrow$ TXT**: Clean tabular or text formatting extraction.\n\n"
             "[ACTION:OPEN_CONVERTER|📊 Open Data Converter]"
         )
 
@@ -995,11 +1023,11 @@ def get_builtin_knowledge_reply(query: str, mode: str = "universal") -> str:
     elif any(k in q for k in ["format", "supported", "extension", "type"]):
         return (
             "### 📑 Supported File Formats (50+ Types)\n\n"
-            "- **📄 Documents**: `PDF`, `DOCX`, `XLSX`, `PPTX`, `TXT`, `RTF`, `ODT`, `HTML`\n"
+            "- **📄 Documents**: `PDF`, `DOCX`, `PPTX`, `TXT`, `RTF`, `ODT`, `HTML`\n"
             "- **🖼️ Images**: `PNG`, `JPG`, `WEBP`, `GIF`, `BMP`, `TIFF`, `SVG`, `ICO`\n"
             "- **🎵 Audio**: `MP3`, `WAV`, `AAC`, `OGG`, `FLAC`, `M4A`, `OPUS`\n"
             "- **🎥 Video**: `MP4`, `AVI`, `MKV`, `MOV`, `WEBM`, `FLV`\n"
-            "- **📊 Data & Code**: `CSV`, `JSON`, `XML`, `YAML`, `TSV`, `SQL`\n\n"
+            "- **📊 Data & Code**: `JSON`, `XML`, `YAML`, `TSV`, `SQL`\n\n"
             "[ACTION:OPEN_CONVERTER|🚀 Go to File Converter]"
         )
 
@@ -1022,8 +1050,11 @@ def get_builtin_knowledge_reply(query: str, mode: str = "universal") -> str:
 @limiter.limit("30/minute")
 async def api_ai_chat(req: AIChatRequest, request: Request):
     provider = (req.provider or "builtin").lower()
+    known_providers = {"builtin", "ollama", "gemini", "openai", "claude", "grok", "custom", "openrouter"}
+    if provider not in known_providers:
+        raise HTTPException(status_code=400, detail=f"Unknown AI provider '{provider}'.")
     system_prompt = (
-        "You are OmniAI, the supreme universal AI copilot built into OmniConverter. "
+        "You are OmniAI, the helpful AI copilot built into OmniConverter. "
         "You help users with everything: file conversions (PDF, Video, Audio, Image, Data), "
         "programming & scripting (Python, JavaScript, Bash, SQL, Regex, FFmpeg), "
         "writing, summarization, multilingual translation, mathematics, technical troubleshooting, "
@@ -1031,147 +1062,134 @@ async def api_ai_chat(req: AIChatRequest, request: Request):
         "Always provide structured, clear, and proactive answers with markdown and code snippets where helpful."
     )
 
-    # BUILT-IN INTELLIGENCE (Instant & Offline)
-    if provider == "builtin" or not req.api_key:
-        # If user explicitly configured Ollama with no key needed
-        if provider == "ollama":
-            pass  # handled in Ollama block below
-        else:
-            # Check if query matches our extensive knowledge base
+    try:
+        if provider == "builtin":
             reply = get_builtin_knowledge_reply(req.message, req.mode or "universal")
             return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v5"}
 
-    try:
+        history = _ai_history(req)
+
         # LOCAL OLLAMA (100% Private & Offline)
         if provider == "ollama":
             model = req.model or "llama3.2"
             base_url = (req.endpoint or "http://localhost:11434").rstrip("/")
-            url = f"{base_url}/api/chat"
-            messages = [{"role": "system", "content": system_prompt}]
-            if req.history:
-                for h in req.history[-4:]:
-                    messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
-            messages.append({"role": "user", "content": req.message})
-
+            url = base_url if base_url.endswith("/api/chat") else f"{base_url}/api/chat"
+            messages = [{"role": "system", "content": system_prompt}, *history,
+                        {"role": "user", "content": req.message}]
             payload = {"model": model, "messages": messages, "stream": False}
-            data = json.dumps(payload).encode("utf-8")
-            h_req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(h_req, timeout=45) as resp:
+            headers = {"Content-Type": "application/json"}
+            with urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers), timeout=45) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
-                reply = res_data.get("message", {}).get("content", "No response from Ollama.")
-                return {"reply": reply, "provider": "ollama", "model": model}
+            reply = res_data.get("message", {}).get("content", "")
+            if not reply:
+                raise ValueError("Ollama returned an empty response. Check that the selected model is available.")
+            return {"reply": reply, "provider": provider, "model": model}
 
         # GOOGLE GEMINI
         elif provider == "gemini":
-            model = req.model or "gemini-2.0-flash"
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={req.api_key}"
-            prompt_text = f"{system_prompt}\n\nUser Question: {req.message}"
+            if not req.api_key:
+                raise HTTPException(status_code=400, detail="Add a Google AI Studio API key in OmniAI settings.")
+            model = req.model or "gemini-3.8-flash"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            contents = [{"role": "model" if item["role"] == "assistant" else "user",
+                         "parts": [{"text": item["content"]}]} for item in history]
+            contents.append({"role": "user", "parts": [{"text": req.message}]})
             payload = {
-                "contents": [{"parts": [{"text": prompt_text}]}],
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "contents": contents,
                 "generationConfig": {"temperature": 0.7, "maxOutputTokens": 2048}
             }
-            data = json.dumps(payload).encode("utf-8")
-            h_req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(h_req, timeout=30) as resp:
+            headers = {"Content-Type": "application/json", "x-goog-api-key": req.api_key}
+            with urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers), timeout=45) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
-                candidates = res_data.get("candidates", [])
-                if candidates and "content" in candidates[0]:
-                    parts = candidates[0]["content"].get("parts", [])
-                    reply = "".join(p.get("text", "") for p in parts)
-                    return {"reply": reply, "provider": "gemini", "model": model}
-                return {"reply": "No response generated from Gemini.", "provider": "gemini", "model": model}
+            candidates = res_data.get("candidates", [])
+            reply = "".join(part.get("text", "") for part in candidates[0].get("content", {}).get("parts", [])) if candidates else ""
+            if not reply:
+                raise ValueError("Gemini returned no text. The response may have been blocked by safety settings.")
+            return {"reply": reply, "provider": provider, "model": model}
 
-        # OPENAI (GPT-4o / GPT-4o-mini)
+        # OPENAI RESPONSES API
         elif provider == "openai":
-            model = req.model or "gpt-4o-mini"
-            url = "https://api.openai.com/v1/chat/completions"
-            messages = [{"role": "system", "content": system_prompt}]
-            if req.history:
-                for h in req.history[-4:]:
-                    messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
-            messages.append({"role": "user", "content": req.message})
-
-            payload = {"model": model, "messages": messages, "temperature": 0.7}
-            data = json.dumps(payload).encode("utf-8")
-            h_req = urllib.request.Request(url, data=data, headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {req.api_key}"
-            })
-            with urllib.request.urlopen(h_req, timeout=30) as resp:
+            if not req.api_key:
+                raise HTTPException(status_code=400, detail="Add an OpenAI API key in OmniAI settings.")
+            model = req.model or "gpt-5.5"
+            url = "https://api.openai.com/v1/responses"
+            payload = {"model": model, "instructions": system_prompt,
+                       "input": [*history, {"role": "user", "content": req.message}],
+                       "max_output_tokens": 2048, "store": False}
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {req.api_key}"}
+            with urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers), timeout=60) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
-                reply = res_data["choices"][0]["message"]["content"]
-                return {"reply": reply, "provider": "openai", "model": model}
+            reply = _response_text(res_data)
+            if not reply:
+                raise ValueError("OpenAI returned no text in its Responses API result.")
+            return {"reply": reply, "provider": provider, "model": model}
 
         # ANTHROPIC CLAUDE
         elif provider == "claude":
-            model = req.model or "claude-3-5-sonnet-20241022"
+            if not req.api_key:
+                raise HTTPException(status_code=400, detail="Add an Anthropic API key in OmniAI settings.")
+            model = req.model or "claude-sonnet-4-6"
             url = "https://api.anthropic.com/v1/messages"
             payload = {
                 "model": model,
                 "max_tokens": 2048,
                 "system": system_prompt,
-                "messages": [{"role": "user", "content": req.message}]
+                "messages": [*history, {"role": "user", "content": req.message}]
             }
-            data = json.dumps(payload).encode("utf-8")
-            h_req = urllib.request.Request(url, data=data, headers={
-                "Content-Type": "application/json",
-                "x-api-key": req.api_key,
-                "anthropic-version": "2023-06-01"
-            })
-            with urllib.request.urlopen(h_req, timeout=30) as resp:
+            headers = {"Content-Type": "application/json", "x-api-key": req.api_key, "anthropic-version": "2023-06-01"}
+            with urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers), timeout=60) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
-                content = res_data.get("content", [])
-                reply = "".join(c.get("text", "") for c in content if c.get("type") == "text")
-                return {"reply": reply, "provider": "claude", "model": model}
+            reply = "".join(content.get("text", "") for content in res_data.get("content", []) if content.get("type") == "text")
+            if not reply:
+                raise ValueError("Anthropic returned no text in its Messages API result.")
+            return {"reply": reply, "provider": provider, "model": model}
 
-        # xAI GROK
+        # XAI GROK RESPONSES API
         elif provider == "grok":
-            model = req.model or "grok-2-latest"
-            url = "https://api.x.ai/v1/chat/completions"
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": req.message}
-            ]
-            payload = {"model": model, "messages": messages, "temperature": 0.7}
-            data = json.dumps(payload).encode("utf-8")
-            h_req = urllib.request.Request(url, data=data, headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {req.api_key}"
-            })
-            with urllib.request.urlopen(h_req, timeout=30) as resp:
+            if not req.api_key:
+                raise HTTPException(status_code=400, detail="Add an xAI API key in OmniAI settings.")
+            model = req.model or "grok-4.7"
+            url = "https://api.x.ai/v1/responses"
+            payload = {"model": model, "input": [
+                {"role": "system", "content": system_prompt}, *history,
+                {"role": "user", "content": req.message}], "store": False}
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {req.api_key}"}
+            with urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers), timeout=60) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
-                reply = res_data["choices"][0]["message"]["content"]
-                return {"reply": reply, "provider": "grok", "model": model}
+            reply = _response_text(res_data)
+            if not reply:
+                raise ValueError("xAI returned no text in its Responses API result.")
+            return {"reply": reply, "provider": provider, "model": model}
 
         # CUSTOM / OPENROUTER (OpenAI-compatible)
         elif provider in ["custom", "openrouter"]:
+            if not req.api_key:
+                raise HTTPException(status_code=400, detail="Add an API key for this OpenAI-compatible provider.")
             model = req.model or "meta-llama/llama-3.3-70b-instruct"
             url = req.endpoint or "https://openrouter.ai/api/v1/chat/completions"
-            messages = [{"role": "system", "content": system_prompt}]
-            if req.history:
-                for h in req.history[-4:]:
-                    messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
-            messages.append({"role": "user", "content": req.message})
-
-            payload = {"model": model, "messages": messages, "temperature": 0.7}
-            data = json.dumps(payload).encode("utf-8")
-            h_req = urllib.request.Request(url, data=data, headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {req.api_key}"
-            })
-            with urllib.request.urlopen(h_req, timeout=30) as resp:
+            url = url.rstrip("/")
+            if not url.endswith("/chat/completions"):
+                url = f"{url}/chat/completions"
+            payload = {"model": model, "messages": [
+                {"role": "system", "content": system_prompt}, *history,
+                {"role": "user", "content": req.message}], "temperature": 0.7}
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {req.api_key}"}
+            with urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers), timeout=60) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
-                reply = res_data["choices"][0]["message"]["content"]
-                return {"reply": reply, "provider": provider, "model": model}
-
-        else:
-            reply = get_builtin_knowledge_reply(req.message, req.mode or "universal")
-            return {"reply": reply, "provider": "builtin", "model": "OmniKnowledge-v5"}
-
+            reply = res_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            if not reply:
+                raise ValueError("The OpenAI-compatible endpoint returned no message text.")
+            return {"reply": reply, "provider": provider, "model": model}
+    except HTTPException:
+        raise
     except urllib.error.HTTPError as he:
-        return {"reply": f"⚠️ **API Request Error ({he.code})**: Check your API key, endpoint, and try again.\n\n" + get_builtin_knowledge_reply(req.message), "provider": provider, "error": True}
+        detail = f"{provider} API request failed with HTTP {he.code}. Check the API key, model name, and provider account limits."
+        raise HTTPException(status_code=502, detail=detail) from he
+    except urllib.error.URLError as exc:
+        raise HTTPException(status_code=502, detail=f"Could not connect to {provider}: {exc.reason}") from exc
     except Exception as e:
-        return {"reply": f"⚠️ **Connection Notice**: Could not reach external provider ({e}). Falling back to OmniKnowledge:\n\n" + get_builtin_knowledge_reply(req.message), "provider": "builtin", "error": True}
+        raise HTTPException(status_code=502, detail=f"{provider} request failed: {e}") from e
 
 
 

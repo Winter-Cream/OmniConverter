@@ -5,6 +5,7 @@ Covers key endpoints: /api/health, /api/stats, /api/convert, /api/convert/zip,
 """
 
 import io
+from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
@@ -194,12 +195,14 @@ def test_ai_tts_endpoint():
 
 def test_watch_folder_config_endpoint():
     """Verify POST /api/watch-folder/config configures and updates the daemon state."""
+    in_dir = str(Path("./watch_input").resolve())
+    out_dir = str(Path("./watch_output").resolve())
     response = client.post(
         "/api/watch-folder/config",
         data={
             "enabled": False,
-            "path": "./watch_input",
-            "output_path": "./watch_output",
+            "path": in_dir,
+            "output_path": out_dir,
             "target_format": "pdf"
         }
     )
@@ -207,6 +210,22 @@ def test_watch_folder_config_endpoint():
     data = response.json()
     assert data["status"] == "success"
     assert data["watchFolder"]["enabled"] is False
+
+
+def test_watch_folder_rejects_nested_paths_and_unknown_targets(tmp_path):
+    input_path = tmp_path / "in"
+    output_path = input_path / "out"
+    nested = client.post(
+        "/api/watch-folder/config",
+        data={"enabled": True, "path": str(input_path), "output_path": str(output_path), "target_format": "pdf"}
+    )
+    assert nested.status_code == 400
+
+    invalid_target = client.post(
+        "/api/watch-folder/config",
+        data={"enabled": False, "path": str(input_path), "output_path": str(tmp_path / "out"), "target_format": "unknown"}
+    )
+    assert invalid_target.status_code == 400
 
 
 def test_ai_chat_endpoint():
@@ -222,6 +241,79 @@ def test_ai_chat_endpoint():
     assert data["provider"] == "builtin"
 
 
+@pytest.mark.parametrize("provider", ["openai", "gemini", "claude", "grok", "ollama", "custom"])
+def test_ai_provider_payloads_and_context(provider, monkeypatch):
+    """Provider adapters build expected API requests and preserve prior chat turns."""
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            if provider == "ollama":
+                body = {"message": {"content": "mock reply"}}
+            elif provider == "gemini":
+                body = {"candidates": [{"content": {"parts": [{"text": "mock reply"}]}}]}
+            elif provider == "claude":
+                body = {"content": [{"type": "text", "text": "mock reply"}]}
+            elif provider in {"openai", "grok"}:
+                body = {"output_text": "mock reply"}
+            else:
+                body = {"choices": [{"message": {"content": "mock reply"}}]}
+            return __import__("json").dumps(body).encode()
+
+    def fake_urlopen(request, timeout=30):
+        captured["url"] = request.full_url
+        captured["headers"] = request.headers
+        captured["payload"] = __import__("json").loads(request.data.decode())
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    response = client.post("/api/ai/chat", json={
+        "message": "current question",
+        "provider": provider,
+        "api_key": "test-key",
+        "model": "test-model",
+        "endpoint": "http://localhost:11434" if provider == "ollama" else "https://example.test/v1",
+        "history": [
+            {"role": "user", "content": "previous question"},
+            {"role": "assistant", "content": "previous answer"},
+            {"role": "user", "content": "current question"},
+        ]
+    })
+    assert response.status_code == 200
+    assert response.json()["reply"] == "mock reply"
+    if provider != "gemini":
+        assert captured["payload"]["model"] == "test-model"
+    serialized = __import__("json").dumps(captured["payload"])
+    assert serialized.count("current question") == 1
+    assert "previous question" in serialized
+    if provider == "gemini":
+        assert captured["headers"].get("X-goog-api-key") == "test-key"
+        assert captured["payload"]["contents"][-1]["parts"][0]["text"] == "current question"
+    elif provider == "claude":
+        assert captured["headers"].get("X-api-key") == "test-key"
+        assert captured["payload"]["messages"][-1]["role"] == "user"
+    elif provider in {"openai", "grok"}:
+        assert captured["headers"].get("Authorization") == "Bearer test-key"
+        assert captured["url"].endswith("/v1/responses")
+    elif provider == "ollama":
+        assert captured["url"].endswith("/api/chat")
+    else:
+        assert captured["url"].endswith("/v1/chat/completions")
+
+
+@pytest.mark.parametrize("provider", ["openai", "gemini", "claude", "grok", "custom"])
+def test_ai_cloud_provider_requires_api_key(provider):
+    response = client.post("/api/ai/chat", json={"message": "hello", "provider": provider})
+    assert response.status_code == 400
+
+
 def test_formats_endpoint():
     """Verify GET /api/formats returns structured categories and target format lists."""
     response = client.get("/api/formats")
@@ -231,6 +323,8 @@ def test_formats_endpoint():
     assert "extensions" in data
     assert "image" in data["categories"]
     assert "png" in data["extensions"]
+    assert {"xlsx", "pptx", "java", "rs"}.issubset(data["extensions"])
+    assert "pdf" in data["extensions"]["java"]["targets"]
 
 
 def test_native_image_to_pdf_conversion():
@@ -252,6 +346,26 @@ def test_native_image_to_pdf_conversion():
     assert len(reader.pages) >= 1
 
 
+def test_multipage_pdf_to_image_returns_zip():
+    """A PDF with multiple pages returns a ZIP of page images with a matching filename."""
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    writer.add_blank_page(width=612, height=792)
+    buf = io.BytesIO()
+    writer.write(buf)
+    response = client.post(
+        "/api/convert",
+        files={"file": ("pages.pdf", buf.getvalue(), "application/pdf")},
+        data={"target_format": "png"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert ".zip" in response.headers["content-disposition"]
+    import zipfile
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    assert len(archive.namelist()) == 2
+
+
 def test_native_txt_to_pdf_conversion():
     """Verify converting plain text to PDF produces a valid vector PDF."""
     txt_content = b"OmniConverter Native Text to PDF Test Document\nLine 1\nLine 2\nLine 3"
@@ -266,16 +380,157 @@ def test_native_txt_to_pdf_conversion():
     assert len(reader.pages) >= 1
 
 
-def test_native_csv_to_xlsx_conversion():
-    """Verify converting CSV to XLSX generates a spreadsheet."""
+def test_csv_and_xlsx_conversions():
+    """Verify CSV can round-trip through JSON and XLSX outputs."""
     csv_content = b"Name,Role,XP\nAlice,Admin,500\nBob,User,250"
-    response = client.post(
+    response_json = client.post(
+        "/api/convert",
+        files={"file": ("users.csv", csv_content, "text/csv")},
+        data={"target_format": "json"}
+    )
+    assert response_json.status_code == 200
+    assert response_json.json()[0]["Name"] == "Alice"
+
+    response_xlsx = client.post(
         "/api/convert",
         files={"file": ("users.csv", csv_content, "text/csv")},
         data={"target_format": "xlsx"}
     )
+    assert response_xlsx.status_code == 200
+    import openpyxl
+    workbook = openpyxl.load_workbook(io.BytesIO(response_xlsx.content), read_only=True)
+    assert workbook.active.cell(row=2, column=1).value == "Alice"
+    workbook.close()
+
+    source_workbook = openpyxl.Workbook()
+    sheet = source_workbook.active
+    sheet.append(["Name", "Role"])
+    sheet.append(["Carol", "Editor"])
+    xlsx_buf = io.BytesIO()
+    source_workbook.save(xlsx_buf)
+    response_csv = client.post(
+        "/api/convert",
+        files={"file": ("users.xlsx", xlsx_buf.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        data={"target_format": "csv"}
+    )
+    assert response_csv.status_code == 200
+    assert b"Name,Role" in response_csv.content
+    assert b"Carol,Editor" in response_csv.content
+
+
+def test_unsupported_conversion_is_reported():
+    """Unsupported extensions should be rejected instead of returning a fake conversion."""
+    response = client.post(
+        "/api/convert",
+        files={"file": ("unknown.exe", b"not a supported input", "application/octet-stream")},
+        data={"target_format": "pdf"}
+    )
+    assert response.status_code == 415
+
+
+def test_native_json_to_txt_conversion():
+    """Verify native JSON data conversion to plain text."""
+    json_content = b'{"status": "ok", "message": "OmniConverter running"}'
+    response = client.post(
+        "/api/convert",
+        files={"file": ("status.json", json_content, "application/json")},
+        data={"target_format": "txt"}
+    )
     assert response.status_code == 200
-    assert "openxmlformats-officedocument.spreadsheetml.sheet" in response.headers["content-type"] or len(response.content) > 100
+    assert b"OmniConverter running" in response.content
+
+
+def test_pptx_conversions():
+    """Verify PPTX conversions to PDF, TXT, and HTML."""
+    from pptx import Presentation
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[0])
+    slide.shapes.title.text = "Omni Presentation Test"
+    slide.placeholders[1].text = "Subtitle point 1\nSubtitle point 2"
+    pptx_buf = io.BytesIO()
+    prs.save(pptx_buf)
+    pptx_bytes = pptx_buf.getvalue()
+
+    # PPTX -> PDF
+    res_pdf = client.post(
+        "/api/convert",
+        files={"file": ("deck.pptx", pptx_bytes, "application/vnd.openxmlformats-officedocument.presentationml.presentation")},
+        data={"target_format": "pdf"}
+    )
+    assert res_pdf.status_code == 200
+    assert len(res_pdf.content) > 500
+    pdf_text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(res_pdf.content)).pages)
+    assert "Omni Presentation Test" in pdf_text
+    assert "Subtitle point 1" in pdf_text
+
+    # PPTX -> TXT
+    res_txt = client.post(
+        "/api/convert",
+        files={"file": ("deck.pptx", pptx_bytes, "application/vnd.openxmlformats-officedocument.presentationml.presentation")},
+        data={"target_format": "txt"}
+    )
+    assert res_txt.status_code == 200
+    assert b"Omni Presentation Test" in res_txt.content
+
+    # PPTX -> HTML
+    res_html = client.post(
+        "/api/convert",
+        files={"file": ("deck.pptx", pptx_bytes, "application/vnd.openxmlformats-officedocument.presentationml.presentation")},
+        data={"target_format": "html"}
+    )
+    assert res_html.status_code == 200
+    assert b"Omni Presentation Test" in res_html.content
+
+
+def test_docx_and_pdf_roundtrip_conversions():
+    """Verify DOCX to PDF and PDF to DOCX conversions."""
+    import docx
+    doc = docx.Document()
+    doc.add_heading("Omni DOCX Test", 0)
+    doc.add_paragraph("Testing DOCX to PDF and back.")
+    buf = io.BytesIO()
+    doc.save(buf)
+    docx_bytes = buf.getvalue()
+
+    # DOCX -> PDF
+    res_pdf = client.post(
+        "/api/convert",
+        files={"file": ("document.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+        data={"target_format": "pdf"}
+    )
+    assert res_pdf.status_code == 200
+    assert len(res_pdf.content) > 500
+
+    # PDF -> DOCX
+    res_docx = client.post(
+        "/api/convert",
+        files={"file": ("document.pdf", res_pdf.content, "application/pdf")},
+        data={"target_format": "docx"}
+    )
+    assert res_docx.status_code == 200
+    assert len(res_docx.content) > 500
+
+
+def test_html_and_yaml_conversions():
+    """Verify HTML to PDF and YAML to JSON conversions."""
+    html_bytes = b"<!DOCTYPE html><html><body><h1>Header</h1><p>Paragraph content</p></body></html>"
+    res_html = client.post(
+        "/api/convert",
+        files={"file": ("page.html", html_bytes, "text/html")},
+        data={"target_format": "pdf"}
+    )
+    assert res_html.status_code == 200
+    assert len(res_html.content) > 500
+
+    yaml_bytes = b"title: OmniConverter\nversion: 5.0\nmode: production\n"
+    res_yaml = client.post(
+        "/api/convert",
+        files={"file": ("config.yaml", yaml_bytes, "application/x-yaml")},
+        data={"target_format": "json"}
+    )
+    assert res_yaml.status_code == 200
+    data = res_yaml.json()
+    assert data["title"] == "OmniConverter"
 
 
 def test_history_and_stats_management():

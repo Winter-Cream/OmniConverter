@@ -1,7 +1,7 @@
 """
 OmniConverter 5 Pro Max - Core Python Conversion Engine
 Supports high-fidelity conversion across Documents, Images, Audio, Video, Data Formats, and Code.
-Integrates with File_Converter_Pro modules when present, with native fallback using Python standard libraries & PyPDF, Docx, OpenPyXL, Pandas, Pillow, etc.
+Integrates with File_Converter_Pro modules when present, with native fallback using Python standard libraries & PyPDF, Docx, Pandas, Pillow, etc.
 """
 
 from __future__ import annotations
@@ -12,6 +12,8 @@ import time
 import json
 import base64
 import re
+import html
+import uuid
 import shutil
 import zipfile
 import tempfile
@@ -43,16 +45,41 @@ except ImportError:
     HAS_DOCX = False
 
 try:
-    import openpyxl
-    HAS_OPENPYXL = True
+    from pptx import Presentation
+    HAS_PPTX = True
 except ImportError:
-    HAS_OPENPYXL = False
+    HAS_PPTX = False
+
+try:
+    from pdf2docx import Converter as PDF2DocxConverter
+    HAS_PDF2DOCX = True
+except ImportError:
+    HAS_PDF2DOCX = False
+
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
+try:
+    import win32com.client
+    import pythoncom
+    HAS_WIN32COM = True
+except ImportError:
+    HAS_WIN32COM = False
 
 try:
     import pandas as pd
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
+
+try:
+    import openpyxl
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
 
 try:
     from PIL import Image, ImageOps, ImageFilter
@@ -84,6 +111,208 @@ try:
     HAS_PYTESSERACT = True
 except ImportError:
     HAS_PYTESSERACT = False
+
+
+def convert_office_document_with_com(app_name: str, src_path: str, out_path: str) -> bool:
+    """Convert Word (.docx, .doc) or PowerPoint (.pptx, .ppt) to PDF via Office COM on Windows."""
+    if not HAS_WIN32COM:
+        return False
+    try:
+        pythoncom.CoInitialize()
+        src_abs = os.path.abspath(src_path)
+        out_abs = os.path.abspath(out_path)
+
+        if app_name.lower() == "powerpoint":
+            ppt = win32com.client.Dispatch("PowerPoint.Application")
+            try:
+                deck = ppt.Presentations.Open(src_abs, WithWindow=False)
+                deck.SaveAs(out_abs, 32)  # 32 = ppSaveAsPDF
+                deck.Close()
+            finally:
+                ppt.Quit()
+            return os.path.exists(out_abs) and os.path.getsize(out_abs) > 0
+
+        elif app_name.lower() == "word":
+            word = win32com.client.Dispatch("Word.Application")
+            word.Visible = False
+            try:
+                doc = word.Documents.Open(src_abs)
+                doc.SaveAs2(out_abs, FileFormat=17)  # 17 = wdFormatPDF
+                doc.Close(False)
+            finally:
+                word.Quit()
+            return os.path.exists(out_abs) and os.path.getsize(out_abs) > 0
+
+    except Exception as e:
+        print(f"[Office COM Warning ({app_name})]: {e}")
+        return False
+    finally:
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
+    return False
+
+
+def _pptx_to_pdf_native(src_path: str, out_path: str):
+    """
+    Pure Python PPTX to PDF converter using python-pptx and PyMuPDF.
+    Extracts slides, shapes, text, bullets, tables, and images.
+    """
+    if not HAS_PPTX:
+        raise RuntimeError("python-pptx library is required for PPTX conversion.")
+    if not HAS_PYMUPDF:
+        raise RuntimeError("PyMuPDF library is required for rendering PPTX to PDF.")
+
+    prs = Presentation(src_path)
+    sw = (prs.slide_width / 12700) if prs.slide_width else 960
+    sh = (prs.slide_height / 12700) if prs.slide_height else 540
+
+    pdf_doc = pymupdf.open()
+    margin_x = 50
+    content_w = sw - (2 * margin_x)
+
+    for slide_idx, slide in enumerate(prs.slides):
+        page = pdf_doc.new_page(width=sw, height=sh)
+        page.draw_rect(pymupdf.Rect(0, 0, sw, sh), color=None, fill=(0.98, 0.98, 0.99))
+        page.insert_text((sw - 80, 25), f"Slide {slide_idx + 1}", fontsize=8, color=(0.5, 0.5, 0.5))
+
+        curr_y = 50
+        title_txt = ""
+        try:
+            if slide.shapes.title and slide.shapes.title.text.strip():
+                title_txt = slide.shapes.title.text.strip()
+                rect = pymupdf.Rect(margin_x, curr_y, margin_x + content_w, curr_y + 45)
+                page.insert_textbox(rect, title_txt, fontsize=18, fontname="helv", color=(0.08, 0.15, 0.35))
+                curr_y += 48
+        except Exception:
+            pass
+
+        for shape in slide.shapes:
+            if shape == slide.shapes.title:
+                continue
+
+            # Images
+            try:
+                if hasattr(shape, "image") and shape.image:
+                    img_bytes = shape.image.blob
+                    left = (shape.left / 12700) if shape.left else margin_x
+                    top = (shape.top / 12700) if shape.top else curr_y
+                    w = (shape.width / 12700) if shape.width else 200
+                    h = (shape.height / 12700) if shape.height else 150
+                    rect = pymupdf.Rect(max(10, left), max(10, top), min(sw - 10, left + w), min(sh - 10, top + h))
+                    if rect.width > 20 and rect.height > 20:
+                        page.insert_image(rect, stream=img_bytes)
+            except Exception:
+                pass
+
+            # Tables
+            try:
+                if shape.has_table:
+                    tbl = shape.table
+                    cell_text_rows = []
+                    for row in tbl.rows:
+                        row_cells = [c.text.strip().replace("\n", " ") for c in row.cells]
+                        cell_text_rows.append(" | ".join(row_cells))
+                    tbl_str = "\n".join(cell_text_rows)
+                    if tbl_str:
+                        rect = pymupdf.Rect(margin_x, curr_y, margin_x + content_w, min(sh - 30, curr_y + 100))
+                        page.insert_textbox(rect, tbl_str, fontsize=10, color=(0.1, 0.1, 0.2))
+                        curr_y += 105
+            except Exception:
+                pass
+
+            # Text frames
+            try:
+                if shape.has_text_frame:
+                    paragraphs = shape.text_frame.paragraphs
+                    for p in paragraphs:
+                        txt = p.text.strip()
+                        if not txt or txt == title_txt:
+                            continue
+                        bullet_prefix = "• " if (p.level and p.level > 0) else ""
+                        line_txt = f"{bullet_prefix}{txt}"
+                        font_sz = max(9, 12 - (p.level or 0))
+                        indent = 15 * (p.level or 0)
+                        rect = pymupdf.Rect(margin_x + indent, curr_y, margin_x + content_w, curr_y + 24)
+                        page.insert_textbox(rect, line_txt, fontsize=font_sz, fontname="helv", color=(0.15, 0.18, 0.22))
+                        curr_y += 24
+                        if curr_y > sh - 40:
+                            break
+            except Exception:
+                pass
+
+    if len(pdf_doc) == 0:
+        page = pdf_doc.new_page(width=sw, height=sh)
+        page.insert_text((margin_x, sh / 2), "Empty Presentation", fontsize=14)
+
+    pdf_doc.save(out_path)
+    pdf_doc.close()
+
+
+def _docx_to_pdf_native(src_path: str, out_path: str):
+    """
+    Pure Python DOCX to PDF converter using python-docx and PyMuPDF.
+    """
+    if not HAS_DOCX:
+        raise RuntimeError("python-docx library is required for DOCX conversion.")
+    if not HAS_PYMUPDF:
+        raise RuntimeError("PyMuPDF library is required for rendering DOCX to PDF.")
+
+    doc_in = docx.Document(src_path)
+    pdf_doc = pymupdf.open()
+    page_w, page_h = 595, 842  # A4
+    curr_page = pdf_doc.new_page(width=page_w, height=page_h)
+    margin = 54
+    curr_y = margin
+    max_w = page_w - (2 * margin)
+
+    for p in doc_in.paragraphs:
+        txt = p.text.strip()
+        if not txt:
+            curr_y += 10
+            continue
+
+        is_heading = p.style and "Heading" in p.style.name
+        font_sz = 15 if is_heading else 10
+        font_name = "helv-bold" if is_heading else "helv"
+        color = (0.08, 0.15, 0.35) if is_heading else (0.15, 0.15, 0.15)
+        line_height = 22 if is_heading else 14
+
+        if curr_y + line_height > page_h - margin:
+            curr_page = pdf_doc.new_page(width=page_w, height=page_h)
+            curr_y = margin
+
+        curr_page.insert_textbox(
+            pymupdf.Rect(margin, curr_y, margin + max_w, curr_y + (line_height * 4)),
+            txt,
+            fontsize=font_sz,
+            fontname=font_name,
+            color=color
+        )
+        curr_y += line_height + 4
+
+    for tbl in doc_in.tables:
+        for row in tbl.rows:
+            row_txt = "  |  ".join(c.text.strip().replace("\n", " ") for c in row.cells)
+            if curr_y + 18 > page_h - margin:
+                curr_page = pdf_doc.new_page(width=page_w, height=page_h)
+                curr_y = margin
+            curr_page.insert_textbox(
+                pymupdf.Rect(margin, curr_y, margin + max_w, curr_y + 18),
+                row_txt,
+                fontsize=9,
+                fontname="helv",
+                color=(0.2, 0.2, 0.3)
+            )
+            curr_y += 18
+
+    if len(pdf_doc) == 0:
+        pdf_doc.new_page(width=page_w, height=page_h)
+
+    pdf_doc.save(out_path)
+    pdf_doc.close()
+
 
 
 def check_ffmpeg() -> bool:
@@ -119,12 +348,20 @@ class OmniConverterEngine:
     MIME_MAP = {
         "pdf": "application/pdf",
         "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "doc": "application/msword",
+        "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "ppt": "application/vnd.ms-powerpoint",
         "txt": "text/plain",
         "html": "text/html",
+        "htm": "text/html",
         "md": "text/markdown",
         "json": "application/json",
         "csv": "text/csv",
+        "tsv": "text/tab-separated-values",
         "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "xml": "application/xml",
+        "yaml": "application/x-yaml",
+        "yml": "application/x-yaml",
         "png": "image/png",
         "jpg": "image/jpeg",
         "jpeg": "image/jpeg",
@@ -132,25 +369,38 @@ class OmniConverterEngine:
         "bmp": "image/bmp",
         "ico": "image/x-icon",
         "gif": "image/gif",
+        "svg": "image/svg+xml",
+        "tiff": "image/tiff",
         "mp3": "audio/mpeg",
         "wav": "audio/wav",
         "ogg": "audio/ogg",
         "flac": "audio/flac",
+        "aac": "audio/aac",
+        "m4a": "audio/mp4",
+        "opus": "audio/opus",
         "mp4": "video/mp4",
         "webm": "video/webm",
+        "mkv": "video/x-matroska",
+        "avi": "video/x-msvideo",
+        "mov": "video/quicktime",
         "zip": "application/zip"
     }
 
     FORMAT_CATEGORIES = {
-        "image": {
-            "name": "Image Formats",
-            "extensions": ["png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "tiff"],
-            "targets": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"]
+        "presentation": {
+            "name": "Presentations (PPTX)",
+        "extensions": ["pptx"],
+            "targets": ["pdf", "docx", "txt", "html", "png", "jpg"]
         },
         "document": {
             "name": "Documents & Text",
-            "extensions": ["pdf", "docx", "txt", "html", "md"],
+            "extensions": ["pdf", "docx", "txt", "html", "htm", "md"],
             "targets": ["pdf", "docx", "txt", "html", "md", "png", "jpg"]
+        },
+        "image": {
+            "name": "Image Formats",
+            "extensions": ["png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "tiff", "svg"],
+            "targets": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"]
         },
         "audio": {
             "name": "Audio",
@@ -159,14 +409,28 @@ class OmniConverterEngine:
         },
         "video": {
             "name": "Video",
-            "extensions": ["mp4", "webm", "mkv", "avi", "mov", "flv"],
+            "extensions": ["mp4", "webm", "mkv", "avi", "mov", "flv", "wmv", "m4v"],
             "targets": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"]
         },
         "data": {
-            "name": "Data & Spreadsheets",
-            "extensions": ["csv", "json", "xlsx"],
-            "targets": ["csv", "json", "xlsx", "txt"]
+            "name": "Data & Code",
+            "extensions": ["csv", "tsv", "xlsx", "json", "xml", "yaml", "yml", "py", "js", "ts", "sql", "java", "c", "cpp", "rs", "go"],
+            "targets": ["csv", "tsv", "xlsx", "json", "yaml", "txt", "html", "pdf"]
         }
+    }
+
+    FORMAT_TARGETS = {
+        "pptx": ["pdf", "docx", "txt", "html", "png", "jpg"],
+        "pdf": ["pdf", "docx", "txt", "html", "png", "jpg"],
+        "docx": ["docx", "pdf", "txt", "html", "png", "jpg"],
+        "txt": ["txt", "pdf", "docx", "json"], "md": ["md", "pdf", "html", "docx"],
+        "html": ["html", "pdf", "txt", "docx"], "htm": ["html", "pdf", "txt", "docx"],
+        "png": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "jpg": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "jpeg": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "webp": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "bmp": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "gif": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "ico": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "tiff": ["png", "jpg", "jpeg", "webp", "bmp", "ico", "pdf"], "svg": ["pdf", "png", "jpg", "jpeg", "webp"],
+        "csv": ["csv", "tsv", "xlsx", "json", "txt", "pdf"], "tsv": ["csv", "tsv", "xlsx", "json", "txt", "pdf"], "xlsx": ["csv", "tsv", "xlsx", "json", "txt", "pdf"],
+        "json": ["json", "yaml", "yml", "csv", "tsv", "xlsx", "txt"], "yaml": ["yaml", "json"], "yml": ["yml", "json"], "xml": ["xml", "json"],
+        "py": ["py", "txt", "html", "pdf"], "js": ["js", "txt", "html", "pdf"], "ts": ["ts", "txt", "html", "pdf"], "java": ["java", "txt", "html", "pdf"], "c": ["c", "txt", "html", "pdf"], "cpp": ["cpp", "txt", "html", "pdf"], "rs": ["rs", "txt", "html", "pdf"], "go": ["go", "txt", "html", "pdf"], "sql": ["sql", "txt", "html", "pdf"],
+        "mp3": ["mp3", "wav", "ogg", "flac", "aac"], "wav": ["mp3", "wav", "ogg", "flac", "aac"], "ogg": ["mp3", "wav", "ogg", "flac", "aac"], "flac": ["mp3", "wav", "ogg", "flac", "aac"], "aac": ["mp3", "wav", "ogg", "flac", "aac"], "m4a": ["mp3", "wav", "ogg", "flac", "aac"], "opus": ["mp3", "wav", "ogg", "flac", "aac"],
+        "mp4": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "webm": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "mkv": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "avi": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "mov": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "flv": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "wmv": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"], "m4v": ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"]
     }
 
     def get_supported_formats(self) -> Dict[str, Any]:
@@ -177,7 +441,7 @@ class OmniConverterEngine:
                 all_exts[ext] = {
                     "category": cat_id,
                     "category_name": cat_data["name"],
-                    "targets": cat_data["targets"]
+                    "targets": self.FORMAT_TARGETS.get(ext, cat_data["targets"])
                 }
         return {
             "categories": self.FORMAT_CATEGORIES,
@@ -189,7 +453,7 @@ class OmniConverterEngine:
         t0 = time.time()
         options = options or {}
         target_format = target_format.lower().lstrip('.')
-        
+
         # Sanitize input filename to prevent path traversal attacks
         safe_filename = Path(input_filename).name
         input_ext = Path(safe_filename).suffix.lower().lstrip('.')
@@ -208,7 +472,7 @@ class OmniConverterEngine:
 
         try:
             # 1. Check FFmpeg dependency for audio/video media conversions
-            if target_format in ["mp3", "wav", "ogg", "flac", "mp4", "webm"] and input_ext in ["mp4", "mkv", "avi", "mov", "webm", "wav", "mp3", "flac", "ogg"]:
+            if target_format in ["mp3", "wav", "ogg", "flac", "aac", "mp4", "webm"] and input_ext in ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "wav", "mp3", "aac", "m4a", "opus", "flac", "ogg"]:
                 if not check_ffmpeg() and not HAS_FCP:
                     raise RuntimeError("FFmpeg executable not found in system PATH. Required for audio/video media conversion.")
 
@@ -232,13 +496,18 @@ class OmniConverterEngine:
 
             # 3. Native Python Fallback Converters
             self._convert_native(src_path, out_path, input_ext, target_format, options, out_stem)
-            
+            if not os.path.isfile(out_path) or os.path.getsize(out_path) == 0:
+                raise RuntimeError("The converter did not produce a valid output file.")
+            # Multi-page PDF-to-image conversion is returned as a ZIP of page images.
+            if input_ext == "pdf" and target_format in ["png", "jpg", "jpeg", "webp"] and zipfile.is_zipfile(out_path):
+                out_filename = f"{out_stem}_converted.zip"
+
             elapsed = time.time() - t0
             return ConversionResult(
                 success=True,
                 output_path=out_path,
                 filename=out_filename,
-                mime_type=self.MIME_MAP.get(target_format, "application/octet-stream"),
+                mime_type="application/zip" if out_filename.endswith(".zip") else self.MIME_MAP.get(target_format, "application/octet-stream"),
                 elapsed=elapsed
             )
 
@@ -252,13 +521,15 @@ class OmniConverterEngine:
             )
 
     def _determine_fcp_type(self, src_ext: str, dst_ext: str) -> Optional[str]:
+        if src_ext in ["pptx", "ppt"] and dst_ext in ["pdf", "docx", "txt"]:
+            return f"{src_ext}_to_{dst_ext}"
         if src_ext == "pdf" and dst_ext in ["docx", "txt", "html"]:
             return f"pdf_to_{dst_ext}"
-        if src_ext == "docx" and dst_ext in ["pdf", "txt", "html"]:
+        if src_ext in ["docx", "doc"] and dst_ext in ["pdf", "txt", "html"]:
             return f"docx_to_{dst_ext}"
         if src_ext in ["png", "jpg", "jpeg", "webp", "bmp"] and dst_ext in ["png", "jpeg", "jpg", "webp", "bmp", "ico", "pdf"]:
             return f"image_to_{dst_ext}"
-        if src_ext in ["csv", "json", "xlsx"] and dst_ext in ["csv", "json", "pdf", "xlsx"]:
+        if src_ext in ["json"] and dst_ext in ["json", "pdf", "yaml", "txt"]:
             return f"{src_ext}_to_{dst_ext}"
         return None
 
@@ -284,14 +555,14 @@ class OmniConverterEngine:
             if dst_ext in ["png", "jpg", "jpeg", "webp", "bmp", "ico"]:
                 if not HAS_PILLOW:
                     raise RuntimeError("Pillow module is required for image conversion.")
-                
+
                 with Image.open(src_path) as img:
                     if options.get("resize_width") and options.get("resize_height"):
                         img = img.resize((int(options["resize_width"]), int(options["resize_height"])), Image.Resampling.LANCZOS)
                     elif options.get("scale"):
                         scale = float(options["scale"])
                         img = img.resize((int(img.width * scale), int(img.height * scale)), Image.Resampling.LANCZOS)
-                    
+
                     if options.get("rotate"):
                         img = img.rotate(float(options["rotate"]), expand=True)
 
@@ -377,11 +648,11 @@ class OmniConverterEngine:
             return
 
         # 5. AUDIO & VIDEO CONVERSIONS (FFmpeg)
-        if (src_ext in ["mp4", "mkv", "avi", "mov", "webm", "mp3", "wav", "aac", "flac", "ogg"] and 
+        if (src_ext in ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "mp3", "wav", "aac", "flac", "ogg", "m4a", "opus"] and
             dst_ext in ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"]):
             if check_ffmpeg():
                 cmd = ["ffmpeg", "-y", "-i", src_path]
-                
+
                 # Video Options
                 if dst_ext in ["mp4", "webm", "gif"]:
                     vq = str(options.get("video_quality") or options.get("videoQuality") or "Original")
@@ -393,16 +664,16 @@ class OmniConverterEngine:
                         cmd.extend(["-vf", "scale=-2:480"])
                     elif "360" in vq:
                         cmd.extend(["-vf", "scale=-2:360"])
-                    
+
                     if options.get("strip_audio") or options.get("stripAudio"):
                         cmd.append("-an")
-                
+
                 # Audio / Audio Extraction Options
                 if dst_ext in ["mp3", "wav", "aac", "flac", "ogg"]:
                     cmd.append("-vn")
                     ab = str(options.get("audio_bitrate") or options.get("audioBitrate") or "320k").replace("kbps", "").replace("k", "")
                     cmd.extend(["-b:a", f"{ab}k"])
-                
+
                 cmd.append(out_path)
                 res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if res.returncode == 0 and os.path.exists(out_path):
@@ -455,58 +726,7 @@ class OmniConverterEngine:
                 f.write("</body></html>")
             return
 
-        # 10. DATA CONVERSIONS (CSV, JSON, XLSX via Pandas)
-        if src_ext == "csv" and dst_ext == "json":
-            if HAS_PANDAS:
-                df = pd.read_csv(src_path)
-                df.to_json(out_path, orient="records", indent=2)
-            else:
-                with open(src_path, "r", encoding="utf-8") as rf:
-                    import csv
-                    reader = list(csv.DictReader(rf))
-                with open(out_path, "w", encoding="utf-8") as wf:
-                    json.dump(reader, wf, indent=2)
-            return
-
-        if src_ext == "csv" and dst_ext == "xlsx":
-            if HAS_PANDAS:
-                df = pd.read_csv(src_path)
-                df.to_excel(out_path, index=False)
-                return
-            elif HAS_OPENPYXL:
-                import csv
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                with open(src_path, "r", encoding="utf-8") as cf:
-                    for row in csv.reader(cf):
-                        ws.append(row)
-                wb.save(out_path)
-                return
-
-        if src_ext == "json" and dst_ext == "csv":
-            with open(src_path, "r", encoding="utf-8") as rf:
-                data = json.load(rf)
-            if isinstance(data, list) and len(data) > 0 and HAS_PANDAS:
-                df = pd.DataFrame(data)
-                df.to_csv(out_path, index=False)
-            elif isinstance(data, list) and len(data) > 0:
-                import csv
-                with open(out_path, "w", encoding="utf-8", newline="") as wf:
-                    writer = csv.DictWriter(wf, fieldnames=data[0].keys())
-                    writer.writeheader()
-                    writer.writerows(data)
-            return
-
-        if src_ext == "xlsx" and dst_ext in ["csv", "json"]:
-            if HAS_PANDAS:
-                df = pd.read_excel(src_path)
-                if dst_ext == "csv":
-                    df.to_csv(out_path, index=False)
-                else:
-                    df.to_json(out_path, orient="records", indent=2)
-            return
-
-        # 11. TXT <-> JSON
+        # 10. TXT <-> JSON
         if src_ext in ["txt", "text"] and dst_ext == "json":
             with open(src_path, "r", encoding="utf-8", errors="ignore") as tf:
                 content = tf.read()
@@ -529,11 +749,426 @@ class OmniConverterEngine:
                     tf.write(json.dumps(data, indent=2))
             return
 
+        # 10a. Tabular data conversions (CSV, TSV, JSON, XLSX)
+        if ((src_ext in ["csv", "tsv", "xlsx"] and dst_ext in ["csv", "tsv", "json", "xlsx", "txt", "pdf"])
+                or (src_ext == "json" and dst_ext in ["csv", "tsv", "xlsx"])):
+            if not HAS_PANDAS:
+                raise RuntimeError("Pandas is required for table conversions.")
+            sep = "\t" if src_ext == "tsv" else ","
+            if src_ext == "xlsx":
+                if not HAS_OPENPYXL:
+                    raise RuntimeError("openpyxl is required for XLSX conversions.")
+                frame = pd.read_excel(src_path, engine="openpyxl")
+            elif src_ext in ["csv", "tsv"]:
+                frame = pd.read_csv(src_path, sep=sep)
+            else:
+                data = json.load(open(src_path, "r", encoding="utf-8"))
+                frame = pd.DataFrame(data if isinstance(data, list) else [data])
+            if dst_ext == "xlsx":
+                frame.to_excel(out_path, index=False, engine="openpyxl")
+            elif dst_ext == "json":
+                frame.to_json(out_path, orient="records", indent=2)
+            elif dst_ext in ["csv", "tsv"]:
+                frame.to_csv(out_path, index=False, sep="\t" if dst_ext == "tsv" else ",")
+            elif dst_ext in ["txt", "pdf"]:
+                if dst_ext == "txt":
+                    with open(out_path, "w", encoding="utf-8") as out:
+                        out.write(frame.to_string(index=False))
+                else:
+                    if not HAS_PYMUPDF:
+                        raise RuntimeError("PyMuPDF is required for table to PDF conversion.")
+                    text = frame.to_string(index=False)
+                    doc = pymupdf.open()
+                    page = doc.new_page(width=595, height=842)
+                    page.insert_textbox(pymupdf.Rect(36, 36, 559, 806), text, fontsize=8, fontname="cour")
+                    doc.save(out_path)
+                    doc.close()
+            return
+
+        # 11. PPTX / PPT -> PDF
+        if src_ext == "pptx" and dst_ext == "pdf":
+            try:
+                _pptx_to_pdf_native(src_path, out_path)
+                if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                    return
+            except Exception as e_native:
+                print(f"[Native PPTX->PDF Warning]: {e_native}")
+            raise RuntimeError("Failed to convert presentation to PDF.")
+
+        # 12. PPTX / PPT -> TXT
+        if src_ext in ["pptx", "ppt"] and dst_ext == "txt":
+            if not HAS_PPTX:
+                raise RuntimeError("python-pptx is required to extract text from PPTX.")
+            prs = Presentation(src_path)
+            output_lines = []
+            for i, slide in enumerate(prs.slides):
+                output_lines.append(f"--- Slide {i + 1} ---")
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        for p in shape.text_frame.paragraphs:
+                            t = p.text.strip()
+                            if t:
+                                prefix = "  • " if (p.level and p.level > 0) else ""
+                                output_lines.append(f"{prefix}{t}")
+                    elif shape.has_table:
+                        for row in shape.table.rows:
+                            output_lines.append(" | ".join([c.text.strip().replace("\n", " ") for c in row.cells]))
+                output_lines.append("")
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(output_lines))
+            return
+
+        # 13. PPTX / PPT -> HTML
+        if src_ext in ["pptx", "ppt"] and dst_ext == "html":
+            if not HAS_PPTX:
+                raise RuntimeError("python-pptx is required to convert PPTX to HTML.")
+            prs = Presentation(src_path)
+            html_parts = [
+                "<!DOCTYPE html><html><head><meta charset='utf-8'>",
+                f"<title>{html.escape(stem)} - Presentation</title>",
+                "<style>",
+                "body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f8fafc;padding:2rem;margin:0;}",
+                ".slide-deck{max-width:960px;margin:auto;display:flex;flex-direction:column;gap:2rem;}",
+                ".slide-card{background:#1e293b;border:1px solid #334155;border-radius:1rem;padding:2.5rem;box-shadow:0 10px 25px -5px rgba(0,0,0,0.3);position:relative;min-height:300px;}",
+                ".slide-number{position:absolute;top:1rem;right:1.5rem;font-size:0.75rem;color:#94a3b8;font-weight:700;}",
+                "h2{color:#38bdf8;margin-top:0;font-size:1.75rem;border-bottom:1px solid #334155;padding-bottom:0.75rem;}",
+                "p{line-height:1.6;font-size:1.05rem;color:#e2e8f0;margin:0.5rem 0;}",
+                "ul{margin:1rem 0;padding-left:1.5rem;}",
+                "li{margin-bottom:0.5rem;line-height:1.5;color:#cbd5e1;}",
+                "table{width:100%;border-collapse:collapse;margin:1rem 0;}",
+                "th,td{border:1px solid #475569;padding:0.6rem;text-align:left;font-size:0.9rem;}",
+                "th{background:#334155;color:#38bdf8;}",
+                "</style></head><body><div class='slide-deck'>"
+            ]
+            for i, slide in enumerate(prs.slides):
+                html_parts.append(f"<div class='slide-card'><span class='slide-number'>Slide {i+1}</span>")
+                title_txt = ""
+                try:
+                    if slide.shapes.title and slide.shapes.title.text.strip():
+                        title_txt = slide.shapes.title.text.strip()
+                        html_parts.append(f"<h2>{html.escape(title_txt)}</h2>")
+                except Exception:
+                    pass
+
+                for shape in slide.shapes:
+                    if shape == slide.shapes.title:
+                        continue
+                    if shape.has_text_frame:
+                        has_bullets = any(p.level and p.level > 0 for p in shape.text_frame.paragraphs)
+                        if has_bullets:
+                            html_parts.append("<ul>")
+                            for p in shape.text_frame.paragraphs:
+                                t = p.text.strip()
+                                if t:
+                                    html_parts.append(f"<li>{html.escape(t)}</li>")
+                            html_parts.append("</ul>")
+                        else:
+                            for p in shape.text_frame.paragraphs:
+                                t = p.text.strip()
+                                if t and t != title_txt:
+                                    html_parts.append(f"<p>{html.escape(t)}</p>")
+                    elif shape.has_table:
+                        html_parts.append("<table>")
+                        for r_idx, row in enumerate(shape.table.rows):
+                            html_parts.append("<tr>")
+                            tag = "th" if r_idx == 0 else "td"
+                            for cell in row.cells:
+                                c_txt = html.escape(cell.text.strip().replace("\n", " "))
+                                html_parts.append(f"<{tag}>{c_txt}</{tag}>")
+                            html_parts.append("</tr>")
+                        html_parts.append("</table>")
+                html_parts.append("</div>")
+            html_parts.append("</div></body></html>")
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(html_parts))
+            return
+
+        # 14. PPTX / PPT -> DOCX
+        if src_ext in ["pptx", "ppt"] and dst_ext == "docx":
+            if not HAS_PPTX or not HAS_DOCX:
+                raise RuntimeError("python-pptx and python-docx libraries are required.")
+            prs = Presentation(src_path)
+            new_doc = docx.Document()
+            new_doc.add_heading(f"{stem} - Slide Presentation", level=0)
+            for i, slide in enumerate(prs.slides):
+                title_txt = ""
+                try:
+                    if slide.shapes.title and slide.shapes.title.text.strip():
+                        title_txt = slide.shapes.title.text.strip()
+                except Exception:
+                    pass
+
+                slide_title = title_txt if title_txt else f"Slide {i + 1}"
+                new_doc.add_heading(slide_title, level=2)
+
+                for shape in slide.shapes:
+                    if shape == slide.shapes.title:
+                        continue
+                    if shape.has_text_frame:
+                        for p in shape.text_frame.paragraphs:
+                            t = p.text.strip()
+                            if t and t != title_txt:
+                                if p.level and p.level > 0:
+                                    new_doc.add_paragraph(t, style="List Bullet")
+                                else:
+                                    new_doc.add_paragraph(t)
+                    elif shape.has_table:
+                        tbl = shape.table
+                        table = new_doc.add_table(rows=len(tbl.rows), cols=len(tbl.columns))
+                        table.style = 'Table Grid'
+                        for r_idx, row in enumerate(tbl.rows):
+                            for c_idx, cell in enumerate(row.cells):
+                                table.cell(r_idx, c_idx).text = cell.text.strip()
+                new_doc.add_paragraph()
+            new_doc.save(out_path)
+            return
+
+        # 15. PPTX / PPT -> Images (PNG, JPG, JPEG, WEBP)
+        if src_ext in ["pptx", "ppt"] and dst_ext in ["png", "jpg", "jpeg", "webp"]:
+            temp_pdf = os.path.join(tempfile.gettempdir(), f"omni_pptx_{uuid.uuid4().hex[:8]}.pdf")
+            try:
+                self._convert_native(src_path, temp_pdf, src_ext, "pdf", options, stem)
+                self._convert_native(temp_pdf, out_path, "pdf", dst_ext, options, stem)
+            finally:
+                if os.path.exists(temp_pdf):
+                    try:
+                        os.remove(temp_pdf)
+                    except Exception:
+                        pass
+            return
+
+        # 16. DOCX / DOC -> PDF
+        if src_ext == "docx" and dst_ext == "pdf":
+            _docx_to_pdf_native(src_path, out_path)
+            return
+
+        # 17. DOCX / DOC -> Images (PNG, JPG, JPEG, WEBP)
+        if src_ext in ["docx", "doc"] and dst_ext in ["png", "jpg", "jpeg", "webp"]:
+            temp_pdf = os.path.join(tempfile.gettempdir(), f"omni_docx_{uuid.uuid4().hex[:8]}.pdf")
+            try:
+                self._convert_native(src_path, temp_pdf, src_ext, "pdf", options, stem)
+                self._convert_native(temp_pdf, out_path, "pdf", dst_ext, options, stem)
+            finally:
+                if os.path.exists(temp_pdf):
+                    try:
+                        os.remove(temp_pdf)
+                    except Exception:
+                        pass
+            return
+
+        # 18. PDF -> DOCX
+        if src_ext == "pdf" and dst_ext == "docx":
+            if HAS_PDF2DOCX:
+                try:
+                    cv = PDF2DocxConverter(src_path)
+                    cv.convert(out_path)
+                    cv.close()
+                    if os.path.exists(out_path) and os.path.getsize(out_path) > 100:
+                        return
+                except Exception as e:
+                    print(f"[pdf2docx Fallback Warning]: {e}")
+
+            if not HAS_DOCX:
+                raise RuntimeError("python-docx library is required for PDF to DOCX conversion.")
+
+            reader = pymupdf.open(src_path) if HAS_PYMUPDF else None
+            out_doc = docx.Document()
+
+            if reader:
+                for i, page in enumerate(reader):
+                    if i > 0:
+                        out_doc.add_page_break()
+                    txt = page.get_text()
+                    for line in txt.splitlines():
+                        if line.strip():
+                            out_doc.add_paragraph(line.strip())
+                reader.close()
+            else:
+                pdf_read = pypdf.PdfReader(src_path)
+                for i, page in enumerate(pdf_read.pages):
+                    if i > 0:
+                        out_doc.add_page_break()
+                    txt = page.extract_text() or ""
+                    for line in txt.splitlines():
+                        if line.strip():
+                            out_doc.add_paragraph(line.strip())
+            out_doc.save(out_path)
+            return
+
+        # 19. HTML / HTM -> PDF
+        if src_ext in ["html", "htm"] and dst_ext == "pdf":
+            if not HAS_PYMUPDF:
+                raise RuntimeError("PyMuPDF is required for HTML to PDF conversion.")
+            doc = pymupdf.open(src_path)
+            pdf_bytes = doc.convert_to_pdf()
+            pdf_doc = pymupdf.open("pdf", pdf_bytes)
+            pdf_doc.save(out_path)
+            doc.close()
+            pdf_doc.close()
+            return
+
+        # 20. HTML / HTM -> TXT
+        if src_ext in ["html", "htm"] and dst_ext == "txt":
+            with open(src_path, "r", encoding="utf-8", errors="ignore") as f:
+                html_content = f.read()
+            clean_text = re.sub(r'<style[^>]*>[\s\S]*?</style>', '', html_content, flags=re.I)
+            clean_text = re.sub(r'<script[^>]*>[\s\S]*?</script>', '', clean_text, flags=re.I)
+            clean_text = re.sub(r'<[^>]+>', ' ', clean_text)
+            clean_text = html.unescape(clean_text)
+            clean_text = "\n".join(line.strip() for line in clean_text.splitlines() if line.strip())
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(clean_text)
+            return
+
+        # 21. HTML / HTM -> DOCX
+        if src_ext in ["html", "htm"] and dst_ext == "docx":
+            if not HAS_DOCX:
+                raise RuntimeError("python-docx is required for HTML to DOCX conversion.")
+            with open(src_path, "r", encoding="utf-8", errors="ignore") as f:
+                html_content = f.read()
+            clean_text = re.sub(r'<style[^>]*>[\s\S]*?</style>', '', html_content, flags=re.I)
+            clean_text = re.sub(r'<script[^>]*>[\s\S]*?</script>', '', clean_text, flags=re.I)
+            clean_text = re.sub(r'<[^>]+>', '\n', clean_text)
+            clean_text = html.unescape(clean_text)
+            out_doc = docx.Document()
+            for line in clean_text.splitlines():
+                if line.strip():
+                    out_doc.add_paragraph(line.strip())
+            out_doc.save(out_path)
+            return
+
+        # 22. TXT / TEXT / MD -> DOCX
+        if src_ext in ["txt", "text", "md"] and dst_ext == "docx":
+            if not HAS_DOCX:
+                raise RuntimeError("python-docx is required for TXT to DOCX conversion.")
+            with open(src_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            out_doc = docx.Document()
+            for line in content.splitlines():
+                l = line.strip()
+                if not l:
+                    continue
+                if src_ext == "md":
+                    if l.startswith("# "):
+                        out_doc.add_heading(l[2:], level=1)
+                    elif l.startswith("## "):
+                        out_doc.add_heading(l[3:], level=2)
+                    elif l.startswith("### "):
+                        out_doc.add_heading(l[4:], level=3)
+                    elif l.startswith("- ") or l.startswith("* "):
+                        out_doc.add_paragraph(l[2:], style="List Bullet")
+                    else:
+                        out_doc.add_paragraph(l)
+                else:
+                    out_doc.add_paragraph(l)
+            out_doc.save(out_path)
+            return
+
+        # 23. SVG -> PDF / PNG / JPG / WEBP
+        if src_ext == "svg" and dst_ext in ["pdf", "png", "jpg", "jpeg", "webp"]:
+            if not HAS_PYMUPDF:
+                raise RuntimeError("PyMuPDF is required for SVG conversion.")
+            doc = pymupdf.open(src_path)
+            pdf_bytes = doc.convert_to_pdf()
+            pdf_doc = pymupdf.open("pdf", pdf_bytes)
+            if dst_ext == "pdf":
+                pdf_doc.save(out_path)
+            else:
+                pix = pdf_doc[0].get_pixmap(dpi=150)
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                fmt = "JPEG" if dst_ext in ["jpg", "jpeg"] else dst_ext.upper()
+                img.save(out_path, format=fmt)
+            doc.close()
+            pdf_doc.close()
+            return
+
+        # 24. YAML / YML <-> JSON
+        if src_ext in ["yaml", "yml"] and dst_ext == "json":
+            if not HAS_YAML:
+                raise RuntimeError("PyYAML library is required for YAML conversion.")
+            with open(src_path, "r", encoding="utf-8", errors="ignore") as f:
+                data = yaml.safe_load(f)
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, default=str)
+            return
+
+        if src_ext == "json" and dst_ext in ["yaml", "yml"]:
+            if not HAS_YAML:
+                raise RuntimeError("PyYAML library is required for YAML conversion.")
+            with open(src_path, "r", encoding="utf-8", errors="ignore") as f:
+                data = json.load(f)
+            with open(out_path, "w", encoding="utf-8") as f:
+                yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            return
+
+        # 25. XML -> JSON
+        if src_ext == "xml" and dst_ext == "json":
+            import xml.etree.ElementTree as ET
+            def _elem_to_dict(elem):
+                d = {elem.tag: {}}
+                children = list(elem)
+                if children:
+                    dd = {}
+                    for dc in map(_elem_to_dict, children):
+                        for k, v in dc.items():
+                            if k in dd:
+                                if not isinstance(dd[k], list):
+                                    dd[k] = [dd[k]]
+                                dd[k].append(v)
+                            else:
+                                dd[k] = v
+                    d = {elem.tag: dd}
+                if elem.attrib:
+                    d[elem.tag]["@attributes"] = elem.attrib
+                if elem.text and elem.text.strip():
+                    if children or elem.attrib:
+                        d[elem.tag]["#text"] = elem.text.strip()
+                    else:
+                        d[elem.tag] = elem.text.strip()
+                return d
+            try:
+                tree = ET.parse(src_path)
+                root = tree.getroot()
+                dict_data = _elem_to_dict(root)
+                with open(out_path, "w", encoding="utf-8") as f:
+                    json.dump(dict_data, f, indent=2)
+            except Exception as exc:
+                raise ValueError(f"Failed to parse XML: {exc}")
+            return
+
+        # 26. CODE FILES -> PDF / TXT / HTML
+        if src_ext in ["py", "js", "ts", "java", "c", "cpp", "rs", "go", "sql", "tsv"] and dst_ext in ["pdf", "txt", "html"]:
+            with open(src_path, "r", encoding="utf-8", errors="ignore") as f:
+                code_content = f.read()
+            if dst_ext == "txt":
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(code_content)
+                return
+            elif dst_ext == "html":
+                escaped = html.escape(code_content)
+                html_code = f"<!DOCTYPE html><html><head><meta charset='utf-8'><title>{html.escape(stem)}</title><style>body{{background:#0f172a;color:#e2e8f0;padding:2rem;font-family:monospace;}}pre{{background:#1e293b;padding:1.5rem;border-radius:0.75rem;overflow:auto;}}</style></head><body><pre><code>{escaped}</code></pre></body></html>"
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(html_code)
+                return
+            elif dst_ext == "pdf":
+                if not HAS_PYMUPDF:
+                    raise RuntimeError("PyMuPDF is required for code to PDF conversion.")
+                doc = pymupdf.open()
+                lines = code_content.splitlines() or [""]
+                lines_per_page = 55
+                for p_start in range(0, max(1, len(lines)), lines_per_page):
+                    page = doc.new_page(width=595, height=842)
+                    page_text = "\n".join(lines[p_start:p_start + lines_per_page])
+                    page.insert_text((40, 50), page_text, fontsize=8.5, fontname="couri")
+                doc.save(out_path)
+                doc.close()
+                return
+
         # If completely unsupported, raise ValueError instead of creating corrupted copies
         raise ValueError(f"Direct conversion from '.{src_ext}' to '.{dst_ext}' is not supported.")
 
     # ==================== OMNI PDF ENGINE MODULES ====================
-    
+
     @staticmethod
     def parse_page_ranges(range_str: str, total_pages: int) -> List[int]:
         """
@@ -541,7 +1176,7 @@ class OmniConverterEngine:
         """
         if not range_str or range_str.strip().lower() == "all":
             return list(range(total_pages))
-        
+
         range_str = range_str.strip().lower()
         if range_str == "odd":
             return [i for i in range(total_pages) if (i + 1) % 2 != 0]
@@ -606,7 +1241,7 @@ class OmniConverterEngine:
             temp_dir = tempfile.mkdtemp(prefix="omni_split_zip_")
             stem = Path(pdf_path).stem
             zip_out_path = out_path if out_path.endswith(".zip") else f"{out_path}.zip"
-            
+
             with zipfile.ZipFile(zip_out_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for idx in indices:
                     w = pypdf.PdfWriter()
