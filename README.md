@@ -70,7 +70,7 @@ These are the input extensions currently advertised by `/api/formats`. Available
 
 **Format limits:** Not every input converts to every output. Legacy Excel `.xls` is not supported. Conversions from spreadsheets to a single-table format use the first worksheet. PPTX-to-PDF recreates slide content and may change layout. Target-size presets aim for the chosen size; source content, codec, and format limits mean the result is not guaranteed to fit.
 
-\* Audio and video conversion requires FFmpeg on the server machine and available on `PATH`. The `/api/health` response reports whether FFmpeg is detected.
+\* Audio and video conversion uses the FFmpeg binary bundled by the `imageio-ffmpeg` Python dependency. A system FFmpeg on `PATH` is used when available; `/api/health` reports whether an executable was detected.
 
 ## Architecture
 
@@ -104,7 +104,7 @@ The browser handles interaction, queue state, and previews. The backend checks t
 
 - Python **3.10 or newer**
 - Node.js **22** and npm to build the web interface
-- FFmpeg for audio and video conversion
+- FFmpeg is installed through the Python requirements for audio and video conversion; a system FFmpeg is optional
 
 There are currently no published standalone release binaries or package-manager installers. The source launchers are the supported way to run OmniConverter locally.
 

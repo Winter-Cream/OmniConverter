@@ -318,9 +318,22 @@ def _docx_to_pdf_native(src_path: str, out_path: str):
 
 
 
+def get_ffmpeg_executable() -> Optional[str]:
+    """Find system FFmpeg or the portable binary bundled by imageio-ffmpeg."""
+    executable = shutil.which("ffmpeg") or shutil.which("ffmpeg.exe")
+    if executable:
+        return executable
+    try:
+        import imageio_ffmpeg
+        bundled = imageio_ffmpeg.get_ffmpeg_exe()
+        return bundled if os.path.isfile(bundled) else None
+    except (ImportError, RuntimeError, OSError):
+        return None
+
+
 def check_ffmpeg() -> bool:
-    """Checks whether FFmpeg executable is present on the system PATH."""
-    return shutil.which("ffmpeg") is not None or shutil.which("ffmpeg.exe") is not None
+    """Return whether a system or bundled FFmpeg executable is available."""
+    return get_ffmpeg_executable() is not None
 
 
 class ConversionResult:
@@ -573,9 +586,9 @@ class OmniConverterEngine:
 
         try:
             # 1. Check FFmpeg dependency for audio/video media conversions
-            if target_format in ["mp3", "wav", "ogg", "flac", "aac", "mp4", "webm"] and input_ext in ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "wav", "mp3", "aac", "m4a", "opus", "flac", "ogg"]:
+            if target_format in ["mp3", "wav", "ogg", "flac", "aac", "mp4", "webm", "gif"] and input_ext in ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "wav", "mp3", "aac", "m4a", "opus", "flac", "ogg"]:
                 if not check_ffmpeg() and not HAS_FCP:
-                    raise RuntimeError("FFmpeg executable not found in system PATH. Required for audio/video media conversion.")
+                    raise RuntimeError("FFmpeg executable not found. Install FFmpeg or reinstall OmniConverter's Python dependencies, then restart.")
 
             # 2. Try File Converter Pro Engine first if available
             if HAS_FCP and FCP_ENGINE is not None and not options.get("strip_metadata") and not options.get("target_size_preset"):
@@ -712,7 +725,14 @@ class OmniConverterEngine:
                 self._optimize_pdf_to_size(src_path, self._target_size_bytes(options), bool(options.get("strip_metadata")))
                 shutil.copyfile(src_path, out_path)
                 return
-            if not (options.get("strip_metadata") and src_ext in {"png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "tiff"}):
+            media_formats = {"mp3", "wav", "aac", "flac", "ogg", "m4a", "opus", "mp4", "webm", "mkv", "avi", "mov", "flv", "wmv", "m4v"}
+            media_reencode = src_ext in media_formats and (
+                bool(self._target_size_bytes(options))
+                or bool(options.get("audio_bitrate") or options.get("audioBitrate"))
+                or bool(options.get("video_quality") and options.get("video_quality") != "Original")
+                or bool(options.get("strip_audio") or options.get("stripAudio"))
+            )
+            if not media_reencode and not (options.get("strip_metadata") and src_ext in {"png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "tiff"}):
                 shutil.copyfile(src_path, out_path)
                 return
 
@@ -843,11 +863,17 @@ class OmniConverterEngine:
                 wf.write("\n".join(html_lines))
             return
 
+        # HTML and HTM use the same markup; normalize the output extension.
+        if src_ext in ["html", "htm"] and dst_ext in ["html", "htm"]:
+            shutil.copyfile(src_path, out_path)
+            return
+
         # 5. AUDIO & VIDEO CONVERSIONS (FFmpeg)
         if (src_ext in ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "mp3", "wav", "aac", "flac", "ogg", "m4a", "opus"] and
             dst_ext in ["mp4", "webm", "gif", "mp3", "wav", "aac", "flac", "ogg"]):
-            if check_ffmpeg():
-                cmd = ["ffmpeg", "-y", "-i", src_path]
+            ffmpeg_executable = get_ffmpeg_executable()
+            if ffmpeg_executable:
+                cmd = [ffmpeg_executable, "-y", "-i", src_path]
                 target_bytes = self._target_size_bytes(options)
                 target_bitrate_set = False
                 if target_bytes:
@@ -860,7 +886,8 @@ class OmniConverterEngine:
                             cmd.extend(["-b:v", f"{video_kbps}k", "-b:a", f"{audio_kbps}k"])
                             target_bitrate_set = True
                         elif dst_ext in ["mp3", "aac", "ogg"]:
-                            cmd.extend(["-b:a", f"{total_kbps}k"])
+                            audio_kbps = min(192, total_kbps) if dst_ext == "ogg" else total_kbps
+                            cmd.extend(["-b:a", f"{audio_kbps}k"])
                             target_bitrate_set = True
 
                 # Video Options
@@ -879,10 +906,12 @@ class OmniConverterEngine:
                         cmd.append("-an")
 
                 # Audio / Audio Extraction Options
-                if dst_ext in ["mp3", "wav", "aac", "flac", "ogg"] and not target_bitrate_set:
+                if dst_ext in ["mp3", "wav", "aac", "flac", "ogg"]:
                     cmd.append("-vn")
-                    ab = str(options.get("audio_bitrate") or options.get("audioBitrate") or "320k").replace("kbps", "").replace("k", "")
-                    cmd.extend(["-b:a", f"{ab}k"])
+                    if dst_ext in ["mp3", "aac", "ogg"] and not target_bitrate_set:
+                        ab = str(options.get("audio_bitrate") or options.get("audioBitrate") or "320k").replace("kbps", "").replace("k", "")
+                        bitrate = min(int(ab), 192) if dst_ext == "ogg" and ab.isdigit() else ab
+                        cmd.extend(["-b:a", f"{bitrate}k"])
 
                 cmd.append(out_path)
                 res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -890,7 +919,7 @@ class OmniConverterEngine:
                     return
                 else:
                     err = res.stderr.decode("utf-8", errors="ignore")
-                    raise RuntimeError(f"FFmpeg conversion failed: {err[:200]}")
+                    raise RuntimeError(f"FFmpeg conversion failed: {err[-600:]}")
 
         # 6. PDF -> TXT (PyMuPDF / RapidOCR / PyPDF)
         if src_ext == "pdf" and dst_ext == "txt":
@@ -1369,7 +1398,7 @@ class OmniConverterEngine:
                 for p_start in range(0, max(1, len(lines)), lines_per_page):
                     page = doc.new_page(width=595, height=842)
                     page_text = "\n".join(lines[p_start:p_start + lines_per_page])
-                    page.insert_text((40, 50), page_text, fontsize=8.5, fontname="couri")
+                    page.insert_text((40, 50), page_text, fontsize=8.5, fontname="cour")
                 doc.save(out_path)
                 doc.close()
                 return

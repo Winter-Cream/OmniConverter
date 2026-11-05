@@ -1,11 +1,14 @@
 """Coverage for format detection, plugin resolution, and shortest-path routing."""
 import io
 from pathlib import Path
+import subprocess
+import tempfile
+import pytest
 
 from PIL import Image
 
 from conversion_architecture import find_conversion_path
-from converter_engine import OmniConverterEngine
+from converter_engine import OmniConverterEngine, get_ffmpeg_executable
 from pypdf import PdfWriter
 
 
@@ -68,3 +71,48 @@ def test_size_preset_resolves_email_budget_and_image_conversion():
     result = engine.convert_file(buffer.getvalue(), "small.png", "webp", {"target_size_preset": "email_2mb"})
     assert result.success, result.error
     assert Path(result.output_path).stat().st_size <= 2 * 1024 * 1024
+
+
+def test_ffmpeg_video_and_audio_conversions(tmp_path):
+    ffmpeg = get_ffmpeg_executable()
+    assert ffmpeg, "FFmpeg should be available from PATH or the bundled imageio-ffmpeg package"
+    source = tmp_path / "sample.mp4"
+    subprocess.run(
+        [ffmpeg, "-y", "-f", "lavfi", "-i", "testsrc=size=160x120:rate=12",
+         "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-t", "1.5",
+         "-c:v", "mpeg4", "-c:a", "aac", str(source)],
+        check=True, capture_output=True, timeout=60,
+    )
+    engine = OmniConverterEngine()
+
+    for target in ("webm", "mp3", "gif"):
+        result = engine.convert_file(source.read_bytes(), source.name, target)
+        assert result.success, f"MP4 to {target} failed: {result.error}"
+        assert Path(result.output_path).stat().st_size > 0
+
+
+def test_ffmpeg_bundled_fallback_when_system_binary_is_absent(monkeypatch):
+    import imageio_ffmpeg
+    monkeypatch.setattr("converter_engine.shutil.which", lambda _name: None)
+    assert get_ffmpeg_executable() == imageio_ffmpeg.get_ffmpeg_exe()
+
+
+@pytest.mark.parametrize("extension", ["py", "js", "ts", "sql", "java", "c", "cpp", "rs", "go"])
+def test_advertised_code_to_pdf_conversions(extension):
+    result = OmniConverterEngine().convert_file(b"print('sample')\n", f"sample.{extension}", "pdf")
+    assert result.success, f"{extension} to PDF failed: {result.error}"
+
+
+def test_html_htm_normalization_and_wav_to_ogg():
+    html_result = OmniConverterEngine().convert_file(b"<html><body>ok</body></html>", "sample.htm", "html")
+    assert html_result.success, html_result.error
+
+    ffmpeg = get_ffmpeg_executable()
+    assert ffmpeg
+    with tempfile.TemporaryDirectory() as folder:
+        source = Path(folder) / "tone.wav"
+        subprocess.run([ffmpeg, "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=0.8", str(source)],
+                       check=True, capture_output=True, timeout=60)
+        for target in ("mp3", "wav", "ogg", "flac", "aac"):
+            result = OmniConverterEngine().convert_file(source.read_bytes(), source.name, target)
+            assert result.success, f"WAV to {target} failed: {result.error}"
