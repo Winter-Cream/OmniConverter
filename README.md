@@ -1,5 +1,9 @@
 # OmniConverter
 
+<p align="center">
+  <img src="assets/logo.png" alt="OmniConverter logo" width="150" />
+</p>
+
 OmniConverter is a local-first file conversion app with a React interface and a Python/FastAPI backend. It converts files across 47 supported input extensions, includes common PDF tools, and can watch a folder for new files to convert.
 
 File conversion runs on the machine hosting OmniConverter. OmniAI can use its built-in knowledge mode or a configured local or cloud model; cloud providers receive the prompts sent to them.
